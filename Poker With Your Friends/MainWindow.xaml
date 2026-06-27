@@ -14,6 +14,15 @@
     </Window.SystemBackdrop>
 
     <Grid>
-
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Button Click="ViewModel.StartGameClick" Grid.Column="0" Grid.Row="0" HorizontalAlignment="Center">Start Game</Button>
+        <Button Click="ViewModel.StartServerClick" Grid.Column="1" Grid.Row="0" HorizontalAlignment="Center">Start Server</Button>
     </Grid>
 </Window>

@@ -5,7 +5,6 @@ using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
-using Poker_With_Your_Friends.ViewModel;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -22,13 +21,11 @@ namespace Poker_With_Your_Friends
     /// <summary>
     /// An empty window that can be used on its own or navigated to within a Frame.
     /// </summary>
-    public sealed partial class MainWindow : Window
+    public sealed partial class ServerWindow : Window
     {
-        private MainWindowViewModel ViewModel = new MainWindowViewModel();
-        public MainWindow()
+        public ServerWindow()
         {
             InitializeComponent();
         }
-
     }
 }
