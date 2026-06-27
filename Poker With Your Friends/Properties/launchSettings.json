@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Poker With Your Friends (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "Poker With Your Friends (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
