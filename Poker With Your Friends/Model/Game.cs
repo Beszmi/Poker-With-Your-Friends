@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -23,7 +24,7 @@ namespace Poker_With_Your_Friends.Model
             }
         }
 
-        public static List<Player> Players { get; } = [];
+        public static ObservableCollection<Player> Players { get; } = [];
 
         public static void AddPlayer(Player player)
         {
@@ -34,17 +35,16 @@ namespace Poker_With_Your_Friends.Model
             Players.Remove(player);
         }
 
-        private static List<Table> tables = new List<Table>();
-        public static List<Table> Tables { get; } = [];
+        public static ObservableCollection<Table> Tables { get; } = [];
 
-        public static void AddTable(Table table)
+        public static void AddTable(String name)
         {
-            tables.Add(table);
+            Tables.Add(new Table(name));
         }
 
         public static void RemoveTable(Table table)
         {
-            tables.Remove(table);
+            Tables.Remove(table);
         }
     }
 }

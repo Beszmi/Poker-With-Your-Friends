@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Poker_With_Your_Friends.Model;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;

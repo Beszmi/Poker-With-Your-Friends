@@ -67,5 +67,20 @@ namespace Poker_With_Your_Friends.Model
         {
             cards.Clear();
         }
+
+        private bool isAtTable = false;
+
+        public bool IsAtTable
+        {
+            get { return isAtTable; }
+            set { isAtTable = value; }
+        }
+
+        private String? currentTableName;
+        public String? CurrentTableName
+        {
+            get { return currentTableName; }
+            set { currentTableName = value; }
+        }
     }
 }
