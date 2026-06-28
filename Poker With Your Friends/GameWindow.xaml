@@ -26,6 +26,11 @@
         -->
         <TextBlock Text="Game Window" Grid.Column="0" Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="24"/>
 
+        <TextBlock Grid.Column="0" Grid.Row="0" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="24">
+            <Run Text="Hi, "/>
+            <Run Text="{x:Bind Model:Client.CurrentPlayer.Name}"/>
+        </TextBlock>
+
         <StackPanel Grid.Row="0" Orientation="Vertical" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,20,0,0" Spacing="5" Canvas.ZIndex="1">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,20,0,0" Spacing="5">
                 <TextBlock Text="Your tables name:" HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -45,11 +50,27 @@
             </GridView.ItemsPanel>
             <GridView.ItemTemplate>
                 <DataTemplate x:DataType="Model:Table">
-                    <Grid Background="LightGray" Height="100" Width="100">
+                    <Grid Background="LightGreen" Height="200" Width="200">
                         <FontIcon Glyph="&#xE76E;" />
-                        <TextBlock Text="{x:Bind Name}"
+                        <TextBlock Text="{x:Bind Name, Mode=OneWay}"
+                           VerticalAlignment="Top"
                            HorizontalAlignment="Center"
-                           FontSize="24" Foreground="Green"/>
+                           FontSize="24" Foreground="Red"/>
+                        <TextBlock VerticalAlignment="Bottom" HorizontalAlignment="Left" FontSize="12">
+                            <Run Text="Players: "/>
+                            <Run Text="{x:Bind Players.Count, Mode=OneWay}"/>
+                        </TextBlock>
+                        <TextBlock VerticalAlignment="Bottom" HorizontalAlignment="Right" FontSize="12">
+                            <Run Text="Pot: "/>
+                            <Run Text="{x:Bind Pot, Mode=OneWay}"/>
+                            <LineBreak/>
+                            <Run Text="Round: "/>
+                            <Run Text="{x:Bind Round, Mode=OneWay}"/>
+                            <LineBreak/>
+                            <Run Text="Small blind: "/>
+                            <Run Text="{x:Bind SmallBlind, Mode=OneWay}"/>
+                            <Run Text="$"/>
+                        </TextBlock>
                     </Grid>
                 </DataTemplate>
             </GridView.ItemTemplate>

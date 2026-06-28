@@ -9,8 +9,10 @@ namespace Poker_With_Your_Friends.ViewModel
 {
     public class MainWindowViewModel
     {
+        public string NewPlayerName { get; set; }
         public void StartGameClick(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
         {
+            Client.CurrentPlayer = new Player(NewPlayerName);
             GameWindow newWindow = new GameWindow();
             newWindow.Activate();
         }

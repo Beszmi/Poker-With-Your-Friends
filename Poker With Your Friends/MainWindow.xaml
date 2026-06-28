@@ -27,7 +27,7 @@
         <StackPanel Grid.Column="0" Grid.Row="1" Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,20,0,0" Spacing="10">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
                 <TextBlock Text="Player Name:" VerticalAlignment="Center" />
-                <TextBox Width="200" Text="" />
+                <TextBox Width="200" Text="{x:Bind ViewModel.NewPlayerName, Mode=TwoWay}" />
             </StackPanel>
             <Button Click="ViewModel.StartGameClick" HorizontalAlignment="Center">Start Game</Button>
         </StackPanel>

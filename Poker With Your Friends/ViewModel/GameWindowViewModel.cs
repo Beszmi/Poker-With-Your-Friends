@@ -28,8 +28,7 @@ namespace Poker_With_Your_Friends.ViewModel
         {
             if (e.ClickedItem is Table table)
             {
-                // Handle the item click event here
-                // For example, you can navigate to a new page or perform some action with the clicked table
+                table.AddPlayer(Client.CurrentPlayer);
             }
         }
     }
