@@ -9,6 +9,7 @@ namespace Poker_With_Your_Friends.Model
     public class Client
     {
         public static Player CurrentPlayer { get; set; }
+        public static Table? CurrentTable { get; set; }
         public Player? ConatinedPlayer
         {
             get; set;

@@ -72,6 +72,9 @@ namespace Poker_With_Your_Friends.Model
         public Table(String name)
         {
             this.name = name;
+
+            housecards.Add(deck.Cards[-1]);
+            housecards.Add(deck.Cards[-2]);
         }
 
         public void AddPlayer(Player player)

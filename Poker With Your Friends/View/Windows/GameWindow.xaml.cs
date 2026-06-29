@@ -44,9 +44,18 @@ namespace Poker_With_Your_Friends
         }
 
         private GameWindowViewModel viewModel = new GameWindowViewModel();
+
+        public Frame Frame { get; private set; }
         public GameWindow()
         {
             InitializeComponent();
+
+            RootFrame.Navigate(typeof(GameMenuPage));
+        }
+
+        public void OnNavigationFailed(object sender, NavigationFailedEventArgs e)
+        {
+            throw new Exception("Failed to load Page " + e.SourcePageType.FullName);
         }
     }
 }
