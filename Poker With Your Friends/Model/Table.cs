@@ -11,11 +11,14 @@ namespace Poker_With_Your_Friends.Model
     public class Table: INotifyPropertyChanged
     {
         private String name;
-        private int round;
+        private int round = 0;
         private int smallBlind;
         private Deck deck = new Deck();
         private ObservableCollection<Card> housecards = new ObservableCollection<Card>();
+        private ObservableCollection<Player> players = new ObservableCollection<Player>();
         private int pot = 0;
+        private Player? CurrentlyActivePlayer = null;
+        private static int maxPlayers = 0;
         public String Name
         {
             get { return name; }
@@ -55,8 +58,6 @@ namespace Poker_With_Your_Friends.Model
             get { return pot; }
         }
 
-        private ObservableCollection<Player> players = new ObservableCollection<Player>();
-
         public event PropertyChangedEventHandler? PropertyChanged;
 
         public ObservableCollection<Player> Players
@@ -85,6 +86,10 @@ namespace Poker_With_Your_Friends.Model
                 Players.Add(player);
                 player.IsAtTable = true;
             }
+            if (Players.Count > maxPlayers)
+            {
+                throw new InvalidOperationException("Table is full. Cannot add more players.");
+            }
         }
 
         public void RemovePlayer(Player player)
@@ -94,6 +99,13 @@ namespace Poker_With_Your_Friends.Model
                 Players.Remove(player);
                 player.IsAtTable = false;
             }
+        }
+
+        public void StartRound()
+        {
+            Round++;
+            pot = 0;
+            housecards.Clear();
         }
     }
 }

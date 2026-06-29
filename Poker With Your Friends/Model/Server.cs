@@ -8,6 +8,5 @@ namespace Poker_With_Your_Friends.Model
 {
     public class Server
     {
-        public static bool ServerMode { get; set; } = true;
     }
 }

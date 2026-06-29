@@ -42,7 +42,7 @@ namespace Poker_With_Your_Friends
         {
             if (e.ClickedItem is Table clickedTable)
             {
-                viewModel.JoinTable(clickedTable);
+                viewModel.ViewTable(clickedTable);
             }
         }
 

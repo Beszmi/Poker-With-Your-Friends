@@ -55,5 +55,30 @@ namespace Poker_With_Your_Friends
 
             Frame.GoBack(new DrillInNavigationTransitionInfo());
         }
+
+        private async void JoinGameButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                viewModel.Table.AddPlayer(Client.CurrentPlayer);
+                Client.CurrentTable = viewModel.Table;
+            }
+            catch (InvalidOperationException ex)
+            {
+                DisplayTableFullDialog(ex.Message);
+            }
+        }
+
+        private async void DisplayTableFullDialog(String message)
+        {
+            ContentDialog tableFullDialog = new ContentDialog
+            {
+                Title = "Error",
+                Content = message,
+                CloseButtonText = "OK"
+            };
+
+            ContentDialogResult result = await tableFullDialog.ShowAsync(); //FIX
+        }
     }
 }

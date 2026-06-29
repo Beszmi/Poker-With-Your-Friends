@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.Input;
+using Microsoft.UI.Xaml.Controls;
 using Poker_With_Your_Friends.Model;
 using System;
 using System.Collections.Generic;
@@ -41,10 +42,8 @@ namespace Poker_With_Your_Friends.ViewModel
 
         public ICommand GoToPage2Command { get; }
 
-        public void JoinTable(Table table)
+        public void ViewTable(Table table)
         {
-            table.AddPlayer(Client.CurrentPlayer);
-            Client.CurrentTable = table;
             NavigationRequested?.Invoke(typeof(InGamePage), table);
         }
     }

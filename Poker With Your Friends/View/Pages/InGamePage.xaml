@@ -68,5 +68,6 @@
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
+        <Button Grid.Column="0" Grid.Row="2" Content="Join Game" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="10" Click="JoinGameButton_Click"/>
     </Grid>
 </Page>

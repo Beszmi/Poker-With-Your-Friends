@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,6 +10,10 @@ namespace Poker_With_Your_Friends.Model
 {
     public class Game //Singleton
     {
+        public static string PlayerfolderPath = Windows.Storage.ApplicationData.Current.LocalFolder.Path;
+
+        public static string PlayerfilePath = Path.Combine(PlayerfolderPath, "players.xml");
+
         private static Game instance;
 
         private Game()

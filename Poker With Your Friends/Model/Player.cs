@@ -11,10 +11,6 @@ namespace Poker_With_Your_Friends.Model
     [XmlType("Player")]
     public class Player
     {
-        public static string folderPath = Windows.Storage.ApplicationData.Current.LocalFolder.Path;
-
-        public static string filePath = Path.Combine(folderPath, "players.xml");
-
         private String name;
         [XmlAttribute("Name")]
         public String Name
@@ -92,5 +88,7 @@ namespace Poker_With_Your_Friends.Model
             set { currentTableName = value; }
         }
 
+        [XmlIgnore]
+        public bool HasFolded { get; set; } = false;
     }
 }

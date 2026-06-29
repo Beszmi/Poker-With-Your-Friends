@@ -18,11 +18,11 @@ namespace Poker_With_Your_Friends.ViewModel
         public Game game = Game.Instance;
         public string NewPlayerName { get; set; }
 
-        //TODO: Move this to server code!
         public MainWindowViewModel()
         {
-            ReadPlayersFromXml(Player.filePath);
+            ReadPlayersFromXml(Game.PlayerfilePath);
         }
+        //TODO: Move this to server code!
         public void ReadPlayersFromXml(string xmlFilePath)
         {
             if (!File.Exists(xmlFilePath))
@@ -43,11 +43,12 @@ namespace Poker_With_Your_Friends.ViewModel
             }
         }
 
+        //TODO: Move this to server code!
         public void SavePlayersToXml(string xmlFilePath)
         {
-            if (!Directory.Exists(Player.folderPath))
+            if (!Directory.Exists(Game.PlayerfolderPath))
             {
-                Directory.CreateDirectory(Player.folderPath);
+                Directory.CreateDirectory(Game.PlayerfolderPath);
             }
 
             if (Game.Players == null || Game.Players.Count == 0)
@@ -76,7 +77,8 @@ namespace Poker_With_Your_Friends.ViewModel
         }
         public void Window_Closed(object sender, WindowEventArgs args)
         {
-            SavePlayersToXml(Player.filePath);
+            //TODO: Move this to server code!
+            SavePlayersToXml(Game.PlayerfilePath);
         }
         public void StartGameClick(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
         {
