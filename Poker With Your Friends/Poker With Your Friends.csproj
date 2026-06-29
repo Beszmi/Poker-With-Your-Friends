@@ -18,6 +18,7 @@
     <None Remove="GameWindow.xaml" />
     <None Remove="InGamePage.xaml" />
     <None Remove="ServerWindow.xaml" />
+    <None Remove="Templates.xaml" />
   </ItemGroup>
 
   <ItemGroup>
@@ -70,6 +71,11 @@
   <ItemGroup>
     <Folder Include="View\Windows\" />
     <Folder Include="View\Pages\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Templates.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
 
   <!--

@@ -8,9 +8,17 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
+    <Page.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="ms-appx:///View/Templates.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Page.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
@@ -48,10 +56,15 @@
             <Run Text="{x:Bind viewModel.Table.SmallBlind, Mode=OneWay}"/>
             <Run Text="$"/>
         </TextBlock>
-        <ListView Grid.Column="0" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" ItemsSource="{x:Bind viewModel.Table.Housecards}">
+        <ListView Grid.Column="0" Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Bottom" ItemsSource="{x:Bind viewModel.Table.Housecards}">
+            <ListView.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <ItemsStackPanel Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+            </ListView.ItemsPanel>
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="Model:Card">
-                    <ContentControl Content="{x:Bind}" Template="{StaticResource CardTemplate}"/>
+                    <ContentControl Content="{x:Bind}" ContentTemplate="{StaticResource CardTemplate}"/>
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>

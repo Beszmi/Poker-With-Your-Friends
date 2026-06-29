@@ -10,7 +10,7 @@ namespace Poker_With_Your_Friends.Model
         public List<Card> Cards { get { return cards; } }
         public Deck() {
             cards = new List<Card>();
-            for (int i = 1; i <= 52; i++)
+            for (int i = 1; i <= 13; i++)
             {
                 for (int j = 0; j < 4; j++)
                 {
@@ -31,6 +31,17 @@ namespace Poker_With_Your_Friends.Model
                 cards[k] = cards[n];
                 cards[n] = value;
             }
+        }
+
+        public Card DrawCard()
+        {
+            if (cards.Count == 0)
+            {
+                throw new InvalidOperationException("The deck is empty.");
+            }
+            Card drawnCard = cards[cards.Count - 1];
+            cards.RemoveAt(cards.Count - 1);
+            return drawnCard;
         }
     }
 }

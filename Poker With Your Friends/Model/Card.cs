@@ -59,36 +59,57 @@ namespace Poker_With_Your_Friends.Model
             }
 
         }
-        public String GetSuitSymbol()
+        public String SuitSymbol
         {
-            return this.suit switch
+            get
             {
-                Suit.Spade => "♠",
-                Suit.Diamond => "♦",
-                Suit.Heart => "♥",
-                Suit.Club => "♣",
-                _ => throw new ArgumentException("Invalid suit value"),
-            };
+                return suit switch
+                {
+                    Suit.Spade => "♠",
+                    Suit.Diamond => "♦",
+                    Suit.Heart => "♥",
+                    Suit.Club => "♣",
+                    _ => throw new ArgumentException("Invalid suit value"),
+                };
+            }
         }
-        public String GetValueSymbol()
+        public String ValueSymbol
         {
-            return this.value switch
+            get
             {
-                1 => "A",
-                2 => "2",
-                3 => "3",
-                4 => "4",
-                5 => "5",
-                6 => "6",
-                7 => "7",
-                8 => "8",
-                9 => "9",
-                10 => "10",
-                11 => "J",
-                12 => "Q",
-                13 => "K",
-                _ => throw new ArgumentException("Invalid value"),
-            };
+                return value switch
+                {
+                    1 => "A",
+                    2 => "2",
+                    3 => "3",
+                    4 => "4",
+                    5 => "5",
+                    6 => "6",
+                    7 => "7",
+                    8 => "8",
+                    9 => "9",
+                    10 => "10",
+                    11 => "J",
+                    12 => "Q",
+                    13 => "K",
+                    _ => throw new ArgumentException("Invalid value"),
+                };
+            }
         }
-    }
+
+        public String Color
+        {
+            get
+            {
+                return suit switch
+                {
+                    Suit.Spade => "Black",
+                    Suit.Club => "Black",
+                    Suit.Diamond => "Red",
+                    Suit.Heart => "Red",
+                    _ => throw new ArgumentException("Invalid suit value"),
+                };
+            }
+        }
+}
 }
