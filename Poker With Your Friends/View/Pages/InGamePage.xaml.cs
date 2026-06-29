@@ -71,14 +71,15 @@ namespace Poker_With_Your_Friends
 
         private async void DisplayTableFullDialog(String message)
         {
-            ContentDialog tableFullDialog = new ContentDialog
-            {
-                Title = "Error",
-                Content = message,
-                CloseButtonText = "OK"
-            };
+            ContentDialog myDialog = new ContentDialog();
 
-            ContentDialogResult result = await tableFullDialog.ShowAsync(); //FIX
+            myDialog.XamlRoot = this.XamlRoot;
+
+            myDialog.Title = "Error";
+            myDialog.Content = message;
+            myDialog.PrimaryButtonText = "Ok";
+
+            ContentDialogResult result = await myDialog.ShowAsync();
         }
     }
 }
