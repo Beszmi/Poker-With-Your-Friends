@@ -1,0 +1,13 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Poker_With_Your_Friends.Model
+{
+    public class Server
+    {
+        public static bool ServerMode { get; set; } = true;
+    }
+}

@@ -7,7 +7,8 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
-    Title="Poker With Your Friends">
+    Title="Poker With Your Friends"
+    Closed="ViewModel.Window_Closed">
 
     <Window.SystemBackdrop>
         <MicaBackdrop />

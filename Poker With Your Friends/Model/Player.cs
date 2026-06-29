@@ -1,16 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Windows.Devices.Bluetooth.Advertisement;
+using System.Xml.Serialization;
 
 namespace Poker_With_Your_Friends.Model
 {
+    [XmlType("Player")]
     public class Player
     {
-        private String name;
+        public static string folderPath = Windows.Storage.ApplicationData.Current.LocalFolder.Path;
 
+        public static string filePath = Path.Combine(folderPath, "players.xml");
+
+        private String name;
+        [XmlAttribute("Name")]
         public String Name
         {
             get { return name; }
@@ -18,27 +24,23 @@ namespace Poker_With_Your_Friends.Model
         }
 
         private int chips = 0;
-
+        [XmlAttribute("Chips")]
         public int Chips
         {
             get { return chips; }
-            set 
-            { 
-                if (value < 0) chips = 0;
-                chips = value;
+            set
+            {
+                chips = Math.Max(0, value);
             }
         }
-
-        private int ip;
-
-        public int Ip
-        {
-            get { return ip; }
-        }
+        [XmlIgnore]
+        public int Ip { get; set; }
 
         private List<Card> cards = new List<Card>();
-
+        [XmlIgnore]
         public List<Card> Cards { get { return cards; } }
+
+        public Player() {}
 
         public Player(String name)
         {
@@ -48,14 +50,20 @@ namespace Poker_With_Your_Friends.Model
         public Player(String name, int ip)
         {
             Name = name;
-            this.ip = ip;
+            this.Ip = ip;
         }
 
         public Player(String name, int ip, int chips)
         {
             Name = name;
-            this.ip = ip;
+            this.Ip = ip;
             Chips = chips;
+        }
+
+        public Player(Player p)
+        {
+            this.name = p.name;
+            this.chips = p.chips;
         }
 
         public void AddCard(Card card)
@@ -69,7 +77,7 @@ namespace Poker_With_Your_Friends.Model
         }
 
         private bool isAtTable = false;
-
+        [XmlIgnore]
         public bool IsAtTable
         {
             get { return isAtTable; }
@@ -77,10 +85,12 @@ namespace Poker_With_Your_Friends.Model
         }
 
         private String? currentTableName;
+        [XmlIgnore]
         public String? CurrentTableName
         {
             get { return currentTableName; }
             set { currentTableName = value; }
         }
+
     }
 }
