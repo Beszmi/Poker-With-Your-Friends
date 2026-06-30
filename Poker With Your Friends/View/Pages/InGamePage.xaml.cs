@@ -46,6 +46,11 @@ namespace Poker_With_Your_Friends
                 viewModel.Initialize(tableToDisplay);
             }
         }
+
+        private void LeaveTableButton_Click(object sender, RoutedEventArgs e)
+        {
+            Frame.GoBack(new DrillInNavigationTransitionInfo());
+        }
         private void LeaveGameButton_Click(object sender, RoutedEventArgs e)
         {
             if (Client.CurrentTable != null)
@@ -53,8 +58,6 @@ namespace Poker_With_Your_Friends
                 Client.CurrentTable.RemovePlayer(Client.CurrentPlayer);
                 Client.CurrentTable = null;
             }
-
-            Frame.GoBack(new DrillInNavigationTransitionInfo());
         }
 
         private async void JoinGameButton_Click(object sender, RoutedEventArgs e)

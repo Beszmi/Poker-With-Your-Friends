@@ -8,9 +8,12 @@ using System.Xml.Serialization;
 
 namespace Poker_With_Your_Friends.Model
 {
+    public delegate void PlayerButtonsChanged(bool buttonsEnabled);
     [XmlType("Player")]
     public class Player
     {
+        public event PlayerButtonsChanged? OnPlayerButtonsChanged;
+
         private String name;
         [XmlAttribute("Name")]
         public String Name
@@ -106,17 +109,30 @@ namespace Poker_With_Your_Friends.Model
             }
         }
 
+        private bool isCurrentlyActivePlayer = false;
+        [XmlIgnore]
+        public bool IsCurrentlyActivePlayer 
+        { 
+            get { return IsCurrentlyActivePlayer; } 
+            set
+            {
+                OnPlayerButtonsChanged?.Invoke(value);
+                isCurrentlyActivePlayer = value;
+                System.Diagnostics.Debug.WriteLine("player's active state changed to: " + value);
+            }
+        }
+
         public void Fold() { HasFolded = true; }
 
         public void Call()
         {
-            throw new NotImplementedException();
+            System.Diagnostics.Debug.WriteLine("player calling not implemented");
         }
 
         public void Raise(int amount)
         {
-            throw new NotImplementedException();
-        }
+            System.Diagnostics.Debug.WriteLine("player raising not implemented");
+        } 
 
         public void Lose()
         {
