@@ -36,7 +36,7 @@ namespace Poker_With_Your_Friends.Model
         [XmlIgnore]
         public List<Card> Cards { get { return cards; } }
 
-        public Player() {}
+        public Player() { }
 
         public Player(String name)
         {
@@ -80,15 +80,55 @@ namespace Poker_With_Your_Friends.Model
             set { isAtTable = value; }
         }
 
-        private String? currentTableName;
+        private Table? currentTable;
         [XmlIgnore]
-        public String? CurrentTableName
+        public Table? CurrentTable
         {
-            get { return currentTableName; }
-            set { currentTableName = value; }
+            get { return currentTable; }
+            set { currentTable = value; }
         }
 
         [XmlIgnore]
         public bool HasFolded { get; set; } = false;
+
+        [XmlIgnore]
+        public int CurrentBet { get; set; } = 0;
+
+        [XmlIgnore]
+        public bool CanLeaveGame { 
+            get
+            {
+                if (isAtTable)
+                {
+                    return HasFolded || !CurrentTable.IsGameActive;
+                }
+                return true; //Fallback: If the player is not at a table, they can leave the game.
+            }
+        }
+
+        public void Fold() { HasFolded = true; }
+
+        public void Call()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Raise(int amount)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Lose()
+        {
+            Chips-= CurrentBet;
+            if (Chips <= 0)
+            {
+                throw new NotImplementedException(); // Player is out of chips and loses the game
+            }
+        }
+        public void Win(int amount)
+        {
+            Chips += amount;
+        }
     }
 }

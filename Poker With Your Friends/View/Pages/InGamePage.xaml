@@ -68,6 +68,7 @@
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
-        <Button Grid.Column="0" Grid.Row="2" Content="Join Game" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="10" Click="JoinGameButton_Click"/>
+        <Button Grid.Column="0" Grid.Row="2" Content="➕Join Game" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="10" Click="JoinGameButton_Click" Visibility="{x:Bind viewModel.isJoinButtonVisible, Mode=OneWay}"/>
+        <Button Grid.Column="0" Grid.Row="2" Content="➖Leave Game" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="10" Click="LeaveGameButton_Click" Visibility="{x:Bind viewModel.isLeaveButtonVisible, Mode=OneWay}"/>
     </Grid>
 </Page>

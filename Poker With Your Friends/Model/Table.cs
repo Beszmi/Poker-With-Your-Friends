@@ -18,7 +18,8 @@ namespace Poker_With_Your_Friends.Model
         private ObservableCollection<Player> players = new ObservableCollection<Player>();
         private int pot = 0;
         private Player? CurrentlyActivePlayer = null;
-        private static int maxPlayers = 0;
+        private static int maxPlayers = 6;
+        private bool isGameActive = false;
         public String Name
         {
             get { return name; }
@@ -67,6 +68,15 @@ namespace Poker_With_Your_Friends.Model
             {
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Players)));
                 players = value;
+            }
+        }
+        public bool IsGameActive
+        {
+            get { return isGameActive; }
+            set
+            {
+                isGameActive = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsGameActive)));
             }
         }
 
