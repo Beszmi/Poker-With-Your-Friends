@@ -20,7 +20,9 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <Button Grid.Column="0" Grid.Row="0" Content="❌ leave Table" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10" Click="LeaveTableButton_Click"/>
@@ -31,36 +33,17 @@
             <Run Text=" Players: "/>
         </TextBlock>
 
-        <TextBlock Grid.Column="0" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" FontSize="24" Text="{x:Bind viewModel.TableText}"/>
+        <TextBlock Grid.Column="0" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" FontSize="24" Text="{x:Bind viewModel.TableText, Mode=OneWay}"/>
 
-         <ListView Grid.Column="0" Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Center" ItemsSource="{x:Bind viewModel.Table.Housecards}">
-             <ListView.ItemsPanel>
-                 <ItemsPanelTemplate>
-                     <ItemsStackPanel Orientation="Horizontal" />
-                 </ItemsPanelTemplate>
-             </ListView.ItemsPanel>
-             <ListView.ItemTemplate>
-                 <DataTemplate x:DataType="Model:Card">
-                     <ContentControl Content="{x:Bind}" ContentTemplate="{StaticResource CardTemplate}"/>
-                 </DataTemplate>
-             </ListView.ItemTemplate>
-         </ListView>
-
-         <ListView Grid.Column="0" Grid.Row="3" HorizontalAlignment="Center" VerticalAlignment="Center" ItemsSource="{x:Bind viewModel.Table.Players}">
+        <ListView Grid.Column="0" Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Center" ItemsSource="{x:Bind viewModel.Table.Housecards, Mode=OneWay}" Margin="10">
             <ListView.ItemsPanel>
                 <ItemsPanelTemplate>
                     <ItemsStackPanel Orientation="Horizontal" />
                 </ItemsPanelTemplate>
             </ListView.ItemsPanel>
             <ListView.ItemTemplate>
-                <DataTemplate x:DataType="Model:Player">
-                    <Grid Background="LightGreen" Height="50" Width="200">
-                        <TextBlock Text="{x:Bind Name, Mode=OneWay}" VerticalAlignment="Top" HorizontalAlignment="Center" FontSize="24" Foreground="Red"/>
-                        <TextBlock VerticalAlignment="Bottom" HorizontalAlignment="Left" FontSize="12">
-                            <Run Text="Chips: "/>
-                            <Run Text="{x:Bind Chips, Mode=OneWay}"/>
-                        </TextBlock>
-                    </Grid>
+                <DataTemplate x:DataType="Model:Card">
+                    <ContentControl Content="{x:Bind}" ContentTemplate="{StaticResource CardTemplate}"/>
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
@@ -77,8 +60,8 @@
             <Run Text="$"/>
         </TextBlock>
 
-        <StackPanel Grid.Column="0" Grid.Row="3" HorizontalAlignment="Center" VerticalAlignment="Bottom">
-            <ListView ItemsSource="{x:Bind Model:Client.CurrentPlayer.Cards}">
+        <StackPanel Grid.Column="0" Grid.Row="3" HorizontalAlignment="Center" VerticalAlignment="Bottom" Visibility="{x:Bind viewModel.IsplayerOnOwnTable, Mode=OneWay}">
+            <ListView ItemsSource="{x:Bind Model:Client.CurrentPlayer.Cards, Mode=OneWay}">
                 <ListView.ItemsPanel>
                     <ItemsPanelTemplate>
                         <ItemsStackPanel Orientation="Horizontal" />
@@ -97,7 +80,26 @@
             </StackPanel>
         </StackPanel>
 
-        <Button Grid.Column="0" Grid.Row="3" Content="➕Join Game" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="10" Click="JoinGameButton_Click" Visibility="{x:Bind viewModel.isJoinButtonVisible, Mode=OneWay}"/>
-        <Button Grid.Column="0" Grid.Row="3" Content="➖Leave Game" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="10" Click="LeaveGameButton_Click" Visibility="{x:Bind viewModel.isLeaveButtonVisible, Mode=OneWay}"/>
+        <ListView Grid.Column="0" Grid.Row="4" HorizontalAlignment="Center" VerticalAlignment="Bottom" ItemsSource="{x:Bind viewModel.Table.Players, Mode=OneWay}" Margin="10">
+            <ListView.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <ItemsStackPanel Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+            </ListView.ItemsPanel>
+            <ListView.ItemTemplate>
+                <DataTemplate x:DataType="Model:Player">
+                    <Grid Background="LightGreen" Height="50" Width="200">
+                        <TextBlock Text="{x:Bind Name, Mode=OneWay}" VerticalAlignment="Top" HorizontalAlignment="Center" FontSize="24" Foreground="Red"/>
+                        <TextBlock VerticalAlignment="Bottom" HorizontalAlignment="Left" FontSize="12">
+                    <Run Text="Chips: "/>
+                    <Run Text="{x:Bind Chips, Mode=OneWay}"/>
+                        </TextBlock>
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+
+        <Button Grid.Column="0" Grid.Row="4" Content="➕Join Game" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="10" Click="JoinGameButton_Click" Visibility="{x:Bind viewModel.IsJoinButtonVisible, Mode=OneWay}"/>
+        <Button Grid.Column="0" Grid.Row="4" Content="➖Leave Game" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="10" Click="LeaveGameButton_Click" Visibility="{x:Bind viewModel.IsLeaveButtonVisible, Mode=OneWay}"/>
     </Grid>
 </Page>

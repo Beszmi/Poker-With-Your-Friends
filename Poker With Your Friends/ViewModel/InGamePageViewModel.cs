@@ -3,10 +3,6 @@ using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Poker_With_Your_Friends.Model;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Poker_With_Your_Friends.ViewModel
 {
@@ -30,6 +26,9 @@ namespace Poker_With_Your_Friends.ViewModel
 
         [ObservableProperty]
         public Visibility isLeaveButtonVisible;
+
+        [ObservableProperty]
+        public Visibility isplayerOnOwnTable;
 
         [ObservableProperty]
         public String? tableText = "Empty text";

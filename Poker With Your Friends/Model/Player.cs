@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -35,9 +36,9 @@ namespace Poker_With_Your_Friends.Model
         [XmlIgnore]
         public int Ip { get; set; }
 
-        private List<Card> cards = new List<Card>();
+        private ObservableCollection<Card> cards = new ObservableCollection<Card>();
         [XmlIgnore]
-        public List<Card> Cards { get { return cards; } }
+        public ObservableCollection<Card> Cards { get { return cards; } }
 
         public Player() { }
 
@@ -113,7 +114,7 @@ namespace Poker_With_Your_Friends.Model
         [XmlIgnore]
         public bool IsCurrentlyActivePlayer 
         { 
-            get { return IsCurrentlyActivePlayer; } 
+            get { return isCurrentlyActivePlayer; } 
             set
             {
                 OnPlayerButtonsChanged?.Invoke(value);

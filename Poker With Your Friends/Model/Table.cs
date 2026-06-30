@@ -98,8 +98,6 @@ namespace Poker_With_Your_Friends.Model
             this.name = name;
             deck.Shuffle();
 
-            housecards.Add(deck.DrawCard());
-            housecards.Add(deck.DrawCard());
             Task.Run(() => Play());
         }
 
@@ -159,13 +157,16 @@ namespace Poker_With_Your_Friends.Model
         {
             foreach (var player in Players)
             {
-                player.ClearCards();
-                player.AddCard(deck.DrawCard());
+                _dispatcherQueue.TryEnqueue(() => player.ClearCards());
+
+                Card card = deck.DrawCard();
+                _dispatcherQueue.TryEnqueue(() => player.AddCard(card));
+
                 Thread.Sleep(100); // Simulate delay for dealing cards
             }
             foreach (var player in Players) //2nd card
             {
-                player.AddCard(deck.DrawCard());
+                _dispatcherQueue.TryEnqueue(() => player.AddCard(deck.DrawCard()));
                 Thread.Sleep(100);
             }
         }
@@ -215,6 +216,13 @@ namespace Poker_With_Your_Friends.Model
             playerJoined.WaitOne();
             StartRound();
             DealToPlayers();
+
+            _dispatcherQueue.TryEnqueue(() => {
+                housecards.Add(deck.DrawCard());
+                housecards.Add(deck.DrawCard());
+                housecards.Add(deck.DrawCard());
+            });
+
             System.Diagnostics.Debug.WriteLine("Cards dealt to: " + Players.Count + " players");
             foreach (var player in Players)
             {

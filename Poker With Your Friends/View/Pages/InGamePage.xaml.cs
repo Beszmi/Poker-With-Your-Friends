@@ -44,6 +44,14 @@ namespace Poker_With_Your_Friends
 
                 // You can pass this to your InGamePageViewModel to load the correct UI data
                 viewModel.Initialize(tableToDisplay);
+                if (Client.CurrentTable == viewModel.Table)
+                {
+                    viewModel.IsplayerOnOwnTable = Visibility.Visible;
+                }
+                else
+                {
+                    viewModel.IsplayerOnOwnTable = Visibility.Collapsed;
+                }
             }
         }
 
@@ -53,19 +61,34 @@ namespace Poker_With_Your_Friends
         }
         private void LeaveGameButton_Click(object sender, RoutedEventArgs e)
         {
-            if (Client.CurrentTable != null)
+            if (Client.CurrentTable != null && Client.CurrentTable == viewModel.Table)
             {
                 Client.CurrentTable.RemovePlayer(Client.CurrentPlayer);
                 Client.CurrentTable = null;
+
+                // Update visibility states
+                viewModel.IsplayerOnOwnTable = Visibility.Collapsed;
+                viewModel.IsJoinButtonVisible = Visibility.Visible;
+                viewModel.IsLeaveButtonVisible = Visibility.Collapsed;
             }
         }
 
         private async void JoinGameButton_Click(object sender, RoutedEventArgs e)
         {
+            if (Client.CurrentTable != null)
+            {
+                DisplayAlreadyInGameDialog("You are already in a game. Please leave your current game before joining a new one.");
+                return;
+            }
             try
             {
                 viewModel.Table.AddPlayer(Client.CurrentPlayer);
                 Client.CurrentTable = viewModel.Table;
+
+                // Update visibility states on successful join
+                viewModel.IsplayerOnOwnTable = Visibility.Visible;
+                viewModel.IsJoinButtonVisible = Visibility.Collapsed;
+                viewModel.IsLeaveButtonVisible = Visibility.Visible;
             }
             catch (InvalidOperationException ex)
             {
@@ -74,6 +97,19 @@ namespace Poker_With_Your_Friends
         }
 
         private async void DisplayTableFullDialog(String message)
+        {
+            ContentDialog myDialog = new ContentDialog();
+
+            myDialog.XamlRoot = this.XamlRoot;
+
+            myDialog.Title = "Error";
+            myDialog.Content = message;
+            myDialog.PrimaryButtonText = "Ok";
+
+            ContentDialogResult result = await myDialog.ShowAsync();
+        }
+
+        private async void DisplayAlreadyInGameDialog(String message)
         {
             ContentDialog myDialog = new ContentDialog();
 
