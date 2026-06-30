@@ -206,22 +206,22 @@ namespace Poker_With_Your_Friends.Model
             }
 
             player.IsCurrentlyActivePlayer = false;
-            System.Diagnostics.Debug.WriteLine("player's current state should be changed to: " + false);
             CurrentlyActivePlayer = null; // Reset after action is taken
         }
 
         async Task Play()
         {
-            System.Diagnostics.Debug.WriteLine("Table playwaiting for player joined");
             IsGameActive = true;
             playerJoined.WaitOne();
-            System.Diagnostics.Debug.WriteLine("player joined");
             StartRound();
-            System.Diagnostics.Debug.WriteLine("Round started");
             DealToPlayers();
             System.Diagnostics.Debug.WriteLine("Cards dealt to: " + Players.Count + " players");
             foreach (var player in Players)
             {
+                foreach (var card in player.Cards)
+                {
+                    System.Diagnostics.Debug.WriteLine("Player " + player.Name + " has card: " + card.ToString());
+                }
                 System.Diagnostics.Debug.WriteLine("Waiting for action from: " + player.Name);
                 await WaitForPlayerActionAsync(player);
             }

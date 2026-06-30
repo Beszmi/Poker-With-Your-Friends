@@ -111,5 +111,9 @@ namespace Poker_With_Your_Friends.Model
                 };
             }
         }
-}
+        public override String ToString()
+        {
+            return $"{ValueSymbol}{SuitSymbol}";
+        }
+    }
 }
