@@ -27,7 +27,7 @@
         <TextBlock Text="Poker With Your Friends" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="3" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,20" FontSize="24" FontWeight="Bold" />
 
         <StackPanel Grid.Column="0" Grid.Row="1" Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,20,0,0" Spacing="10">
-            <ComboBox Width="200" ItemsSource="{x:Bind Model:Game.PlayerNames}" SelectedItem="{x:Bind ViewModel.SelectedPlayerName, Mode=TwoWay}" PlaceholderText="Select a player" />
+            <ComboBox Width="200" ItemsSource="{x:Bind Model:Game.PlayerNames}" SelectedItem="{x:Bind ViewModel.SelectedPlayerName, Mode=TwoWay}" PlaceholderText="Select a player" PlaceholderForeground="Red" />
             <Button Click="ViewModel.StartGameClick" HorizontalAlignment="Center">Start Game</Button>
         </StackPanel>
         

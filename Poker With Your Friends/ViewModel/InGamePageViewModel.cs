@@ -43,7 +43,6 @@ namespace Poker_With_Your_Friends.ViewModel
                 _dispatcherQueue.TryEnqueue(() =>
                 {
                     this.PlayerActionButtonsEnabled = enabled;
-                    System.Diagnostics.Debug.WriteLine("playeres buttons are now enabled: " + enabled);
                 });
             }
             else

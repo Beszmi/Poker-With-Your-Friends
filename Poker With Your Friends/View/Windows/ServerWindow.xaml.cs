@@ -1,17 +1,8 @@
+using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.Primitives;
-using Microsoft.UI.Xaml.Data;
-using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Navigation;
+using Poker_With_Your_Friends.ViewModel;
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
-using Windows.Foundation;
-using Windows.Foundation.Collections;
+using System.ComponentModel;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -21,11 +12,53 @@ namespace Poker_With_Your_Friends
     /// <summary>
     /// An empty window that can be used on its own or navigated to within a Frame.
     /// </summary>
-    public sealed partial class ServerWindow : Window
+    public sealed partial class ServerWindow : Window, INotifyPropertyChanged
     {
+        private ServerWindowViewModel viewModel = new ServerWindowViewModel();
+
+        private void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        private Visibility editPanelVisible = Visibility.Collapsed;
+
+        public Visibility EditPanelVisible
+        {
+            get
+            {
+                return editPanelVisible;
+            }
+            set
+            {
+                if (editPanelVisible != value)
+                {
+                    editPanelVisible = value;
+                    OnPropertyChanged(nameof(EditPanelVisible));
+                }
+            }
+        }
         public ServerWindow()
         {
             InitializeComponent();
+        }
+
+        public void DeletePlayerButton_Click(object sender, RoutedEventArgs e)
+        {
+            viewModel.DeletePlayer();
+        }
+
+        public void EditPlayerButton_Click(object sender, RoutedEventArgs e)
+        {
+            EditPanelVisible = Visibility.Visible;
+        }
+
+        public void EditDoneButton_Click(object sender, RoutedEventArgs e)
+        {
+            viewModel.EditPlayer();
+            EditPanelVisible = Visibility.Collapsed;
         }
     }
 }
