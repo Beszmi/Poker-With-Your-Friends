@@ -11,14 +11,16 @@ namespace Poker_With_Your_Friends.ViewModel
     public class MainWindowViewModel
     {
         public Game game = Game.Instance;
-        public string NewPlayerName { get; set; }
+        public String NewPlayerName { get; set; }
+
+        public String SelectedPlayerName { get; set; }
 
         public MainWindowViewModel()
         {
             ReadPlayersFromXml(Game.PlayerfilePath);
         }
         //TODO: Move this to server code!
-        public void ReadPlayersFromXml(string xmlFilePath)
+        public void ReadPlayersFromXml(String xmlFilePath)
         {
             if (!File.Exists(xmlFilePath))
                 return;
@@ -39,7 +41,7 @@ namespace Poker_With_Your_Friends.ViewModel
         }
 
         //TODO: Move this to server code!
-        public void SavePlayersToXml(string xmlFilePath)
+        public void SavePlayersToXml(String xmlFilePath)
         {
             if (!Directory.Exists(Game.PlayerfolderPath))
             {
@@ -77,8 +79,7 @@ namespace Poker_With_Your_Friends.ViewModel
         }
         public void StartGameClick(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
         {
-            Client.CurrentPlayer = new Player(NewPlayerName);
-            Game.AddPlayer(Client.CurrentPlayer);
+            Client.CurrentPlayer = Game.GetPlayerFromName(SelectedPlayerName);
             GameWindow newWindow = new GameWindow();
             newWindow.Activate();
         }
@@ -87,6 +88,19 @@ namespace Poker_With_Your_Friends.ViewModel
         {
             ServerWindow newWindow = new ServerWindow();
             newWindow.Activate();
+        }
+
+        public void RegisterNewPlayerClick(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+        {
+            if (!string.IsNullOrWhiteSpace(NewPlayerName))
+            {
+                Player newPlayer = new Player(NewPlayerName);
+                Game.AddPlayer(newPlayer);
+                SavePlayersToXml(Game.PlayerfilePath);
+                Client.CurrentPlayer = new Player(NewPlayerName);
+                GameWindow newWindow = new GameWindow();
+                newWindow.Activate();
+            }
         }
     }
 }

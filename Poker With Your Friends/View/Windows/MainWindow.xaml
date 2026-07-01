@@ -5,7 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Poker_With_Your_Friends"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:Model="using:Poker_With_Your_Friends.Model"
     mc:Ignorable="d"
     Title="Poker With Your Friends"
     Closed="ViewModel.Window_Closed">
@@ -22,18 +22,24 @@
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
-        <TextBlock Text="Poker With Your Friends" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="2" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,20" FontSize="24" FontWeight="Bold" />
+        <TextBlock Text="Poker With Your Friends" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="3" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,20" FontSize="24" FontWeight="Bold" />
 
         <StackPanel Grid.Column="0" Grid.Row="1" Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,20,0,0" Spacing="10">
+            <ComboBox Width="200" ItemsSource="{x:Bind Model:Game.PlayerNames}" SelectedItem="{x:Bind ViewModel.SelectedPlayerName, Mode=TwoWay}" PlaceholderText="Select a player" />
+            <Button Click="ViewModel.StartGameClick" HorizontalAlignment="Center">Start Game</Button>
+        </StackPanel>
+        
+        <StackPanel Grid.Column="1" Grid.Row="1" Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,20,0,0" Spacing="10">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
                 <TextBlock Text="Player Name:" VerticalAlignment="Center" />
                 <TextBox Width="200" Text="{x:Bind ViewModel.NewPlayerName, Mode=TwoWay}" />
             </StackPanel>
-            <Button Click="ViewModel.StartGameClick" HorizontalAlignment="Center">Start Game</Button>
+            <Button Click="ViewModel.RegisterNewPlayerClick" HorizontalAlignment="Center">Register new player and Start</Button>
         </StackPanel>
 
-        <StackPanel Grid.Column="1" Grid.Row="1" Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,20,0,0" Spacing="10">
+        <StackPanel Grid.Column="2" Grid.Row="1" Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,20,0,0" Spacing="10">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
                 <TextBlock Text="Server Port (1023-49151):" VerticalAlignment="Center" />
                 <TextBox Width="100" Text="" />

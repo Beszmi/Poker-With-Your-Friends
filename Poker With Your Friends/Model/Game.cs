@@ -34,10 +34,28 @@ namespace Poker_With_Your_Friends.Model
         public static void AddPlayer(Player player)
         {
             Players.Add(player);
+            RefreshPlayerNames();
         }
         public static void RemovePlayer(Player player)
         {
             Players.Remove(player);
+            RefreshPlayerNames();
+        }
+
+        public static ObservableCollection<String> PlayerNames { get; } = new ObservableCollection<String>();
+
+        public static void RefreshPlayerNames()
+        {
+            PlayerNames.Clear();
+            foreach (var player in Players)
+            {
+                PlayerNames.Add(player.Name);
+            }
+        }
+
+        public static Player GetPlayerFromName(String name)
+        {
+            return Players.FirstOrDefault(p => p.Name == name) ?? throw new ArgumentException("Player not found");
         }
 
         public static ObservableCollection<Table> Tables { get; } = [];
