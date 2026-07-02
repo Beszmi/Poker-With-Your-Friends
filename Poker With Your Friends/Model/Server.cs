@@ -212,11 +212,8 @@ namespace Poker_With_Your_Friends.Model
         {
             foreach (var kvp in _connectedClients)
             {
-                if (kvp.Value != clientId)
-                {
-                    await SendMessageAsync(kvp.Key, "01" + playerName);
-                    System.Diagnostics.Debug.WriteLine($"New player {playerName} broadcast sent to {clientId}.");
-                }
+                await SendMessageAsync(kvp.Key, "01" + playerName);
+                System.Diagnostics.Debug.WriteLine($"New player {playerName} broadcast sent to {clientId}.");
             }
         }
 

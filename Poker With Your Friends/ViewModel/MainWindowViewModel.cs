@@ -70,29 +70,43 @@ namespace Poker_With_Your_Friends.ViewModel
             {
                 IsRegisterButtonEnabled = false;
 
-                client?.RegisterNewPlayer(NewPlayerName);
+                var tcs = new TaskCompletionSource<Player>();
 
-                while (true)
+                void CheckNewPlayer(Player p)
                 {
-                    try
+                    if (p.Name == NewPlayerName)
                     {
-                        game.GetPlayerFromName(NewPlayerName);
-                        break;
-                    }
-                    catch (ArgumentException ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"{ex.Message}, waiting for 200ms");
-
-                        await Task.Delay(200);
+                        tcs.TrySetResult(p);
                     }
                 }
 
-                client.ContainedPlayer = game.GetPlayerFromName(NewPlayerName);
+                game.OnPlayerAdded += CheckNewPlayer;
 
-                GameWindow newWindow = new GameWindow(client);
-                newWindow.Activate();
+                client?.RegisterNewPlayer(NewPlayerName);
 
-                IsRegisterButtonEnabled = true;
+                try
+                {
+                    var timeoutTask = Task.Delay(TimeSpan.FromSeconds(10));
+                    var completedTask = await Task.WhenAny(tcs.Task, timeoutTask);
+
+                    if (completedTask == timeoutTask)
+                    {
+                        System.Diagnostics.Debug.WriteLine("Registration timed out. Server did not respond.");
+                        return;
+                    }
+
+                    Player newlyRegisteredPlayer = await tcs.Task;
+
+                    client!.ContainedPlayer = newlyRegisteredPlayer;
+
+                    GameWindow newWindow = new GameWindow(client);
+                    newWindow.Activate();
+                }
+                finally
+                {
+                    game.OnPlayerAdded -= CheckNewPlayer;
+                    IsRegisterButtonEnabled = true;
+                }
             }
         }
 

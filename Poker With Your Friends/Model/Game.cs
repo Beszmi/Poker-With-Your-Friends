@@ -9,6 +9,8 @@ namespace Poker_With_Your_Friends.Model
     [XmlRoot("Game")]
     public class Game //Singleton
     {
+        public event Action<Player>? OnPlayerAdded;
+
         [XmlIgnore]
         public static string PlayerfolderPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Poker_With_Your_Friends");
 
@@ -49,12 +51,14 @@ namespace Poker_With_Your_Friends.Model
                 {
                     Players.Add(player);
                     RefreshPlayerNames();
+                    OnPlayerAdded?.Invoke(player);
                 });
             }
             else
             {
                 Players.Add(player);
                 RefreshPlayerNames();
+                OnPlayerAdded?.Invoke(player);
             }
             SavePlayersToXml(PlayerfilePath);
         }
@@ -178,17 +182,34 @@ namespace Poker_With_Your_Friends.Model
                 }
                 return;
             }
-                
-            using (FileStream fileStream = new FileStream(xmlFilePath, FileMode.Open))
+
+            ObservableCollection<Player>? deserializedList = null;
+
+            using (FileStream fileStream = new FileStream(xmlFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
-                ObservableCollection<Player>? deserializedList = serializer.Deserialize(fileStream) as ObservableCollection<Player>;
-                if (deserializedList != null)
+                deserializedList = serializer.Deserialize(fileStream) as ObservableCollection<Player>;
+            }
+            if (deserializedList != null)
+            {
+                var dispatcher = App.MainDispatcher;
+
+                Action loadAction = () =>
                 {
                     Players.Clear();
                     foreach (var player in deserializedList)
                     {
-                        AddPlayer(player);
+                        Players.Add(player);
                     }
+                    RefreshPlayerNames();
+                };
+
+                if (dispatcher != null && !dispatcher.HasThreadAccess)
+                {
+                    dispatcher.TryEnqueue(() => loadAction());
+                }
+                else
+                {
+                    loadAction();
                 }
             }
         }
