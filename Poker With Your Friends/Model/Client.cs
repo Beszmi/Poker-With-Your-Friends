@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Buffers;
-using System.Collections.ObjectModel;
 using System.IO;
 using System.IO.Pipelines;
 using System.Net.Sockets;
@@ -23,7 +22,7 @@ namespace Poker_With_Your_Friends.Model
         {
             get; set
             {
-                containedPlayer = value;
+                field = value;
                 CurrentPlayer = containedPlayer;
             }
         }

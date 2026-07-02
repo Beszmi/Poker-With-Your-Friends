@@ -2,9 +2,6 @@
 using Microsoft.UI.Xaml;
 using Poker_With_Your_Friends.Model;
 using System;
-using System.Collections.ObjectModel;
-using System.IO;
-using System.Xml.Serialization;
 
 namespace Poker_With_Your_Friends.ViewModel
 {

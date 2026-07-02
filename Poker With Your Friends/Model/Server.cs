@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Concurrent;
-using System.Collections.ObjectModel;
-using System.IO;
 using System.IO.Pipelines;
 using System.Net;
 using System.Net.Sockets;
@@ -222,6 +220,11 @@ namespace Poker_With_Your_Friends.Model
                     break;
                 }
             }
+        }
+
+        public async Task BroadcastDeletedPlayer(string playerName)
+        {
+            await BroadcastAsync("02" + playerName);
         }
 
         public void Stop()
