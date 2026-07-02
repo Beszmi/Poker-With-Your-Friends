@@ -1,18 +1,104 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+using System.Buffers;
+using System.IO.Pipelines;
+using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Poker_With_Your_Friends.Model
 {
     public class Client
     {
+        public String Host { get; set; }
+        public int Port { get; set; }
         public static Player CurrentPlayer { get; set; }
         public static Table? CurrentTable { get; set; }
-        public Player? ConatinedPlayer
+
+        private Player? containedPlayer;
+        public Player? ContainedPlayer
         {
-            get; set;
+            get; set
+            {
+                containedPlayer = value;
+                CurrentPlayer = containedPlayer;
+            }
+        }
+
+        private PipeWriter? _writer;
+        private TcpClient? _tcpClient;
+        private CancellationTokenSource _cts = new();
+
+        private Game game = Game.Instance;
+
+        public Client(String host, int port)
+        {
+            Host = host;
+            Port = port;
+        }
+
+        public async Task ConnectAndRunAsync()
+        {
+            _tcpClient = new TcpClient();
+            await _tcpClient.ConnectAsync(Host, Port);
+            System.Diagnostics.Debug.WriteLine("Connected to server!");
+
+            var stream = _tcpClient.GetStream();
+            var reader = PipeReader.Create(stream);
+            _writer = PipeWriter.Create(stream);
+
+            // Run the receive loop in the background indefinitely
+            _ = ReceiveLoopAsync(reader, _cts.Token);
+        }
+
+        private async Task ReceiveLoopAsync(PipeReader reader, CancellationToken token)
+        {
+            try
+            {
+                while (!token.IsCancellationRequested)
+                {
+                    ReadResult result = await reader.ReadAsync(token);
+                    ReadOnlySequence<byte> buffer = result.Buffer;
+
+                    while (TryReadMessage(ref buffer, out string? response))
+                    {
+                        // TODO: Route 'response' (JSON/Game State) to your UI/ViewModel
+                        System.Diagnostics.Debug.WriteLine($"[Game Update]: {response}");
+                    }
+
+                    reader.AdvanceTo(buffer.Start, buffer.End);
+                    if (result.IsCompleted) break; // Server disconnected us
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Connection lost: {ex.Message}");
+            }
+            finally
+            {
+                await reader.CompleteAsync();
+            }
+        }
+
+        private bool TryReadMessage(ref ReadOnlySequence<byte> buffer, out string? message)
+        {
+            SequencePosition? position = buffer.PositionOf((byte)'\n');
+            if (position == null)
+            {
+                message = null;
+                return false;
+            }
+            message = Encoding.UTF8.GetString(buffer.Slice(0, position.Value));
+            buffer = buffer.Slice(buffer.GetPosition(1, position.Value));
+            return true;
+        }
+
+        public void Disconnect()
+        {
+            _cts.Cancel();
+            _writer?.Complete();
+            _tcpClient?.Close();
+            System.Diagnostics.Debug.WriteLine("Disconnected manually.");
         }
     }
 }

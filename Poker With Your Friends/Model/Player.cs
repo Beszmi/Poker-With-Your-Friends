@@ -33,8 +33,6 @@ namespace Poker_With_Your_Friends.Model
                 chips = Math.Max(0, value);
             }
         }
-        [XmlIgnore]
-        public int Ip { get; set; }
 
         private ObservableCollection<Card> cards = new ObservableCollection<Card>();
         [XmlIgnore]
@@ -47,16 +45,9 @@ namespace Poker_With_Your_Friends.Model
             Name = name;
         }
 
-        public Player(String name, int ip)
+        public Player(String name, int chips)
         {
             Name = name;
-            this.Ip = ip;
-        }
-
-        public Player(String name, int ip, int chips)
-        {
-            Name = name;
-            this.Ip = ip;
             Chips = chips;
         }
 

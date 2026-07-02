@@ -7,7 +7,8 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:Model="using:Poker_With_Your_Friends.Model"
     mc:Ignorable="d"
-    Title="GameWindow">
+    Title="GameWindow"
+    Closed="Window_Closed">
 
     <Frame x:Name="RootFrame"/>
 

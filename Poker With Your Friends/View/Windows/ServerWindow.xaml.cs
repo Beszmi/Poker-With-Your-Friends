@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml;
+using Poker_With_Your_Friends.Model;
 using Poker_With_Your_Friends.ViewModel;
 using System;
 using System.ComponentModel;
@@ -14,7 +15,7 @@ namespace Poker_With_Your_Friends
     /// </summary>
     public sealed partial class ServerWindow : Window, INotifyPropertyChanged
     {
-        private ServerWindowViewModel viewModel = new ServerWindowViewModel();
+        private ServerWindowViewModel viewModel;
 
         private void OnPropertyChanged(string propertyName)
         {
@@ -40,8 +41,10 @@ namespace Poker_With_Your_Friends
                 }
             }
         }
-        public ServerWindow()
+
+        public ServerWindow(Server server)
         {
+            viewModel = new ServerWindowViewModel(server);
             InitializeComponent();
         }
 

@@ -3,7 +3,7 @@ using Poker_With_Your_Friends.Model;
 using System;
 using System.Collections.ObjectModel;
 using System.IO;
-
+using System.Threading.Tasks;
 using System.Xml.Serialization;
 
 namespace Poker_With_Your_Friends.ViewModel
@@ -14,6 +14,8 @@ namespace Poker_With_Your_Friends.ViewModel
         public String NewPlayerName { get; set; }
 
         public String SelectedPlayerName { get; set; }
+
+        public int NewServerPort { get; set; } = 5000;
 
         public MainWindowViewModel()
         {
@@ -79,14 +81,18 @@ namespace Poker_With_Your_Friends.ViewModel
         }
         public void StartGameClick(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
         {
-            Client.CurrentPlayer = Game.GetPlayerFromName(SelectedPlayerName);
-            GameWindow newWindow = new GameWindow();
+            Client client = new Client("127.0.0.1", 5000);
+            client.ContainedPlayer = Game.GetPlayerFromName(SelectedPlayerName);
+            Task.Run(async () => await client.ConnectAndRunAsync());
+            GameWindow newWindow = new GameWindow(client);
             newWindow.Activate();
         }
 
         public void StartServerClick(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
         {
-            ServerWindow newWindow = new ServerWindow();
+            Server server = new Server(NewServerPort);
+            Task.Run(async () => await server.StartAsync());
+            ServerWindow newWindow = new ServerWindow(server);
             newWindow.Activate();
         }
 
@@ -97,8 +103,12 @@ namespace Poker_With_Your_Friends.ViewModel
                 Player newPlayer = new Player(NewPlayerName);
                 Game.AddPlayer(newPlayer);
                 SavePlayersToXml(Game.PlayerfilePath);
-                Client.CurrentPlayer = new Player(NewPlayerName);
-                GameWindow newWindow = new GameWindow();
+
+                Client client = new Client("127.0.0.1", 5000);
+                client.ContainedPlayer = newPlayer;
+                Task.Run(async () => await client.ConnectAndRunAsync());
+
+                GameWindow newWindow = new GameWindow(client);
                 newWindow.Activate();
             }
         }

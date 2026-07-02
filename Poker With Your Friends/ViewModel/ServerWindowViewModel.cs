@@ -13,6 +13,16 @@ namespace Poker_With_Your_Friends.ViewModel
         [ObservableProperty]
         public String? newName;
 
+        [ObservableProperty]
+        public int? newChips;
+
+        private Server server;
+
+        public ServerWindowViewModel(Server server)
+        {
+            this.server = server;
+        }
+
         public int SelectedPlayerChips
         {
             get
@@ -24,9 +34,6 @@ namespace Poker_With_Your_Friends.ViewModel
                 return player != null ? player.Chips : 0;
             }
         }
-
-        [ObservableProperty]
-        public int? newChips;
 
         public void DeletePlayer()
         {

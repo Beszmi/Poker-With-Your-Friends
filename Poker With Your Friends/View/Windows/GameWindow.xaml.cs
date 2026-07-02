@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
+using Poker_With_Your_Friends.Model;
 using Poker_With_Your_Friends.ViewModel;
 using System;
 using System.Collections.Generic;
@@ -24,24 +25,12 @@ namespace Poker_With_Your_Friends
     /// </summary>
     public sealed partial class GameWindow : Window
     {
-        private void Window_Activated(object sender, WindowActivatedEventArgs args)
-        {
-            if (args.WindowActivationState == WindowActivationState.Deactivated)
-            {
-                // The window is deactivated (not in focus)
-                // Handle the deactivation event here
-            }
-            else
-            {
-                // The window is activated (in focus)
-                // Handle the activation event here
-            }
-        }
-
         private void Window_Closed(object sender, WindowEventArgs args)
         {
-            // Handle the window closed event here
+            System.Diagnostics.Debug.WriteLine("Reached window closed.");
+            client.Disconnect();
         }
+        private Client client;
 
         private GameWindowViewModel viewModel = new GameWindowViewModel();
 
@@ -49,6 +38,14 @@ namespace Poker_With_Your_Friends
         public GameWindow()
         {
             InitializeComponent();
+
+            RootFrame.Navigate(typeof(GameMenuPage));
+        }
+
+        public GameWindow(Client client)
+        {
+            InitializeComponent();
+            this.client = client;
 
             RootFrame.Navigate(typeof(GameMenuPage));
         }
