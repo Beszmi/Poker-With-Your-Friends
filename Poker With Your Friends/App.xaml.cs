@@ -27,7 +27,7 @@ namespace Poker_With_Your_Friends
     public partial class App : Application
     {
         private Window? _window;
-        public static Microsoft.UI.Dispatching.DispatcherQueue MainDispatcher { get; private set; } = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
+        public static Microsoft.UI.Dispatching.DispatcherQueue MainDispatcher { get; set; } = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
 
         /// <summary>
         /// Initializes the singleton application object.  This is the first line of authored code

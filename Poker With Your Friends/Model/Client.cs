@@ -20,10 +20,11 @@ namespace Poker_With_Your_Friends.Model
         private Player? containedPlayer;
         public Player? ContainedPlayer
         {
-            get; set
+            get { return containedPlayer; }
+            set
             {
-                field = value;
-                CurrentPlayer = containedPlayer;
+                containedPlayer = value;
+                CurrentPlayer = value;
             }
         }
 

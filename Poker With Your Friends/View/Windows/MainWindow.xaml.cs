@@ -15,6 +15,8 @@ namespace Poker_With_Your_Friends
         public MainWindow()
         {
             InitializeComponent();
+
+            App.MainDispatcher = this.DispatcherQueue;
         }
 
     }

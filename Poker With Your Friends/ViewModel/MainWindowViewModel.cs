@@ -11,7 +11,7 @@ namespace Poker_With_Your_Friends.ViewModel
         public Game game = Game.Instance;
         public String NewPlayerName { get; set; }
 
-        public String SelectedPlayerName { get; set; }
+        public object? SelectedPlayerName { get; set; }
 
         public int NewServerPort { get; set; } = 5000;
 
@@ -42,7 +42,11 @@ namespace Poker_With_Your_Friends.ViewModel
         
         public void StartGameClick(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
         {
-            client?.ContainedPlayer = game.GetPlayerFromName(SelectedPlayerName);
+            string? playerName = SelectedPlayerName as string;
+
+            if (string.IsNullOrEmpty(playerName)) return;
+
+            client?.ContainedPlayer = game.GetPlayerFromName(playerName);
             GameWindow newWindow = new GameWindow(client);
             newWindow.Activate();
         }

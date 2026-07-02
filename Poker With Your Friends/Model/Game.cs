@@ -10,7 +10,7 @@ namespace Poker_With_Your_Friends.Model
     public class Game //Singleton
     {
         [XmlIgnore]
-        public static string PlayerfolderPath = Windows.Storage.ApplicationData.Current.LocalFolder.Path;
+        public static string PlayerfolderPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Poker_With_Your_Friends");
 
         [XmlIgnore]
         public static string PlayerfilePath = Path.Combine(PlayerfolderPath, "players.xml");
@@ -134,9 +134,13 @@ namespace Poker_With_Your_Friends.Model
             {
                 dispatcher.TryEnqueue(() => ApplyState(UpdatedGame));
             }
-            else
+            else if (dispatcher != null && dispatcher.HasThreadAccess)
             {
                 ApplyState(UpdatedGame);
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("CRITICAL: App.MainDispatcher is null! Cannot safely update UI.");
             }
         }
         private void ApplyState(Game UpdatedGame)
@@ -158,10 +162,23 @@ namespace Poker_With_Your_Friends.Model
 
         public void ReadPlayersFromXml(String xmlFilePath)
         {
-            if (!File.Exists(xmlFilePath))
-                return;
-
+            if (!Directory.Exists(Game.PlayerfolderPath))
+            {
+                Directory.CreateDirectory(Game.PlayerfolderPath);
+            }
             XmlSerializer serializer = new XmlSerializer(typeof(ObservableCollection<Player>));
+
+            if (!File.Exists(xmlFilePath))
+            {
+                ObservableCollection<Player> empty = new ObservableCollection<Player>();
+
+                using (FileStream fileStream = new FileStream(xmlFilePath, FileMode.Create))
+                {
+                    serializer.Serialize(fileStream, empty);
+                }
+                return;
+            }
+                
             using (FileStream fileStream = new FileStream(xmlFilePath, FileMode.Open))
             {
                 ObservableCollection<Player>? deserializedList = serializer.Deserialize(fileStream) as ObservableCollection<Player>;

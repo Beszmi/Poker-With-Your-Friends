@@ -80,7 +80,6 @@ namespace Poker_With_Your_Friends.Model
 
                             InterpretMessage(clientId, message);
 
-                            await BroadcastAsync($"New Game State after action: {message}");
                         }
 
                         reader.AdvanceTo(buffer.Start, buffer.End);
@@ -217,7 +216,6 @@ namespace Poker_With_Your_Friends.Model
                 {
                     await SendMessageAsync(kvp.Key, "01" + playerName);
                     System.Diagnostics.Debug.WriteLine($"New player {playerName} broadcast sent to {clientId}.");
-                    break;
                 }
             }
         }

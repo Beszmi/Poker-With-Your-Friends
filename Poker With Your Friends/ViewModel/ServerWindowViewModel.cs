@@ -9,7 +9,7 @@ namespace Poker_With_Your_Friends.ViewModel
     {
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(SelectedPlayerChips))]
-        public String? selectedPlayerName;
+        public object? selectedPlayerName;
 
         [ObservableProperty]
         public String? newName;
@@ -31,33 +31,30 @@ namespace Poker_With_Your_Friends.ViewModel
         {
             get
             {
-                if (string.IsNullOrEmpty(SelectedPlayerName))
-                    return 0;
+                string? name = SelectedPlayerName as string;
+                if (string.IsNullOrEmpty(name)) return 0;
 
-                var player = game.GetPlayerFromName(SelectedPlayerName!);
+                var player = game.GetPlayerFromName(name);
                 return player != null ? player.Chips : 0;
             }
         }
 
         public void DeletePlayer()
         {
-            if (SelectedPlayerName != null)
+            string? name = SelectedPlayerName as string;
+            if (name != null)
             {
-                var player = game.GetPlayerFromName(SelectedPlayerName!);
-                if (player != null)
-                {
-                    game.RemovePlayer(player);
-                }
+                game.RemovePlayer(game.GetPlayerFromName(name));
                 SelectedPlayerName = null;
             }
         }
 
         public void EditPlayer()
         {
-            if (SelectedPlayerName == null) return;
-            var player = game.GetPlayerFromName(SelectedPlayerName!);
-            if (player == null) return;
+            string? name = SelectedPlayerName as string;
+            if (name == null) return;
 
+            var player = game.GetPlayerFromName(name);
             bool chipsChanged = false;
 
             if (NewChips != null && NewChips != player.Chips)
@@ -66,11 +63,11 @@ namespace Poker_With_Your_Friends.ViewModel
                 chipsChanged = true;
             }
 
-            if (!string.IsNullOrEmpty(NewName) && NewName != SelectedPlayerName)
+            if (!string.IsNullOrEmpty(NewName) && NewName != name)
             {
+                player.Name = NewName;
                 game.RefreshPlayerNames();
 
-                player.Name = NewName;
                 SelectedPlayerName = NewName;
             }
             else if (chipsChanged)
