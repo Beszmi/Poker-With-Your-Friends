@@ -14,6 +14,9 @@ namespace Poker_With_Your_Friends.ViewModel
     {
         public GameMenuPageViewModel()
         {
+            game = Game.Instance;
+            Tables = game.Tables;
+
             GoToPage2Command = new RelayCommand(() =>
             {
                 NavigationRequested?.Invoke(typeof(InGamePage), null);
@@ -22,13 +25,14 @@ namespace Poker_With_Your_Friends.ViewModel
 
         // Add a new table with a name
         public String? NewTableName { get; set; }
-        public ObservableCollection<Table> Tables { get; set; } = Game.Tables;
+        private Game game;
+        public ObservableCollection<Table> Tables { get; set; }
 
         public void CreateNewTable()
         {
             if (!string.IsNullOrWhiteSpace(NewTableName))
             {
-                Game.AddTable(NewTableName);
+                game.AddTable(NewTableName);
             }
             else
             {

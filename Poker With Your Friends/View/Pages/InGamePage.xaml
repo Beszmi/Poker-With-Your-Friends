@@ -89,10 +89,10 @@
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="Model:Player">
                     <Grid Background="LightGreen" Height="50" Width="200">
-                        <TextBlock Text="{x:Bind Name, Mode=OneWay}" VerticalAlignment="Top" HorizontalAlignment="Center" FontSize="24" Foreground="Red"/>
+                        <TextBlock Text="{x:Bind Name}" VerticalAlignment="Top" HorizontalAlignment="Center" FontSize="24" Foreground="Red"/>
                         <TextBlock VerticalAlignment="Bottom" HorizontalAlignment="Left" FontSize="12">
                     <Run Text="Chips: "/>
-                    <Run Text="{x:Bind Chips, Mode=OneWay}"/>
+                    <Run Text="{x:Bind Chips}"/>
                         </TextBlock>
                     </Grid>
                 </DataTemplate>

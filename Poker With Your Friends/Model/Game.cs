@@ -1,25 +1,29 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Security.Cryptography.X509Certificates;
+using System.Xml.Serialization;
 
 namespace Poker_With_Your_Friends.Model
 {
+    [XmlRoot("Game")]
     public class Game //Singleton
     {
+        [XmlIgnore]
         public static string PlayerfolderPath = Windows.Storage.ApplicationData.Current.LocalFolder.Path;
 
+        [XmlIgnore]
         public static string PlayerfilePath = Path.Combine(PlayerfolderPath, "players.xml");
 
+        [XmlIgnore]
         private static Game instance;
 
-        private Game()
+        public Game()
         {
         }
 
+        [XmlIgnore]
         public static Game Instance
         {
             get
@@ -29,22 +33,29 @@ namespace Poker_With_Your_Friends.Model
             }
         }
 
-        public static ObservableCollection<Player> Players { get; } = [];
+        /* 
+         * Players
+        */
 
-        public static void AddPlayer(Player player)
+        [XmlArray("Players")]
+        [XmlArrayItem("Player")]
+        public ObservableCollection<Player> Players { get; set; } = new ObservableCollection<Player>();
+
+        public void AddPlayer(Player player)
         {
             Players.Add(player);
             RefreshPlayerNames();
         }
-        public static void RemovePlayer(Player player)
+        public void RemovePlayer(Player player)
         {
             Players.Remove(player);
             RefreshPlayerNames();
         }
 
-        public static ObservableCollection<String> PlayerNames { get; } = new ObservableCollection<String>();
+        [XmlIgnore]
+        public ObservableCollection<String> PlayerNames { get; } = new ObservableCollection<String>();
 
-        public static void RefreshPlayerNames()
+        public void RefreshPlayerNames()
         {
             PlayerNames.Clear();
             foreach (var player in Players)
@@ -53,21 +64,58 @@ namespace Poker_With_Your_Friends.Model
             }
         }
 
-        public static Player GetPlayerFromName(String name)
+        public Player GetPlayerFromName(String name)
         {
             return Players.FirstOrDefault(p => p.Name == name) ?? throw new ArgumentException("Player not found");
         }
 
-        public static ObservableCollection<Table> Tables { get; } = [];
+        /* 
+         * TABLES
+        */
+        [XmlArray("Tables")]
+        [XmlArrayItem("Table")]
+        public ObservableCollection<Table> Tables { get; set; } = new ObservableCollection<Table>();
 
-        public static void AddTable(String name)
+        public void AddTable(String name)
         {
-            Tables.Add(new Table(name));
+            Table t = new Table(name);
+            Tables.Add(t);
+            Server.InitializeServerTable(t);
         }
 
-        public static void RemoveTable(Table table)
+        public void RemoveTable(Table table)
         {
             Tables.Remove(table);
+        }
+
+        public void GameStateUpdate(Game UpdatedGame)
+        {
+            var dispatcher = App.MainDispatcher;
+
+            if (dispatcher != null && !dispatcher.HasThreadAccess)
+            {
+                dispatcher.TryEnqueue(() => ApplyState(UpdatedGame));
+            }
+            else
+            {
+                ApplyState(UpdatedGame);
+            }
+        }
+        private void ApplyState(Game UpdatedGame)
+        {
+            Players.Clear();
+            foreach (var player in UpdatedGame.Players)
+            {
+                Players.Add(player);
+            }
+
+            Tables.Clear();
+            foreach (var table in UpdatedGame.Tables)
+            {
+                Tables.Add(table);
+            }
+
+            RefreshPlayerNames();
         }
     }
 }

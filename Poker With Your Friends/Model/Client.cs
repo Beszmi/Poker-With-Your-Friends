@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Buffers;
+using System.Collections.ObjectModel;
+using System.IO;
 using System.IO.Pipelines;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.Serialization;
 
 namespace Poker_With_Your_Friends.Model
 {
@@ -62,12 +65,13 @@ namespace Poker_With_Your_Friends.Model
 
                     while (TryReadMessage(ref buffer, out string? response))
                     {
-                        // TODO: Route 'response' (JSON/Game State) to your UI/ViewModel
+                        InterpretMessage(response);
+
                         System.Diagnostics.Debug.WriteLine($"[Game Update]: {response}");
                     }
 
                     reader.AdvanceTo(buffer.Start, buffer.End);
-                    if (result.IsCompleted) break; // Server disconnected us
+                    if (result.IsCompleted) break;
                 }
             }
             catch (Exception ex)
@@ -91,6 +95,26 @@ namespace Poker_With_Your_Friends.Model
             message = Encoding.UTF8.GetString(buffer.Slice(0, position.Value));
             buffer = buffer.Slice(buffer.GetPosition(1, position.Value));
             return true;
+        }
+
+        private void SendMessage(string message)
+        {
+            if (_writer == null) return;
+            byte[] messageBytes = Encoding.UTF8.GetBytes(message + "\n");
+            _writer.WriteAsync(messageBytes);
+            _writer.FlushAsync();
+        }
+
+        private async Task InterpretMessage(String message)
+        {
+            XmlSerializer serializer = new XmlSerializer(typeof(Game));
+            {
+                if (serializer.Deserialize(new StringReader(message)) is Game deserializedGame)
+                {
+                    game.GameStateUpdate(deserializedGame);
+                    System.Diagnostics.Debug.WriteLine("Game state broadcast recieved succesfully.}");
+                }
+            }
         }
 
         public void Disconnect()

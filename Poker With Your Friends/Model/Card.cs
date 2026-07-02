@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Serialization;
 
 namespace Poker_With_Your_Friends.Model
 {
@@ -13,10 +14,14 @@ namespace Poker_With_Your_Friends.Model
         Heart,
         Club
     }
+
+    [XmlRoot("Card")]
     public class Card
     {
+        public Card() { }
         private int value;
 
+        [XmlAttribute("Value")]
         public int Value
         {
             get { return value; }
@@ -25,6 +30,7 @@ namespace Poker_With_Your_Friends.Model
 
         private Suit suit;
 
+        [XmlAttribute("Suit")]
         public Suit Suit
         {
             get { return suit; }

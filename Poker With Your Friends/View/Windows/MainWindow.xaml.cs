@@ -24,7 +24,7 @@ namespace Poker_With_Your_Friends
     /// </summary>
     public sealed partial class MainWindow : Window
     {
-        private MainWindowViewModel ViewModel = new MainWindowViewModel();
+        private MainWindowViewModel viewModel = new MainWindowViewModel();
         public MainWindow()
         {
             InitializeComponent();

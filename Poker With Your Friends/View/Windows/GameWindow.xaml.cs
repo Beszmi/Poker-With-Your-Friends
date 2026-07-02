@@ -27,7 +27,6 @@ namespace Poker_With_Your_Friends
     {
         private void Window_Closed(object sender, WindowEventArgs args)
         {
-            System.Diagnostics.Debug.WriteLine("Reached window closed.");
             client.Disconnect();
         }
         private Client client;

@@ -8,7 +8,8 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:Model="using:Poker_With_Your_Friends.Model"
     mc:Ignorable="d"
-    Title="ServerWindow">
+    Title="ServerWindow"
+    Closed="Window_Closed">
 
     <Window.SystemBackdrop>
         <MicaBackdrop />
@@ -26,7 +27,7 @@
         </Grid.ColumnDefinitions>
         <TextBlock Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="3" Text="Server Window" HorizontalAlignment="Center" VerticalAlignment="Top" FontSize="24" Margin="10"/>
         <StackPanel Grid.Column="0" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="10">
-            <ListView ItemsSource="{x:Bind Model:Game.PlayerNames, Mode=OneWay}" SelectedItem="{x:Bind viewModel.SelectedPlayerName, Mode=TwoWay}" Margin="10" MaxHeight="200" />
+            <ListView ItemsSource="{x:Bind viewModel.game.PlayerNames, Mode=OneWay}" SelectedItem="{x:Bind viewModel.SelectedPlayerName, Mode=TwoWay}" Margin="10" MaxHeight="200" />
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" Margin="15">
                 <Button Content="Delete Player" Click="DeletePlayerButton_Click" Margin="10"/>
                 <Button Content="Edit Player" Click="EditPlayerButton_Click" Margin="10"/>

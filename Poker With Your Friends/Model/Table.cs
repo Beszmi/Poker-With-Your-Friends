@@ -8,9 +8,11 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.Serialization;
 
 namespace Poker_With_Your_Friends.Model
 {
+    [XmlRoot("Table")]
     public partial class Table : INotifyPropertyChanged
     {
         public enum PlayerAction
@@ -19,18 +21,30 @@ namespace Poker_With_Your_Friends.Model
             Raise,
             Fold
         }
-
+        [XmlIgnore]
         private AutoResetEvent playerJoined = new AutoResetEvent(false);
+        [XmlIgnore]
         private String name;
+        [XmlIgnore]
         private int round = 0;
+        [XmlIgnore]
         private int smallBlind;
+        [XmlIgnore]
         private Deck deck = new Deck();
+        [XmlIgnore]
         private ObservableCollection<Card> housecards = new ObservableCollection<Card>();
+        [XmlIgnore]
         private ObservableCollection<Player> players = new ObservableCollection<Player>();
+        [XmlIgnore]
         private int pot = 0;
+        [XmlIgnore]
         private Player? CurrentlyActivePlayer = null;
+        [XmlIgnore]
         private static int maxPlayers = 6;
+        [XmlIgnore]
         private bool isGameActive = false;
+
+        [XmlAttribute("Name")]
         public String Name
         {
             get { return name; }
@@ -40,6 +54,8 @@ namespace Poker_With_Your_Friends.Model
                 OnPropertyChanged(nameof(Name));
             }
         }
+
+        [XmlAttribute("Round")]
         public int Round
         {
             get { return round; }
@@ -50,6 +66,7 @@ namespace Poker_With_Your_Friends.Model
             }
         }
 
+        [XmlAttribute("SmallBlind")]
         public int SmallBlind
         {
             get { return smallBlind; }
@@ -60,27 +77,36 @@ namespace Poker_With_Your_Friends.Model
             }
         }
 
+        [XmlArray("Housecards")]
+        [XmlArrayItem("Housecard")]
         public ObservableCollection<Card> Housecards
         {
             get { return housecards; }
+            set { housecards = value; }
         }
 
+        [XmlAttribute("Pot")]
         public int Pot
         {
             get { return pot; }
+            set { pot = value; }
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
+        [XmlArray("Players")]
+        [XmlArrayItem("Player")]
         public ObservableCollection<Player> Players
         {
             get { return players;}
-            private set
+            set
             {
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Players)));
                 players = value;
             }
         }
+
+        [XmlAttribute("IsGameActive")]
         public bool IsGameActive
         {
             get { return isGameActive; }
@@ -91,21 +117,20 @@ namespace Poker_With_Your_Friends.Model
             }
         }
 
-        private DispatcherQueue _dispatcherQueue;
+        public Table() { }
+
         public Table(String name)
         {
-            _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
             this.name = name;
-            deck.Shuffle();
-
-            Task.Run(() => Play());
         }
 
         protected void OnPropertyChanged(string propertyName)
         {
-            if (_dispatcherQueue != null && !_dispatcherQueue.HasThreadAccess)
+            var dispatcher = App.MainDispatcher;
+
+            if (dispatcher != null && !dispatcher.HasThreadAccess)
             {
-                _dispatcherQueue.TryEnqueue(() =>
+                dispatcher.TryEnqueue(() =>
                 {
                     PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
                 });
@@ -143,9 +168,10 @@ namespace Poker_With_Your_Friends.Model
         {
             Round++;
             pot = 0;
-            if (_dispatcherQueue != null && !_dispatcherQueue.HasThreadAccess)
+            var dispatcher = App.MainDispatcher;
+            if (dispatcher != null && !dispatcher.HasThreadAccess)
             {
-                _dispatcherQueue.TryEnqueue(() => housecards.Clear());
+                dispatcher.TryEnqueue(() => housecards.Clear());
             }
             else
             {
@@ -157,22 +183,46 @@ namespace Poker_With_Your_Friends.Model
         {
             foreach (var player in Players)
             {
-                _dispatcherQueue.TryEnqueue(() => player.ClearCards());
+                var dispatcher = App.MainDispatcher;
+                if (dispatcher != null && !dispatcher.HasThreadAccess)
+                {
+                    dispatcher.TryEnqueue(() => player.ClearCards());
+                }
+                else
+                {
+                    player.ClearCards();
+                }
 
                 Card card = deck.DrawCard();
-                _dispatcherQueue.TryEnqueue(() => player.AddCard(card));
+                if (dispatcher != null && !dispatcher.HasThreadAccess)
+                {
+                    dispatcher.TryEnqueue(() => player.AddCard(card));
+                }
+                else
+                {
+                    player.AddCard(card);
+                }
 
                 Thread.Sleep(100); // Simulate delay for dealing cards
             }
             foreach (var player in Players) //2nd card
             {
-                _dispatcherQueue.TryEnqueue(() => player.AddCard(deck.DrawCard()));
+                var dispatcher = App.MainDispatcher;
+                if (dispatcher != null && !dispatcher.HasThreadAccess)
+                {
+                    dispatcher.TryEnqueue(() => player.AddCard(deck.DrawCard()));
+                }
+                else
+                {
+                    player.AddCard(deck.DrawCard());
+                }
                 Thread.Sleep(100);
             }
         }
 
         private TaskCompletionSource<PlayerAction>? _playerActionTcs;
 
+        [XmlIgnore]
         public TaskCompletionSource<PlayerAction>? PlayerActionTcs
         {
             get { return _playerActionTcs; }
@@ -217,11 +267,22 @@ namespace Poker_With_Your_Friends.Model
             StartRound();
             DealToPlayers();
 
-            _dispatcherQueue.TryEnqueue(() => {
+            var dispatcher = App.MainDispatcher;
+            if (dispatcher != null && !dispatcher.HasThreadAccess)
+            {
+                dispatcher.TryEnqueue(() =>
+                {
+                    housecards.Add(deck.DrawCard());
+                    housecards.Add(deck.DrawCard());
+                    housecards.Add(deck.DrawCard());
+                });
+            }
+            else
+            {
                 housecards.Add(deck.DrawCard());
                 housecards.Add(deck.DrawCard());
                 housecards.Add(deck.DrawCard());
-            });
+            }
 
             System.Diagnostics.Debug.WriteLine("Cards dealt to: " + Players.Count + " players");
             foreach (var player in Players)
@@ -233,6 +294,12 @@ namespace Poker_With_Your_Friends.Model
                 System.Diagnostics.Debug.WriteLine("Waiting for action from: " + player.Name);
                 await WaitForPlayerActionAsync(player);
             }
+        }
+
+        public void InitializeServerTable()
+        {
+            deck.Shuffle();
+            Task.Run(() => Play());
         }
     }
 }

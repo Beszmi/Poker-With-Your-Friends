@@ -1,16 +1,16 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.IO.Pipelines;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Windows.Networking.Sockets;
+using System.Xml;
+using System.Xml.Serialization;
 
 namespace Poker_With_Your_Friends.Model
 {
@@ -18,7 +18,8 @@ namespace Poker_With_Your_Friends.Model
     {
         private readonly TcpListener _listener;
         private readonly CancellationTokenSource _cts = new();
-        private readonly ConcurrentBag<PipeWriter> _connectedClients = new();
+
+        private readonly ConcurrentDictionary<PipeWriter, string> _connectedClients = new();
 
         private Game game = Game.Instance;
 
@@ -51,11 +52,22 @@ namespace Poker_With_Your_Friends.Model
             using (client)
             await using (NetworkStream stream = client.GetStream())
             {
+                System.Diagnostics.Debug.WriteLine("Client connected!");
                 var reader = PipeReader.Create(stream);
                 var writer = PipeWriter.Create(stream);
 
-                // Register this client for broadcasts
-                _connectedClients.Add(writer);
+                string clientId = Guid.NewGuid().ToString();
+                _connectedClients.TryAdd(writer, clientId);
+
+                try
+                {
+                    await BroadcastGameStateAsync();
+                } catch (Exception e)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error: {e.Message}");
+                    System.Diagnostics.Debug.WriteLine($"Inner: {e.InnerException?.Message}");
+                    System.Diagnostics.Debug.WriteLine($"Inner-Inner: {e.InnerException?.InnerException?.Message}");
+                }
 
                 try
                 {
@@ -66,23 +78,30 @@ namespace Poker_With_Your_Friends.Model
 
                         while (TryReadMessage(ref buffer, out string? message))
                         {
-                            System.Diagnostics.Debug.WriteLine($"Received Action: {message}");
+                            System.Diagnostics.Debug.WriteLine($"Received Action from {clientId}: {message}");
 
-                            // 1. Process game logic here (e.g., Game.Instance.ProcessMove(message))
-                            // 2. Broadcast updated state to EVERYONE
-                            await BroadcastGameStateAsync($"New Game State after action: {message}");
+                            InterpretMessage(clientId, message);
+
+                            await BroadcastAsync($"New Game State after action: {message}");
                         }
 
                         reader.AdvanceTo(buffer.Start, buffer.End);
-                        if (result.IsCompleted) break;
+                        if (result.IsCompleted) break; // Client gracefully disconnected
                     }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Client {clientId} disconnected with error: {ex.Message}");
                 }
                 finally
                 {
-                    // Clean up on disconnect
+                    if (_connectedClients.TryRemove(writer, out _))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Player {clientId} successfully unregistered from broadcasts.");
+                    }
+
                     await reader.CompleteAsync();
                     await writer.CompleteAsync();
-                    // (Note: For production, remove writer from _connectedClients here)
                 }
             }
         }
@@ -104,27 +123,83 @@ namespace Poker_With_Your_Friends.Model
             return true;
         }
 
-        public async Task BroadcastGameStateAsync(string gameStateJson)
+        public async Task BroadcastAsync(string SerializedXML)
         {
-            byte[] bytes = Encoding.UTF8.GetBytes(gameStateJson + "\n");
+            byte[] bytes = Encoding.UTF8.GetBytes(SerializedXML + "\n");
 
-            foreach (var writer in _connectedClients)
+            foreach (PipeWriter writer in _connectedClients.Keys)
             {
                 try
                 {
                     await writer.WriteAsync(bytes);
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Handle dead connections gracefully
+                    System.Diagnostics.Debug.WriteLine($"Broadcast failed. Error: {ex.Message}");
+
+                    if (_connectedClients.TryRemove(writer, out string? playerId))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Player {playerId} has been aggressively disconnected due to dead socket.");
+                        // TODO: game.HandlePlayerDisconnect(playerId);
+                    }
+
+                    try { await writer.CompleteAsync(); } catch { /* Ignore */ }
                 }
             }
         }
 
+        // Send message to 1 client
         private async Task SendMessageAsync(PipeWriter writer, string message)
         {
             byte[] bytes = Encoding.UTF8.GetBytes(message + "\n");
             await writer.WriteAsync(bytes);
+        }
+
+        private async Task InterpretMessage(string clientId, string message)
+        {
+            // TODO: Implement your game logic update here.
+        }
+
+        private string GameStateSerializer()
+        {
+            XmlSerializer serializer = new XmlSerializer(typeof(Game));
+            StringBuilder sb = new StringBuilder();
+
+            XmlWriterSettings settings = new XmlWriterSettings
+            {
+                Indent = false,
+                NewLineChars = "",
+                NewLineHandling = NewLineHandling.None,
+                OmitXmlDeclaration = true
+            };
+
+            using (System.Xml.XmlWriter writer = System.Xml.XmlWriter.Create(sb, settings))
+            {
+                XmlSerializerNamespaces namespaces = new XmlSerializerNamespaces();
+                namespaces.Add("", "");
+
+                serializer.Serialize(writer, Game.Instance, namespaces);
+            }
+
+            return sb.ToString();
+        }
+        public async Task BroadcastGameStateAsync()
+        {
+            string serializedGameState = GameStateSerializer();
+            await BroadcastAsync(serializedGameState);
+            System.Diagnostics.Debug.WriteLine("Game state broadcast sent.");
+        }
+
+        public void Stop()
+        {
+            _cts.Cancel();
+            _listener.Stop();
+            System.Diagnostics.Debug.WriteLine("Server stopped.");
+        }
+
+        public static void InitializeServerTable(Table table)
+        {
+            table.InitializeServerTable();
         }
     }
 }

@@ -7,8 +7,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:Model="using:Poker_With_Your_Friends.Model"
     mc:Ignorable="d"
-    Title="Poker With Your Friends"
-    Closed="ViewModel.Window_Closed">
+    Title="Poker With Your Friends">
 
     <Window.SystemBackdrop>
         <MicaBackdrop />
@@ -26,25 +25,47 @@
         </Grid.ColumnDefinitions>
         <TextBlock Text="Poker With Your Friends" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="3" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,20" FontSize="24" FontWeight="Bold" />
 
-        <StackPanel Grid.Column="0" Grid.Row="1" Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,20,0,0" Spacing="10">
-            <ComboBox Width="200" ItemsSource="{x:Bind Model:Game.PlayerNames}" SelectedItem="{x:Bind ViewModel.SelectedPlayerName, Mode=TwoWay}" PlaceholderText="Select a player" PlaceholderForeground="Red" />
-            <Button Click="ViewModel.StartGameClick" HorizontalAlignment="Center">Start Game</Button>
-        </StackPanel>
-        
-        <StackPanel Grid.Column="1" Grid.Row="1" Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,20,0,0" Spacing="10">
+        <StackPanel Grid.Column="0" Grid.Row="1" Spacing="15" Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{x:Bind viewModel.ServerPickerVisible, Mode=OneWay}">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
-                <TextBlock Text="Player Name:" VerticalAlignment="Center" />
-                <TextBox Width="200" Text="{x:Bind ViewModel.NewPlayerName, Mode=TwoWay}" />
+                <TextBlock Text="Server Domain or Address:" VerticalAlignment="Center" />
+                <TextBox Width="300" Text="{x:Bind viewModel.ServerHostName, Mode=TwoWay}" />
             </StackPanel>
-            <Button Click="ViewModel.RegisterNewPlayerClick" HorizontalAlignment="Center">Register new player and Start</Button>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
+                <TextBlock Text="Server Port:" VerticalAlignment="Center" />
+                <NumberBox Width="200" Text="{x:Bind viewModel.ServerPort, Mode=TwoWay}" Minimum="1023" Maximum="49151" SpinButtonPlacementMode="Inline" SmallChange="1" LargeChange="10" />
+            </StackPanel>
+
+            <Button Click="viewModel.ConnectToServer_Click" HorizontalAlignment="Center" IsEnabled="{x:Bind viewModel.IsConnectButtonEnabled, Mode=OneWay}">Connect to server</Button>
         </StackPanel>
+
+        <Grid Grid.Column="0" Grid.Row="1" Grid.RowSpan="2" Visibility="{x:Bind viewModel.PlayerPickerVisible, Mode=OneWay}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0" Grid.Row="0" Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,20,0,0" Spacing="10">
+                <ComboBox Width="200" ItemsSource="{x:Bind viewModel.game.PlayerNames}" SelectedItem="{x:Bind viewModel.SelectedPlayerName, Mode=TwoWay}" PlaceholderText="Select a player" PlaceholderForeground="Red" />
+                <Button Click="viewModel.StartGameClick" HorizontalAlignment="Center">Start Game</Button>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Grid.Row="0" Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,20,0,0" Spacing="10">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
+                    <TextBlock Text="Player Name:" VerticalAlignment="Center" />
+                    <TextBox Width="200" Text="{x:Bind viewModel.NewPlayerName, Mode=TwoWay}" />
+                </StackPanel>
+                <Button Click="viewModel.RegisterNewPlayerClick" HorizontalAlignment="Center">Register new player and Start</Button>
+            </StackPanel>
+
+        </Grid>
 
         <StackPanel Grid.Column="2" Grid.Row="1" Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,20,0,0" Spacing="10">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
                 <TextBlock Text="Server Port (1023-49151):" VerticalAlignment="Center" />
-                <NumberBox Width="100" Value="{x:Bind ViewModel.NewServerPort, Mode=TwoWay}" Minimum="1023" Maximum="49151" SpinButtonPlacementMode="Inline" SmallChange="1" LargeChange="10" />
+                <NumberBox Width="100" Value="{x:Bind viewModel.NewServerPort, Mode=TwoWay}" Minimum="1023" Maximum="49151" SpinButtonPlacementMode="Inline" SmallChange="1" LargeChange="10" />
             </StackPanel>
-            <Button Click="ViewModel.StartServerClick" HorizontalAlignment="Center">Start Server</Button>
+            <Button Click="viewModel.StartServerClick" HorizontalAlignment="Center">Start Server</Button>
         </StackPanel>
 
     </Grid>

@@ -1,4 +1,5 @@
-﻿using Microsoft.UI.Xaml;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using Microsoft.UI.Xaml;
 using Poker_With_Your_Friends.Model;
 using System;
 using System.Collections.ObjectModel;
@@ -8,7 +9,7 @@ using System.Xml.Serialization;
 
 namespace Poker_With_Your_Friends.ViewModel
 {
-    public class MainWindowViewModel
+    public partial class MainWindowViewModel : ObservableObject
     {
         public Game game = Game.Instance;
         public String NewPlayerName { get; set; }
@@ -17,73 +18,31 @@ namespace Poker_With_Your_Friends.ViewModel
 
         public int NewServerPort { get; set; } = 5000;
 
+        [ObservableProperty]
+        public Visibility playerPickerVisible = Visibility.Collapsed;
+
+        [ObservableProperty]
+        public Visibility serverPickerVisible = Visibility.Visible;
+
+        [ObservableProperty]
+        public String serverHostName = "localhost";
+
+        [ObservableProperty]
+        public int serverPort = 5000;
+
+        [ObservableProperty]
+        public bool isConnectButtonEnabled = true;
+
+        private Client? client;
+
         public MainWindowViewModel()
         {
-            ReadPlayersFromXml(Game.PlayerfilePath);
         }
         //TODO: Move this to server code!
-        public void ReadPlayersFromXml(String xmlFilePath)
-        {
-            if (!File.Exists(xmlFilePath))
-                return;
-
-            XmlSerializer serializer = new XmlSerializer(typeof(ObservableCollection<Player>));
-            using (FileStream fileStream = new FileStream(xmlFilePath, FileMode.Open))
-            {
-                ObservableCollection<Player>? deserializedList = serializer.Deserialize(fileStream) as ObservableCollection<Player>;
-                if (deserializedList != null)
-                {
-                    Game.Players.Clear();
-                    foreach (var player in deserializedList)
-                    {
-                        Game.AddPlayer(player);
-                    }
-                }
-            }
-        }
-
-        //TODO: Move this to server code!
-        public void SavePlayersToXml(String xmlFilePath)
-        {
-            if (!Directory.Exists(Game.PlayerfolderPath))
-            {
-                Directory.CreateDirectory(Game.PlayerfolderPath);
-            }
-
-            if (Game.Players == null || Game.Players.Count == 0)
-            {
-                System.Diagnostics.Debug.WriteLine($"SAVE FAILED: Players empty");
-                return;
-            }
-            try
-            {
-                XmlSerializer serializer = new XmlSerializer(typeof(ObservableCollection<Player>));
-                using (FileStream fileStream = new FileStream(xmlFilePath, FileMode.Create))
-                {
-                    serializer.Serialize(fileStream, Game.Players);
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"SAVE FAILED: {ex.Message}");
-                if (ex.InnerException != null)
-                {
-                    System.Diagnostics.Debug.WriteLine($"INNER EXCEPTION: {ex.InnerException.Message}");
-                }
-            }
-
-            
-        }
-        public void Window_Closed(object sender, WindowEventArgs args)
-        {
-            //TODO: Move this to server code!
-            SavePlayersToXml(Game.PlayerfilePath);
-        }
+        
         public void StartGameClick(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
         {
-            Client client = new Client("127.0.0.1", 5000);
-            client.ContainedPlayer = Game.GetPlayerFromName(SelectedPlayerName);
-            Task.Run(async () => await client.ConnectAndRunAsync());
+            client.ContainedPlayer = game.GetPlayerFromName(SelectedPlayerName);
             GameWindow newWindow = new GameWindow(client);
             newWindow.Activate();
         }
@@ -101,16 +60,24 @@ namespace Poker_With_Your_Friends.ViewModel
             if (!string.IsNullOrWhiteSpace(NewPlayerName))
             {
                 Player newPlayer = new Player(NewPlayerName);
-                Game.AddPlayer(newPlayer);
-                SavePlayersToXml(Game.PlayerfilePath);
+                game.AddPlayer(newPlayer);
+                //SavePlayersToXml(Game.PlayerfilePath);
 
-                Client client = new Client("127.0.0.1", 5000);
                 client.ContainedPlayer = newPlayer;
-                Task.Run(async () => await client.ConnectAndRunAsync());
 
                 GameWindow newWindow = new GameWindow(client);
                 newWindow.Activate();
             }
+        }
+
+        public void ConnectToServer_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+        {
+            client = new Client(ServerHostName, ServerPort);
+            isConnectButtonEnabled = false;
+            Task.Run(async () => await client.ConnectAndRunAsync());
+            isConnectButtonEnabled = true;
+            ServerPickerVisible = Visibility.Collapsed;
+            PlayerPickerVisible = Visibility.Visible;
         }
     }
 }
