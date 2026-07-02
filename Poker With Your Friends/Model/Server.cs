@@ -148,6 +148,31 @@ namespace Poker_With_Your_Friends.Model
             }
         }
 
+        /* --------------------------------------------------------
+         * Recieiving network data 
+         *
+         -------------------------------------------------------*/
+
+        private async Task InterpretMessage(string clientId, string message)
+        {
+            switch (message.Substring(0, 2))
+            {
+                case "50": RegisterNewPlayer(clientId, message); break;
+            }
+        }
+
+        private void RegisterNewPlayer(string clientId, string message)
+        {
+            String name = message.Remove(0, 2);
+            game.AddPlayer(new Player(name));
+            BroadcastNewPlayer(clientId, name);
+        }
+
+        /* --------------------------------------------------------
+         * Sending network data
+         *
+         -------------------------------------------------------*/
+
         // Send message to 1 client
         private async Task SendMessageAsync(PipeWriter writer, string message)
         {
@@ -155,15 +180,11 @@ namespace Poker_With_Your_Friends.Model
             await writer.WriteAsync(bytes);
         }
 
-        private async Task InterpretMessage(string clientId, string message)
-        {
-            // TODO: Implement your game logic update here.
-        }
-
         private string GameStateSerializer()
         {
             XmlSerializer serializer = new XmlSerializer(typeof(Game));
             StringBuilder sb = new StringBuilder();
+            sb.Append("00");
 
             XmlWriterSettings settings = new XmlWriterSettings
             {
@@ -188,6 +209,19 @@ namespace Poker_With_Your_Friends.Model
             string serializedGameState = GameStateSerializer();
             await BroadcastAsync(serializedGameState);
             System.Diagnostics.Debug.WriteLine("Game state broadcast sent.");
+        }
+
+        public async Task BroadcastNewPlayer(string clientId, string playerName)
+        {
+            foreach (var kvp in _connectedClients)
+            {
+                if (kvp.Value != clientId)
+                {
+                    await SendMessageAsync(kvp.Key, "01" + playerName);
+                    System.Diagnostics.Debug.WriteLine($"New player {playerName} broadcast sent to {clientId}.");
+                    break;
+                }
+            }
         }
 
         public void Stop()

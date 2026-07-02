@@ -2,10 +2,7 @@
 using Microsoft.UI.Xaml;
 using Poker_With_Your_Friends.Model;
 using System;
-using System.Collections.ObjectModel;
-using System.IO;
 using System.Threading.Tasks;
-using System.Xml.Serialization;
 
 namespace Poker_With_Your_Friends.ViewModel
 {
@@ -33,6 +30,9 @@ namespace Poker_With_Your_Friends.ViewModel
         [ObservableProperty]
         public bool isConnectButtonEnabled = true;
 
+        [ObservableProperty]
+        public bool isRegisterButtonEnabled = true;
+
         private Client? client;
 
         public MainWindowViewModel()
@@ -57,16 +57,38 @@ namespace Poker_With_Your_Friends.ViewModel
 
         public void RegisterNewPlayerClick(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
         {
+            _ = RegisterNewPlayerClickAsync();
+        }
+
+        public async Task RegisterNewPlayerClickAsync()
+        {
             if (!string.IsNullOrWhiteSpace(NewPlayerName))
             {
-                Player newPlayer = new Player(NewPlayerName);
-                game.AddPlayer(newPlayer);
-                //SavePlayersToXml(Game.PlayerfilePath);
+                IsRegisterButtonEnabled = false;
 
-                client.ContainedPlayer = newPlayer;
+                client.RegisterNewPlayer(NewPlayerName);
+
+                while (true)
+                {
+                    try
+                    {
+                        game.GetPlayerFromName(NewPlayerName);
+                        break;
+                    }
+                    catch (ArgumentException ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"{ex.Message}, waiting for 200ms");
+
+                        await Task.Delay(200);
+                    }
+                }
+
+                client.ContainedPlayer = game.GetPlayerFromName(NewPlayerName);
 
                 GameWindow newWindow = new GameWindow(client);
                 newWindow.Activate();
+
+                IsRegisterButtonEnabled = true;
             }
         }
 

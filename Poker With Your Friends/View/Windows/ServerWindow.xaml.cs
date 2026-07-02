@@ -16,7 +16,7 @@ namespace Poker_With_Your_Friends
         public void Window_Closed(object sender, WindowEventArgs args)
         {
             viewModel.StopServer();
-            viewModel.SavePlayersToXml(Game.PlayerfilePath);
+            viewModel.game.SavePlayersToXml(Game.PlayerfilePath);
         }
 
         private ServerWindowViewModel viewModel;

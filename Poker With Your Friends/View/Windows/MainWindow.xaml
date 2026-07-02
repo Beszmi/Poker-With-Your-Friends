@@ -55,7 +55,7 @@
                     <TextBlock Text="Player Name:" VerticalAlignment="Center" />
                     <TextBox Width="200" Text="{x:Bind viewModel.NewPlayerName, Mode=TwoWay}" />
                 </StackPanel>
-                <Button Click="viewModel.RegisterNewPlayerClick" HorizontalAlignment="Center">Register new player and Start</Button>
+                <Button Click="viewModel.RegisterNewPlayerClick" HorizontalAlignment="Center" IsEnabled="{x:Bind viewModel.IsRegisterButtonEnabled, Mode=OneWay}">Register new player and Start</Button>
             </StackPanel>
 
         </Grid>

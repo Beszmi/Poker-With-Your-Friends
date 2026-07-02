@@ -97,6 +97,10 @@ namespace Poker_With_Your_Friends.Model
             return true;
         }
 
+        /* --------------------------------------------------------
+         * Sending network data
+         *
+         -------------------------------------------------------*/
         private void SendMessage(string message)
         {
             if (_writer == null) return;
@@ -105,8 +109,28 @@ namespace Poker_With_Your_Friends.Model
             _writer.FlushAsync();
         }
 
-        private async Task InterpretMessage(String message)
+        public void RegisterNewPlayer(String name)
         {
+            SendMessage("50" + name);
+        }
+
+
+        /* --------------------------------------------------------
+         * Recieiving network data 
+         *
+         -------------------------------------------------------*/
+        private void InterpretMessage(String message)
+        {
+            switch (message.Substring(0, 2))
+            {
+                case "00": UpdateGameState(message); break;
+                case "01": game.AddPlayer(new Player(message.Remove(0, 2))); break;
+            }
+        }
+
+        private void UpdateGameState(String message)
+        {
+            message = message.Remove(0, 2);
             XmlSerializer serializer = new XmlSerializer(typeof(Game));
             {
                 if (serializer.Deserialize(new StringReader(message)) is Game deserializedGame)

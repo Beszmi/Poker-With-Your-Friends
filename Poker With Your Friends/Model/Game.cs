@@ -43,19 +43,58 @@ namespace Poker_With_Your_Friends.Model
 
         public void AddPlayer(Player player)
         {
-            Players.Add(player);
-            RefreshPlayerNames();
+            var dispatcher = App.MainDispatcher;
+            if (dispatcher != null && !dispatcher.HasThreadAccess)
+            {
+                dispatcher.TryEnqueue(() =>
+                {
+                    Players.Add(player);
+                    RefreshPlayerNames();
+                });
+            }
+            else
+            {
+                Players.Add(player);
+                RefreshPlayerNames();
+            }
+            SavePlayersToXml(PlayerfilePath);
         }
+
         public void RemovePlayer(Player player)
         {
-            Players.Remove(player);
-            RefreshPlayerNames();
+            var dispatcher = App.MainDispatcher;
+            if (dispatcher != null && !dispatcher.HasThreadAccess)
+            {
+                dispatcher.TryEnqueue(() =>
+                {
+                    Players.Remove(player);
+                    RefreshPlayerNames();
+                });
+            }
+            else
+            {
+                Players.Remove(player);
+                RefreshPlayerNames();
+            }
         }
 
         [XmlIgnore]
         public ObservableCollection<String> PlayerNames { get; } = new ObservableCollection<String>();
 
         public void RefreshPlayerNames()
+        {
+            var dispatcher = App.MainDispatcher;
+            if (dispatcher != null && !dispatcher.HasThreadAccess)
+            {
+                dispatcher.TryEnqueue(RefreshNamesInternal);
+            }
+            else
+            {
+                RefreshNamesInternal();
+            }
+        }
+
+        private void RefreshNamesInternal()
         {
             PlayerNames.Clear();
             foreach (var player in Players)
@@ -116,6 +155,55 @@ namespace Poker_With_Your_Friends.Model
             }
 
             RefreshPlayerNames();
+        }
+
+        public void ReadPlayersFromXml(String xmlFilePath)
+        {
+            if (!File.Exists(xmlFilePath))
+                return;
+
+            XmlSerializer serializer = new XmlSerializer(typeof(ObservableCollection<Player>));
+            using (FileStream fileStream = new FileStream(xmlFilePath, FileMode.Open))
+            {
+                ObservableCollection<Player>? deserializedList = serializer.Deserialize(fileStream) as ObservableCollection<Player>;
+                if (deserializedList != null)
+                {
+                    Players.Clear();
+                    foreach (var player in deserializedList)
+                    {
+                        AddPlayer(player);
+                    }
+                }
+            }
+        }
+        public void SavePlayersToXml(String xmlFilePath)
+        {
+            if (!Directory.Exists(Game.PlayerfolderPath))
+            {
+                Directory.CreateDirectory(Game.PlayerfolderPath);
+            }
+
+            if (Players == null || Players.Count == 0)
+            {
+                System.Diagnostics.Debug.WriteLine($"SAVE FAILED: Players empty");
+                return;
+            }
+            try
+            {
+                XmlSerializer serializer = new XmlSerializer(typeof(ObservableCollection<Player>));
+                using (FileStream fileStream = new FileStream(xmlFilePath, FileMode.Create))
+                {
+                    serializer.Serialize(fileStream, Players);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"SAVE FAILED: {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"INNER EXCEPTION: {ex.InnerException.Message}");
+                }
+            }
         }
     }
 }
