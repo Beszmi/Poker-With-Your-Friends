@@ -42,7 +42,7 @@ namespace Poker_With_Your_Friends.ViewModel
         
         public void StartGameClick(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
         {
-            client.ContainedPlayer = game.GetPlayerFromName(SelectedPlayerName);
+            client?.ContainedPlayer = game.GetPlayerFromName(SelectedPlayerName);
             GameWindow newWindow = new GameWindow(client);
             newWindow.Activate();
         }
@@ -66,7 +66,7 @@ namespace Poker_With_Your_Friends.ViewModel
             {
                 IsRegisterButtonEnabled = false;
 
-                client.RegisterNewPlayer(NewPlayerName);
+                client?.RegisterNewPlayer(NewPlayerName);
 
                 while (true)
                 {

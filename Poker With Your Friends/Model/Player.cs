@@ -90,7 +90,7 @@ namespace Poker_With_Your_Friends.Model
             {
                 if (isAtTable)
                 {
-                    return HasFolded || !CurrentTable.IsGameActive;
+                    return HasFolded || !(CurrentTable?.IsGameActive ?? false);
                 }
                 return true; //Fallback: If the player is not at a table, they can leave the game.
             }

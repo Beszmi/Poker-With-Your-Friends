@@ -34,7 +34,7 @@ namespace Poker_With_Your_Friends.ViewModel
                 if (string.IsNullOrEmpty(SelectedPlayerName))
                     return 0;
 
-                var player = game.GetPlayerFromName(SelectedPlayerName);
+                var player = game.GetPlayerFromName(SelectedPlayerName!);
                 return player != null ? player.Chips : 0;
             }
         }
@@ -43,14 +43,19 @@ namespace Poker_With_Your_Friends.ViewModel
         {
             if (SelectedPlayerName != null)
             {
-                game.RemovePlayer(game.GetPlayerFromName(SelectedPlayerName));
+                var player = game.GetPlayerFromName(SelectedPlayerName!);
+                if (player != null)
+                {
+                    game.RemovePlayer(player);
+                }
                 SelectedPlayerName = null;
             }
         }
 
         public void EditPlayer()
         {
-            var player = game.GetPlayerFromName(SelectedPlayerName);
+            if (SelectedPlayerName == null) return;
+            var player = game.GetPlayerFromName(SelectedPlayerName!);
             if (player == null) return;
 
             bool chipsChanged = false;

@@ -17,13 +17,13 @@ namespace Poker_With_Your_Friends
     {
         private void Window_Closed(object sender, WindowEventArgs args)
         {
-            client.Disconnect();
+            client?.Disconnect();
         }
-        private Client client;
+        private Client? client;
 
         private GameWindowViewModel viewModel = new GameWindowViewModel();
 
-        public Frame Frame { get; private set; }
+        public Frame Frame { get; private set; } = new Frame();
         public GameWindow()
         {
             InitializeComponent();
