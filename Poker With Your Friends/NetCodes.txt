@@ -1,5 +1,7 @@
 00: Game state Server -> Client
 01: New player broadcast Server -> Client (not including the new players client)
 02: Deleted player broadcast Server -> Client
+03: Adding new table Server -> Client
 
 50: RegisterNewPlayer Client -> Server
+51: Adding new Table Client -> Server
