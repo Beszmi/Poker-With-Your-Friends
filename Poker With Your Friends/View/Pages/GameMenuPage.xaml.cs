@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Animation;
+using Microsoft.UI.Xaml.Navigation;
 using Poker_With_Your_Friends.Model;
 using Poker_With_Your_Friends.ViewModel;
 
@@ -26,6 +27,15 @@ namespace Poker_With_Your_Friends
                 this.Frame.Navigate(targetPageType, parameter, new DrillInNavigationTransitionInfo());
             };
         }
+        protected override void OnNavigatedTo(NavigationEventArgs e)
+        {
+            base.OnNavigatedTo(e);
+
+            if (e.Parameter is Client c)
+            {
+                viewModel.SetClient(c);
+            }
+        }
         private void Table_ItemClick(object sender, ItemClickEventArgs e)
         {
             if (e.ClickedItem is Table clickedTable)
@@ -36,7 +46,7 @@ namespace Poker_With_Your_Friends
 
         private void NewGameButton_Click(object sender, RoutedEventArgs e)
         {
-            viewModel.CreateNewTable();
+            _ =viewModel.CreateNewTableAsync();
         }
     }
 }

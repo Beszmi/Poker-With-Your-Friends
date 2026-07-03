@@ -1,13 +1,16 @@
-﻿using CommunityToolkit.Mvvm.Input;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Poker_With_Your_Friends.Model;
 using System;
 using System.Collections.ObjectModel;
+using System.Threading.Tasks;
 using System.Windows.Input;
 
 namespace Poker_With_Your_Friends.ViewModel
 {
-    internal class GameMenuPageViewModel
+    internal partial class GameMenuPageViewModel : ObservableObject
     {
+        private Client client;
         public GameMenuPageViewModel()
         {
             game = Game.Instance;
@@ -19,20 +22,57 @@ namespace Poker_With_Your_Friends.ViewModel
             });
         }
 
+        public void SetClient(Client c)
+        {
+            client = c;
+        }
+
         // Add a new table with a name
         public String? NewTableName { get; set; }
         private Game game;
         public ObservableCollection<Table> Tables { get; set; }
 
-        public void CreateNewTable()
+        [ObservableProperty]
+        public bool isNewTableButtonEnabled = true;
+
+        public async Task CreateNewTableAsync()
         {
             if (!string.IsNullOrWhiteSpace(NewTableName))
             {
-                game.AddTable(NewTableName);
-            }
-            else
-            {
-                // Handle the case where NewTableName is null (e.g., show an error message)
+                IsNewTableButtonEnabled = false;
+
+                var tcs = new TaskCompletionSource<Table>();
+
+                void CheckNewTable(Table t)
+                {
+                    if (t.Name == NewTableName)
+                    {
+                        tcs.TrySetResult(t);
+                    }
+                }
+
+                game.OnTableAdded += CheckNewTable;
+
+                client?.CreateNewTable(NewTableName);
+
+                try
+                {
+                    var timeoutTask = Task.Delay(TimeSpan.FromSeconds(10));
+                    var completedTask = await Task.WhenAny(tcs.Task, timeoutTask);
+
+                    if (completedTask == timeoutTask)
+                    {
+                        System.Diagnostics.Debug.WriteLine("Adding new table failed. Server did not respond.");
+                        return;
+                    }
+
+                    Table newlyCreatedTable = await tcs.Task;
+                }
+                finally
+                {
+                    game.OnTableAdded -= CheckNewTable;
+                    IsNewTableButtonEnabled = true;
+                }
             }
         }
 

@@ -119,6 +119,18 @@ namespace Poker_With_Your_Friends.Model
             this.name = name;
         }
 
+        public Table(Table t)
+        {
+            this.name = t.Name;
+            this.round = t.Round;
+            this.smallBlind = t.SmallBlind;
+            this.pot = t.Pot;
+            this.isGameActive = t.IsGameActive;
+            this.deck = t.deck;
+            this.players = t.players;
+            this.Housecards = t.Housecards;
+        }
+
         protected void OnPropertyChanged(string propertyName)
         {
             var dispatcher = App.MainDispatcher;

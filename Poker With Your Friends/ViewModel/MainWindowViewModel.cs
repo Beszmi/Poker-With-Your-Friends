@@ -110,14 +110,28 @@ namespace Poker_With_Your_Friends.ViewModel
             }
         }
 
-        public void ConnectToServer_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+        public async void ConnectToServer_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
         {
             client = new Client(ServerHostName, ServerPort);
-            isConnectButtonEnabled = false;
-            Task.Run(async () => await client.ConnectAndRunAsync());
-            isConnectButtonEnabled = true;
-            ServerPickerVisible = Visibility.Collapsed;
-            PlayerPickerVisible = Visibility.Visible;
+
+            IsConnectButtonEnabled = false;
+
+            try
+            {
+                await client.ConnectAndRunAsync();
+
+                ServerPickerVisible = Visibility.Collapsed;
+                PlayerPickerVisible = Visibility.Visible;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to connect to server: {ex.Message}");
+
+            }
+            finally
+            {
+                IsConnectButtonEnabled = true;
+            }
         }
     }
 }

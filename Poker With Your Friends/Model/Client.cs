@@ -113,7 +113,10 @@ namespace Poker_With_Your_Friends.Model
         {
             SendMessage("50" + name);
         }
-
+        public void CreateNewTable(String tableName)
+        {
+            SendMessage("51" + tableName);
+        }
 
         /* --------------------------------------------------------
          * Recieiving network data 
@@ -124,7 +127,9 @@ namespace Poker_With_Your_Friends.Model
             switch (message.Substring(0, 2))
             {
                 case "00": UpdateGameState(message); break;
-                case "01": game.AddPlayer(new Player(message.Remove(0, 2))); break;
+                case "01": game.AddPlayer(new Player(message.Remove(0, 2)), false); break;
+                case "02": game.RemovePlayer(game.GetPlayerFromName(message.Remove(0, 2))); break;
+                case "03": game.AddTable(message.Remove(0, 2), false); break;
             }
         }
 
@@ -136,7 +141,7 @@ namespace Poker_With_Your_Friends.Model
                 if (serializer.Deserialize(new StringReader(message)) is Game deserializedGame)
                 {
                     game.GameStateUpdate(deserializedGame);
-                    System.Diagnostics.Debug.WriteLine("Game state broadcast recieved succesfully.}");
+                    System.Diagnostics.Debug.WriteLine("Game state broadcast recieved succesfully.");
                 }
             }
         }

@@ -10,6 +10,7 @@ namespace Poker_With_Your_Friends.Model
     public class Game //Singleton
     {
         public event Action<Player>? OnPlayerAdded;
+        public event Action<Table>? OnTableAdded;
 
         [XmlIgnore]
         public static string PlayerfolderPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Poker_With_Your_Friends");
@@ -42,7 +43,7 @@ namespace Poker_With_Your_Friends.Model
         [XmlArrayItem("Player")]
         public ObservableCollection<Player> Players { get; set; } = new ObservableCollection<Player>();
 
-        public void AddPlayer(Player player)
+        public void AddPlayer(Player player, bool isServer)
         {
             var dispatcher = App.MainDispatcher;
             if (dispatcher != null && !dispatcher.HasThreadAccess)
@@ -60,7 +61,8 @@ namespace Poker_With_Your_Friends.Model
                 RefreshPlayerNames();
                 OnPlayerAdded?.Invoke(player);
             }
-            SavePlayersToXml(PlayerfilePath);
+            if (isServer)
+                SavePlayersToXml(PlayerfilePath);
         }
 
         public void RemovePlayer(Player player)
@@ -118,11 +120,39 @@ namespace Poker_With_Your_Friends.Model
         [XmlArrayItem("Table")]
         public ObservableCollection<Table> Tables { get; set; } = new ObservableCollection<Table>();
 
-        public void AddTable(String name)
+        public void AddTable(String message, bool isServer)
         {
-            Table t = new Table(name);
-            Tables.Add(t);
-            Server.InitializeServerTable(t);
+            if (!isServer)
+            {
+                XmlSerializer serializer = new XmlSerializer(typeof(Table));
+                {
+                    if (serializer.Deserialize(new StringReader(message)) is Table deserializedTable)
+                    {
+                        Tables.Add(deserializedTable);
+                    }
+                }
+                return;
+            }
+            throw new ArgumentException();
+        }
+
+        public void AddTable(Table table)
+        {
+            var dispatcher = App.MainDispatcher;
+            if (dispatcher != null && !dispatcher.HasThreadAccess)
+            {
+                dispatcher.TryEnqueue(() =>
+                {
+                    Tables.Add(table);
+                    OnTableAdded?.Invoke(table);
+                });
+            }
+            else
+            {
+                Tables.Add(table);
+                OnTableAdded?.Invoke(table);
+            }
+            Server.InitializeServerTable(table);
         }
 
         public void RemoveTable(Table table)

@@ -155,14 +155,23 @@ namespace Poker_With_Your_Friends.Model
             switch (message.Substring(0, 2))
             {
                 case "50": RegisterNewPlayer(clientId, message); break;
+                case "51": CreateNewTable(message); break;
             }
         }
 
         private void RegisterNewPlayer(string clientId, string message)
         {
             String name = message.Remove(0, 2);
-            game.AddPlayer(new Player(name));
+            game.AddPlayer(new Player(name), true);
             BroadcastNewPlayer(clientId, name);
+        }
+
+        private void CreateNewTable(string message)
+        {
+            String name = message.Remove(0, 2);
+            Table t = new Table(name);
+            game.AddTable(t);
+            BroadcastNewTable(t);
         }
 
         /* --------------------------------------------------------
@@ -210,16 +219,37 @@ namespace Poker_With_Your_Friends.Model
 
         public async Task BroadcastNewPlayer(string clientId, string playerName)
         {
-            foreach (var kvp in _connectedClients)
-            {
-                await SendMessageAsync(kvp.Key, "01" + playerName);
-                System.Diagnostics.Debug.WriteLine($"New player {playerName} broadcast sent to {clientId}.");
-            }
+            await BroadcastAsync("01" + playerName);
         }
 
         public async Task BroadcastDeletedPlayer(string playerName)
         {
             await BroadcastAsync("02" + playerName);
+        }
+
+        public async Task BroadcastNewTable(Table table)
+        {
+            XmlSerializer serializer = new XmlSerializer(typeof(Table));
+            StringBuilder sb = new StringBuilder();
+            sb.Append("03");
+
+            XmlWriterSettings settings = new XmlWriterSettings
+            {
+                Indent = false,
+                NewLineChars = "",
+                NewLineHandling = NewLineHandling.None,
+                OmitXmlDeclaration = true
+            };
+
+            using (System.Xml.XmlWriter writer = System.Xml.XmlWriter.Create(sb, settings))
+            {
+                XmlSerializerNamespaces namespaces = new XmlSerializerNamespaces();
+                namespaces.Add("", "");
+
+                serializer.Serialize(writer, table, namespaces);
+            }
+
+            await BroadcastAsync(sb.ToString());
         }
 
         public void Stop()

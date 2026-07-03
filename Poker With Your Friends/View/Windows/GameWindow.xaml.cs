@@ -36,7 +36,7 @@ namespace Poker_With_Your_Friends
             InitializeComponent();
             this.client = client;
 
-            RootFrame.Navigate(typeof(GameMenuPage));
+            RootFrame.Navigate(typeof(GameMenuPage), this.client);
         }
 
         public void OnNavigationFailed(object sender, NavigationFailedEventArgs e)

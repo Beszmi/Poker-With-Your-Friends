@@ -31,7 +31,7 @@
                 <TextBlock Text="Your tables name:" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 <TextBox Width="200" Text="{x:Bind viewModel.NewTableName, Mode=TwoWay}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </StackPanel>
-            <Button VerticalAlignment="Center" HorizontalAlignment="Right" Content="Create new table" Click="NewGameButton_Click"/>
+            <Button VerticalAlignment="Center" HorizontalAlignment="Right" Content="Create new table" Click="NewGameButton_Click" IsEnabled="{x:Bind viewModel.isNewTableButtonEnabled, Mode=OneWay}"/>
         </StackPanel>
 
         <!--
