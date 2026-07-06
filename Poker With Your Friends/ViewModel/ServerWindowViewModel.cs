@@ -3,8 +3,6 @@ using Microsoft.UI.Xaml;
 using Poker_With_Your_Friends.Model;
 using System;
 using System.Collections.ObjectModel;
-using Windows.Devices.AllJoyn;
-using Windows.Foundation.Diagnostics;
 
 namespace Poker_With_Your_Friends.ViewModel
 {

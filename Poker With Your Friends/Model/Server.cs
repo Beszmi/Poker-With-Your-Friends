@@ -154,7 +154,6 @@ namespace Poker_With_Your_Friends.Model
 
         private async Task InterpretMessage(string clientId, string message)
         {
-            await BroadcastServerError(clientId + "Sent a message");
             switch (message.Substring(0, 2))
             {
                 case "50": RegisterNewPlayer(clientId, message); break;

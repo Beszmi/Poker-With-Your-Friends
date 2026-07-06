@@ -272,5 +272,18 @@ namespace Poker_With_Your_Friends.Model
                 }
             }
         }
+
+        public bool DoesPlayerAlreadyExist(String name)
+        {
+            try
+            {
+                GetPlayerFromName(name);
+            }
+            catch (ArgumentException ex)
+            {
+                return false;
+            }
+            return true;
+        }
     }
 }

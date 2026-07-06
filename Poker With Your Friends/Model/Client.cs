@@ -10,10 +10,9 @@ using System.Xml.Serialization;
 
 namespace Poker_With_Your_Friends.Model
 {
-    public delegate void ServerErrorRecievedDelegate(String ErrorMessage);
     public class Client
     {
-        public event ServerErrorRecievedDelegate? OnErrorReceived;
+        public event Action<String> OnErrorReceived;
         public String Host { get; set; }
         public int Port { get; set; }
         public static Player CurrentPlayer { get; set; }

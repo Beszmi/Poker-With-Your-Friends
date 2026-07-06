@@ -8,6 +8,7 @@ namespace Poker_With_Your_Friends.ViewModel
 {
     public partial class MainWindowViewModel : ObservableObject
     {
+        public event Action<String>? OnClientError;
         public event Action<Client>? OnServerConnected;
 
         public Game game = Game.Instance;
@@ -70,6 +71,10 @@ namespace Poker_With_Your_Friends.ViewModel
         {
             if (!string.IsNullOrWhiteSpace(NewPlayerName))
             {
+                if (game.DoesPlayerAlreadyExist(NewPlayerName))
+                {
+
+                }
                 IsRegisterButtonEnabled = false;
 
                 var tcs = new TaskCompletionSource<Player>();
@@ -93,7 +98,7 @@ namespace Poker_With_Your_Friends.ViewModel
 
                     if (completedTask == timeoutTask)
                     {
-                        System.Diagnostics.Debug.WriteLine("Registration timed out. Server did not respond.");
+                        OnClientError?.Invoke("Registration timed out. Server did not respond.");
                         return;
                     }
 
@@ -127,7 +132,7 @@ namespace Poker_With_Your_Friends.ViewModel
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to connect to server: {ex.Message}");
+                OnClientError?.Invoke($"Failed to connect to server: {ex.Message}");
             }
             finally
             {

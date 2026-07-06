@@ -6,9 +6,6 @@ using System;
 
 namespace Poker_With_Your_Friends
 {
-    /// <summary>
-    /// An empty window that can be used on its own or navigated to within a Frame.
-    /// </summary>
     public sealed partial class MainWindow : Window
     {
         private MainWindowViewModel viewModel = new MainWindowViewModel();
@@ -21,6 +18,11 @@ namespace Poker_With_Your_Friends
             viewModel.OnServerConnected += (Client c) =>
             {
                 SetUpServerErrorHandler(c);
+            };
+
+            viewModel.OnClientError += (String msg) =>
+            {
+                DisplayErrorDialog(msg);
             };
         }
         public async void DisplayErrorDialog(String message)

@@ -4,11 +4,10 @@ using System.Xml.Serialization;
 
 namespace Poker_With_Your_Friends.Model
 {
-    public delegate void PlayerButtonsChanged(bool buttonsEnabled);
     [XmlType("Player")]
     public class Player
     {
-        public event PlayerButtonsChanged? OnPlayerButtonsChanged;
+        public event Action<bool> OnPlayerButtonsChanged;
 
         private String name;
         [XmlAttribute("Name")]

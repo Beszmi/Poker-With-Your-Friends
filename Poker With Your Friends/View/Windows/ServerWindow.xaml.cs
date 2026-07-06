@@ -3,14 +3,8 @@ using Poker_With_Your_Friends.Model;
 using Poker_With_Your_Friends.ViewModel;
 using System.ComponentModel;
 
-// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
-
 namespace Poker_With_Your_Friends       
 {
-    /// <summary>
-    /// An empty window that can be used on its own or navigated to within a Frame.
-    /// </summary>
     public sealed partial class ServerWindow : Window, INotifyPropertyChanged
     {
         public void Window_Closed(object sender, WindowEventArgs args)
