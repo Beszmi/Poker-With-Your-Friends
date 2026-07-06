@@ -2,7 +2,9 @@
 using System.Buffers;
 using System.IO;
 using System.IO.Pipelines;
+using System.Linq;
 using System.Net.Sockets;
+using System.Numerics;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,10 +15,15 @@ namespace Poker_With_Your_Friends.Model
     public class Client
     {
         public event Action<String> OnErrorReceived;
+        public event Action<String> OnLocalError;
+        public event Action OnTableUpdated;
+        public static event Action OnTableJoined;
+        public static event Action OnTableLeft;
         public String Host { get; set; }
         public int Port { get; set; }
         public static Player CurrentPlayer { get; set; }
         public static Table? CurrentTable { get; set; }
+        public static int CurrentTableIndex { get; set; } = -1;
 
         private Player? containedPlayer;
         public Player? ContainedPlayer
@@ -39,6 +46,8 @@ namespace Poker_With_Your_Friends.Model
         {
             Host = host;
             Port = port;
+            InGamePage.OnJoinGameClick += PlayerJoiningTable;
+            InGamePage.OnLeaveGameClick += PlayerLeavingTable;
         }
 
         public async Task ConnectAndRunAsync()
@@ -99,6 +108,7 @@ namespace Poker_With_Your_Friends.Model
         }
 
         /* --------------------------------------------------------
+         * 
          * Sending network data
          *
          -------------------------------------------------------*/
@@ -119,7 +129,31 @@ namespace Poker_With_Your_Friends.Model
             SendMessage("51" + tableName);
         }
 
+        public void PlayerJoiningTable(Table table)
+        {
+            var liveTable = game.Tables.FirstOrDefault(t => t.Name == table.Name);
+
+            if (liveTable != null)
+            {
+                int tableId = game.Tables.IndexOf(liveTable);
+
+                CurrentTableIndex = tableId;
+                SendMessage("52" + tableId + CurrentPlayer.Name);
+            }
+            else
+            {
+                OnLocalError?.Invoke("Error: Attempted to join a table that no longer exists in the game list.");
+            }
+        }
+
+        public void PlayerLeavingTable(Table table)
+        {
+            SendMessage("53" + CurrentTableIndex + CurrentPlayer.Name);
+            CurrentTableIndex = -1;
+        }
+
         /* --------------------------------------------------------
+         * 
          * Recieiving network data 
          *
          -------------------------------------------------------*/
@@ -131,6 +165,10 @@ namespace Poker_With_Your_Friends.Model
                 case "01": game.AddPlayer(new Player(message.Remove(0, 2)), false); break;
                 case "02": game.RemovePlayer(game.GetPlayerFromName(message.Remove(0, 2))); break;
                 case "03": game.AddTable(message.Remove(0, 2), false); break;
+                case "04": throw new NotImplementedException(); break;
+                case "05": UpdateTableState(message.Remove(0, 2)); break;
+                case "06": OnTableJoined?.Invoke(); break;
+                case "07": OnTableLeft?.Invoke(); break;
 
                 case "99": OnErrorReceived?.Invoke(message.Remove(0, 2)); break;
             }
@@ -144,9 +182,23 @@ namespace Poker_With_Your_Friends.Model
                 if (serializer.Deserialize(new StringReader(message)) is Game deserializedGame)
                 {
                     game.GameStateUpdate(deserializedGame);
-                    System.Diagnostics.Debug.WriteLine("Game state broadcast recieved succesfully.");
                 }
             }
+        }
+
+        private void UpdateTableState(String message)
+        {
+            int firstOpeningChar = message.IndexOf('<');
+            int tableIndex = Int32.Parse(message.Substring(0, firstOpeningChar));
+            String tableData = message.Substring(firstOpeningChar);
+
+            XmlSerializer serializer = new XmlSerializer(typeof(Table));
+            if (serializer.Deserialize(new StringReader(tableData)) is Table deserializedTable)
+            {
+                game.Tables[tableIndex] = deserializedTable;
+                System.Diagnostics.Debug.WriteLine("Table state broadcast recieved succesfully.");
+            }
+            OnTableUpdated?.Invoke();
         }
 
         public void Disconnect()

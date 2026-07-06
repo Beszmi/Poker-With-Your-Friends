@@ -18,12 +18,14 @@ namespace Poker_With_Your_Friends
             viewModel.OnServerConnected += (Client c) =>
             {
                 SetUpServerErrorHandler(c);
+                LocalErrorHandler();
             };
 
             viewModel.OnClientError += (String msg) =>
             {
                 DisplayErrorDialog(msg);
             };
+            GameMenuPageViewModel.GameMenuError += DisplayErrorDialog;
         }
         public async void DisplayErrorDialog(String message)
         {
@@ -63,6 +65,17 @@ namespace Poker_With_Your_Friends
                     });
                 };
             }
+        }
+
+        public void LocalErrorHandler()
+        {
+            viewModel.client.OnLocalError += (errorMessage) =>
+            {
+                App.MainDispatcher.TryEnqueue(() =>
+                {
+                    DisplayServerErrorDialog(errorMessage);
+                });
+            };
         }
     }
 }

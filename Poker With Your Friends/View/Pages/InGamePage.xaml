@@ -25,7 +25,7 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <Button Grid.Column="0" Grid.Row="0" Content="❌ leave Table" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10" Click="LeaveTableButton_Click"/>
+        <Button Grid.Column="0" Grid.Row="0" Content="❌ leave Table" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10" Click="LeaveTableButton_Click" IsEnabled="{x:Bind viewModel.LeaveTableButtonEnabled, Mode=OneWay}"/>
 
         <TextBlock Grid.Column="0" Grid.Row="1" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10">
             <Run Text="Players count: "/>

@@ -26,6 +26,7 @@ namespace Poker_With_Your_Friends.ViewModel
         {
             client = c;
         }
+        public static Action<String> GameMenuError;
 
         // Add a new table with a name
         public String? NewTableName { get; set; }
@@ -39,6 +40,11 @@ namespace Poker_With_Your_Friends.ViewModel
         {
             if (!string.IsNullOrWhiteSpace(NewTableName))
             {
+                if (game.IsTableNameTaken(NewTableName))
+                {
+                    GameMenuError?.Invoke("Table with this name already exists!");
+                    return;
+                }
                 IsNewTableButtonEnabled = false;
 
                 var tcs = new TaskCompletionSource<Table>();

@@ -10,10 +10,15 @@ namespace Poker_With_Your_Friends
 {
     public sealed partial class InGamePage : Page
     {
+        public static Action<Table>? OnJoinGameClick;
+        public static Action<Table>? OnLeaveGameClick;
+
         private InGamePageViewModel viewModel = new InGamePageViewModel();
         public InGamePage()
         {
             InitializeComponent();
+            Client.OnTableJoined += JoinGameHandle;
+            Client.OnTableLeft += LeaveGameHandle;
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -46,13 +51,8 @@ namespace Poker_With_Your_Friends
         {
             if (Client.CurrentTable != null && Client.CurrentTable == viewModel.Table)
             {
-                Client.CurrentTable.RemovePlayer(Client.CurrentPlayer);
-                Client.CurrentTable = null;
-
-                // Update visibility states
-                viewModel.IsplayerOnOwnTable = Visibility.Collapsed;
-                viewModel.IsJoinButtonVisible = Visibility.Visible;
-                viewModel.IsLeaveButtonVisible = Visibility.Collapsed;
+                viewModel.LeaveTableButtonEnabled = false;
+                OnLeaveGameClick?.Invoke(viewModel.Table);
             }
         }
 
@@ -63,20 +63,8 @@ namespace Poker_With_Your_Friends
                 DisplayErrorDialog("You are already in a game. Please leave your current game before joining a new one.");
                 return;
             }
-            try
-            {
-                viewModel.Table.AddPlayer(Client.CurrentPlayer);
-                Client.CurrentTable = viewModel.Table;
-
-                // Update visibility states on successful join
-                viewModel.IsplayerOnOwnTable = Visibility.Visible;
-                viewModel.IsJoinButtonVisible = Visibility.Collapsed;
-                viewModel.IsLeaveButtonVisible = Visibility.Visible;
-            }
-            catch (InvalidOperationException ex)
-            {
-                DisplayErrorDialog(ex.Message);
-            }
+            viewModel.LeaveTableButtonEnabled = false;
+            OnJoinGameClick?.Invoke(viewModel.Table);
         }
 
         private async void DisplayErrorDialog(String message)
@@ -90,6 +78,46 @@ namespace Poker_With_Your_Friends
             myDialog.PrimaryButtonText = "Ok";
 
             ContentDialogResult result = await myDialog.ShowAsync();
+        }
+
+        private void JoinGameHandle()
+        {
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                try
+                {
+                    Client.CurrentTable = viewModel.Table;
+
+                    viewModel.IsplayerOnOwnTable = Visibility.Visible;
+                    viewModel.IsJoinButtonVisible = Visibility.Collapsed;
+                    viewModel.IsLeaveButtonVisible = Visibility.Visible;
+                }
+                catch (InvalidOperationException ex)
+                {
+                    DisplayErrorDialog(ex.Message);
+                }
+                viewModel.LeaveTableButtonEnabled = true;
+            });
+        }
+
+        private void LeaveGameHandle()
+        {
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                Client.CurrentTable.RemovePlayer(Client.CurrentPlayer);
+                Client.CurrentTable = null;
+
+                viewModel.IsplayerOnOwnTable = Visibility.Collapsed;
+                viewModel.IsJoinButtonVisible = Visibility.Visible;
+                viewModel.IsLeaveButtonVisible = Visibility.Collapsed;
+                viewModel.LeaveTableButtonEnabled = true;
+            });
+        }
+        protected override void OnNavigatedFrom(NavigationEventArgs e)
+        {
+            base.OnNavigatedFrom(e);
+            Client.OnTableJoined -= JoinGameHandle;
+            Client.OnTableLeft -= LeaveGameHandle;
         }
     }
 }

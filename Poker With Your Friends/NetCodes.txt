@@ -2,8 +2,14 @@
 01: New player broadcast Server -> Client (not including the new players client)
 02: Deleted player broadcast Server -> Client
 03: Adding new table Server -> Client
+04: Removing table Server -> Client
+05: Sending table state update Server -> Client
+06: Player joining a table Server -> Client
+07: Player leaving table Server -> Client
 
 50: RegisterNewPlayer Client -> Server
 51: Adding new Table Client -> Server
+52: Player joining a table Client -> Server
+53: Player leaving table Client -> Server
 
 99: error message Server -> Client

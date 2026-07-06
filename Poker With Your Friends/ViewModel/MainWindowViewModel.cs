@@ -36,7 +36,7 @@ namespace Poker_With_Your_Friends.ViewModel
         [ObservableProperty]
         public bool isRegisterButtonEnabled = true;
 
-        private Client? client;
+        public Client? client;
 
         public MainWindowViewModel()
         {
@@ -117,7 +117,7 @@ namespace Poker_With_Your_Friends.ViewModel
             }
         }
 
-        public async void ConnectToServer_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+        public async void ConnectToServer_Click(object sender, RoutedEventArgs e)
         {
             client = new Client(ServerHostName, ServerPort);
 

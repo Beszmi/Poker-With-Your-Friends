@@ -16,25 +16,28 @@ namespace Poker_With_Your_Friends.ViewModel
             _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
             Client.CurrentPlayer.OnPlayerButtonsChanged += UpdatePlayerActionButtons;
         }
-        public void Initialize(Model.Table table)
+        public void Initialize(Table table)
         {
             this.Table = table;
         }
 
         [ObservableProperty]
-        public Visibility isJoinButtonVisible;
+        public partial bool LeaveTableButtonEnabled { get; set; } = true;
 
         [ObservableProperty]
-        public Visibility isLeaveButtonVisible;
+        public partial Visibility IsJoinButtonVisible { get; set; }
 
         [ObservableProperty]
-        public Visibility isplayerOnOwnTable;
+        public partial Visibility IsLeaveButtonVisible { get; set; }
 
         [ObservableProperty]
-        public String? tableText = "Empty text";
+        public partial Visibility IsplayerOnOwnTable { get; set; }
 
         [ObservableProperty]
-        public bool playerActionButtonsEnabled = false;
+        public partial String? TableText { get; set; } = "Empty text";
+
+        [ObservableProperty]
+        public partial bool PlayerActionButtonsEnabled { get; set; } = false;
 
         public void UpdatePlayerActionButtons(bool enabled)
         {

@@ -21,6 +21,9 @@ namespace Poker_With_Your_Friends.Model
         [XmlIgnore]
         private static Game instance;
 
+        [XmlIgnore]
+        public bool ServerMode = false;
+
         public Game()
         {
         }
@@ -284,6 +287,15 @@ namespace Poker_With_Your_Friends.Model
                 return false;
             }
             return true;
+        }
+
+        public bool IsTableNameTaken(String tableName)
+        {
+            foreach(Table table in Tables)
+            {
+                if (table.Name == tableName) return true;
+            }
+            return false;
         }
     }
 }
