@@ -8,6 +8,8 @@ namespace Poker_With_Your_Friends.ViewModel
 {
     public partial class MainWindowViewModel : ObservableObject
     {
+        public event Action<Client>? OnServerConnected;
+
         public Game game = Game.Instance;
         public String NewPlayerName { get; set; }
 
@@ -126,10 +128,10 @@ namespace Poker_With_Your_Friends.ViewModel
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Failed to connect to server: {ex.Message}");
-
             }
             finally
             {
+                OnServerConnected?.Invoke(client);
                 IsConnectButtonEnabled = true;
             }
         }

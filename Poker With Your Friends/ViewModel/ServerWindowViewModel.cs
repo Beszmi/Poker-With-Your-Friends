@@ -2,6 +2,9 @@
 using Microsoft.UI.Xaml;
 using Poker_With_Your_Friends.Model;
 using System;
+using System.Collections.ObjectModel;
+using Windows.Devices.AllJoyn;
+using Windows.Foundation.Diagnostics;
 
 namespace Poker_With_Your_Friends.ViewModel
 {
@@ -9,13 +12,16 @@ namespace Poker_With_Your_Friends.ViewModel
     {
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(SelectedPlayerChips))]
-        public object? selectedPlayerName;
+        public partial object? SelectedPlayerName { get; set; }
 
         [ObservableProperty]
-        public String? newName;
+        public partial String? NewName { get; set; }
 
         [ObservableProperty]
-        public int? newChips;
+        public partial int? NewChips { get; set; }
+
+        [ObservableProperty]
+        public partial ObservableCollection<string>? ServerLogs { get; set; } = new ObservableCollection<string>();
 
         private Server server;
 
@@ -25,6 +31,8 @@ namespace Poker_With_Your_Friends.ViewModel
         {
             this.server = server;
             game.ReadPlayersFromXml(Game.PlayerfilePath);
+
+            server.OnServerLoggedEvent += Log;
         }
 
         public int SelectedPlayerChips
@@ -84,6 +92,20 @@ namespace Poker_With_Your_Friends.ViewModel
         public void Window_Closed(object sender, WindowEventArgs args)
         {
             game.SavePlayersToXml(Game.PlayerfilePath);
+        }
+
+        public void Log(string message)
+        {
+            if (ServerLogs.Count > 20)
+            {
+                ServerLogs.RemoveAt(0);
+            }
+            App.MainDispatcher.TryEnqueue(() =>
+            {
+                ServerLogs.Add(message);
+            });
+                
+            System.Diagnostics.Debug.WriteLine("Logged: " + message);
         }
     }
 }

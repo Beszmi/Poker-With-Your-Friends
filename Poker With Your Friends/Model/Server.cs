@@ -21,6 +21,8 @@ namespace Poker_With_Your_Friends.Model
 
         private Game game = Game.Instance;
 
+        public Action<String>? OnServerLoggedEvent;
+
         public Server(int port)
         {
             _listener = new TcpListener(IPAddress.Any, port);
@@ -29,7 +31,7 @@ namespace Poker_With_Your_Friends.Model
         public async Task StartAsync()
         {
             _listener.Start();
-            System.Diagnostics.Debug.WriteLine($"Server started on port {((IPEndPoint)_listener.LocalEndpoint).Port}...");
+            OnServerLoggedEvent?.Invoke($"Server started on port {((IPEndPoint)_listener.LocalEndpoint).Port}...");
 
             while (!_cts.Token.IsCancellationRequested)
             {
@@ -40,7 +42,7 @@ namespace Poker_With_Your_Friends.Model
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Accept error: {ex.Message}");
+                    OnServerLoggedEvent?.Invoke($"Accept error: {ex.Message}");
                 }
             }
         }
@@ -50,7 +52,7 @@ namespace Poker_With_Your_Friends.Model
             using (client)
             await using (NetworkStream stream = client.GetStream())
             {
-                System.Diagnostics.Debug.WriteLine("Client connected!");
+                OnServerLoggedEvent?.Invoke("Client connected!");
                 var reader = PipeReader.Create(stream);
                 var writer = PipeWriter.Create(stream);
 
@@ -62,9 +64,9 @@ namespace Poker_With_Your_Friends.Model
                     await BroadcastGameStateAsync();
                 } catch (Exception e)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error: {e.Message}");
-                    System.Diagnostics.Debug.WriteLine($"Inner: {e.InnerException?.Message}");
-                    System.Diagnostics.Debug.WriteLine($"Inner-Inner: {e.InnerException?.InnerException?.Message}");
+                    OnServerLoggedEvent?.Invoke($"Error: {e.Message}");
+                    OnServerLoggedEvent?.Invoke($"Inner: {e.InnerException?.Message}");
+                    OnServerLoggedEvent?.Invoke($"Inner-Inner: {e.InnerException?.InnerException?.Message}");
                 }
 
                 try
@@ -76,7 +78,7 @@ namespace Poker_With_Your_Friends.Model
 
                         while (TryReadMessage(ref buffer, out string? message))
                         {
-                            System.Diagnostics.Debug.WriteLine($"Received Action from {clientId}: {message}");
+                            OnServerLoggedEvent?.Invoke($"Received Action from {clientId}: {message}");
 
                             InterpretMessage(clientId, message);
 
@@ -88,13 +90,13 @@ namespace Poker_With_Your_Friends.Model
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Client {clientId} disconnected with error: {ex.Message}");
+                    OnServerLoggedEvent?.Invoke($"Client {clientId} disconnected with error: {ex.Message}");
                 }
                 finally
                 {
                     if (_connectedClients.TryRemove(writer, out _))
                     {
-                        System.Diagnostics.Debug.WriteLine($"Player {clientId} successfully unregistered from broadcasts.");
+                        OnServerLoggedEvent?.Invoke($"Player {clientId} successfully unregistered from broadcasts.");
                     }
 
                     await reader.CompleteAsync();
@@ -132,11 +134,11 @@ namespace Poker_With_Your_Friends.Model
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Broadcast failed. Error: {ex.Message}");
+                    OnServerLoggedEvent?.Invoke($"Broadcast failed. Error: {ex.Message}");
 
                     if (_connectedClients.TryRemove(writer, out string? playerId))
                     {
-                        System.Diagnostics.Debug.WriteLine($"Player {playerId} has been aggressively disconnected due to dead socket.");
+                        OnServerLoggedEvent?.Invoke($"Player {playerId} has been aggressively disconnected due to dead socket.");
                         // TODO: game.HandlePlayerDisconnect(playerId);
                     }
 
@@ -152,6 +154,7 @@ namespace Poker_With_Your_Friends.Model
 
         private async Task InterpretMessage(string clientId, string message)
         {
+            await BroadcastServerError(clientId + "Sent a message");
             switch (message.Substring(0, 2))
             {
                 case "50": RegisterNewPlayer(clientId, message); break;
@@ -214,7 +217,7 @@ namespace Poker_With_Your_Friends.Model
         {
             string serializedGameState = GameStateSerializer();
             await BroadcastAsync(serializedGameState);
-            System.Diagnostics.Debug.WriteLine("Game state broadcast sent.");
+            OnServerLoggedEvent?.Invoke("Game state broadcast sent.");
         }
 
         public async Task BroadcastNewPlayer(string clientId, string playerName)
@@ -252,11 +255,16 @@ namespace Poker_With_Your_Friends.Model
             await BroadcastAsync(sb.ToString());
         }
 
+        public async Task BroadcastServerError(string tableName)
+        {
+            await BroadcastAsync("99" + tableName);
+        }
+
         public void Stop()
         {
             _cts.Cancel();
             _listener.Stop();
-            System.Diagnostics.Debug.WriteLine("Server stopped.");
+            OnServerLoggedEvent?.Invoke("Server stopped.");
         }
 
         public static void InitializeServerTable(Table table)

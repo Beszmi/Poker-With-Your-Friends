@@ -1,8 +1,8 @@
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Poker_With_Your_Friends.Model;
 using Poker_With_Your_Friends.ViewModel;
-
-// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
+using System;
 
 namespace Poker_With_Your_Friends
 {
@@ -17,7 +17,50 @@ namespace Poker_With_Your_Friends
             InitializeComponent();
 
             App.MainDispatcher = this.DispatcherQueue;
+
+            viewModel.OnServerConnected += (Client c) =>
+            {
+                SetUpServerErrorHandler(c);
+            };
+        }
+        public async void DisplayErrorDialog(String message)
+        {
+            ContentDialog myDialog = new ContentDialog();
+
+            myDialog.XamlRoot = this.Content.XamlRoot;
+
+            myDialog.Title = "Local Error";
+            myDialog.Content = message;
+            myDialog.PrimaryButtonText = "Ok";
+
+            ContentDialogResult result = await myDialog.ShowAsync();
         }
 
+        public async void DisplayServerErrorDialog(String message)
+        {
+            ContentDialog myDialog = new ContentDialog();
+
+            myDialog.XamlRoot = this.Content.XamlRoot;
+
+            myDialog.Title = "Error Recieved from server";
+            myDialog.Content = message;
+            myDialog.PrimaryButtonText = "Ok";
+
+            ContentDialogResult result = await myDialog.ShowAsync();
+        }
+
+        public void SetUpServerErrorHandler(Client c)
+        {
+            if (c != null)
+            {
+                c.OnErrorReceived += (errorMessage) =>
+                {
+                    App.MainDispatcher.TryEnqueue(() =>
+                    {
+                        DisplayServerErrorDialog(errorMessage);
+                    });
+                };
+            }
+        }
     }
 }

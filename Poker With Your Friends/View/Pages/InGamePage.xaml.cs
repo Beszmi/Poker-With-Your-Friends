@@ -66,7 +66,7 @@ namespace Poker_With_Your_Friends
         {
             if (Client.CurrentTable != null)
             {
-                DisplayAlreadyInGameDialog("You are already in a game. Please leave your current game before joining a new one.");
+                DisplayErrorDialog("You are already in a game. Please leave your current game before joining a new one.");
                 return;
             }
             try
@@ -81,24 +81,11 @@ namespace Poker_With_Your_Friends
             }
             catch (InvalidOperationException ex)
             {
-                DisplayTableFullDialog(ex.Message);
+                DisplayErrorDialog(ex.Message);
             }
         }
 
-        private async void DisplayTableFullDialog(String message)
-        {
-            ContentDialog myDialog = new ContentDialog();
-
-            myDialog.XamlRoot = this.XamlRoot;
-
-            myDialog.Title = "Error";
-            myDialog.Content = message;
-            myDialog.PrimaryButtonText = "Ok";
-
-            ContentDialogResult result = await myDialog.ShowAsync();
-        }
-
-        private async void DisplayAlreadyInGameDialog(String message)
+        private async void DisplayErrorDialog(String message)
         {
             ContentDialog myDialog = new ContentDialog();
 

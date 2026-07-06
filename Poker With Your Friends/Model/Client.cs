@@ -10,8 +10,10 @@ using System.Xml.Serialization;
 
 namespace Poker_With_Your_Friends.Model
 {
+    public delegate void ServerErrorRecievedDelegate(String ErrorMessage);
     public class Client
     {
+        public event ServerErrorRecievedDelegate? OnErrorReceived;
         public String Host { get; set; }
         public int Port { get; set; }
         public static Player CurrentPlayer { get; set; }
@@ -130,6 +132,8 @@ namespace Poker_With_Your_Friends.Model
                 case "01": game.AddPlayer(new Player(message.Remove(0, 2)), false); break;
                 case "02": game.RemovePlayer(game.GetPlayerFromName(message.Remove(0, 2))); break;
                 case "03": game.AddTable(message.Remove(0, 2), false); break;
+
+                case "99": OnErrorReceived?.Invoke(message.Remove(0, 2)); break;
             }
         }
 

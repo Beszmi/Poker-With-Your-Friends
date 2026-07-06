@@ -5,3 +5,5 @@
 
 50: RegisterNewPlayer Client -> Server
 51: Adding new Table Client -> Server
+
+99: error message Server -> Client

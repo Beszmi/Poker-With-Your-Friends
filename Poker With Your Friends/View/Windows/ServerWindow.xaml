@@ -44,6 +44,21 @@
                 <Button Content="Done" Click="EditDoneButton_Click" Margin="5"/>
             </StackPanel>
         </StackPanel>
-        
+        <Border Grid.Column="1" Grid.Row="1" Background="White" MaxHeight="500">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="500">
+                <ItemsControl ItemsSource="{x:Bind viewModel.ServerLogs, Mode=OneWay}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="x:String">
+                            <TextBlock Text="{x:Bind}" 
+                           FontFamily="Consolas" 
+                           FontSize="13" 
+                           Foreground="Black"
+                           Margin="0,2" 
+                           TextWrapping="Wrap"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
     </Grid>
 </Window>
