@@ -1,21 +1,16 @@
-﻿using System;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using System;
 using System.Collections.ObjectModel;
 using System.Xml.Serialization;
 
 namespace Poker_With_Your_Friends.Model
 {
     [XmlType("Player")]
-    public class Player
+    public partial class Player : ObservableObject
     {
-        public event Action<bool> OnPlayerButtonsChanged;
-
-        private String name;
         [XmlAttribute("Name")]
-        public String Name
-        {
-            get { return name; }
-            set { name = value; }
-        }
+        [ObservableProperty]
+        public partial String Name { get; set; }
 
         private int chips = 0;
         [XmlAttribute("Chips")]
@@ -28,9 +23,9 @@ namespace Poker_With_Your_Friends.Model
             }
         }
 
-        private ObservableCollection<Card> cards = new ObservableCollection<Card>();
         [XmlIgnore]
-        public ObservableCollection<Card> Cards { get { return cards; } }
+        [ObservableProperty]
+        public partial ObservableCollection<Card> Cards { get; set; } = new ObservableCollection<Card>();
 
         public Player() { }
 
@@ -47,18 +42,18 @@ namespace Poker_With_Your_Friends.Model
 
         public Player(Player p)
         {
-            this.name = p.name;
+            Name = p.Name;
             this.chips = p.chips;
         }
 
         public void AddCard(Card card)
         {
-            cards.Add(card);
+            Cards.Add(card);
         }
 
         public void ClearCards()
         {
-            cards.Clear();
+            Cards.Clear();
         }
 
         private bool isAtTable = false;
@@ -78,13 +73,17 @@ namespace Poker_With_Your_Friends.Model
         }
 
         [XmlIgnore]
-        public bool HasFolded { get; set; } = false;
+        [ObservableProperty]
+        public partial bool HasFolded { get; set; } = false;
 
         [XmlIgnore]
-        public int CurrentBet { get; set; } = 0;
+        [ObservableProperty]
+        public partial int CurrentBet { get; set; } = 0;
 
         [XmlIgnore]
-        public bool CanLeaveGame { 
+        [ObservableProperty]
+        public partial bool CanLeaveGame
+        { 
             get
             {
                 if (isAtTable)
@@ -93,20 +92,12 @@ namespace Poker_With_Your_Friends.Model
                 }
                 return true; //Fallback: If the player is not at a table, they can leave the game.
             }
+            private set;
         }
 
-        private bool isCurrentlyActivePlayer = false;
         [XmlIgnore]
-        public bool IsCurrentlyActivePlayer 
-        { 
-            get { return isCurrentlyActivePlayer; } 
-            set
-            {
-                OnPlayerButtonsChanged?.Invoke(value);
-                isCurrentlyActivePlayer = value;
-                System.Diagnostics.Debug.WriteLine("player's active state changed to: " + value);
-            }
-        }
+        [ObservableProperty]
+        public partial bool IsCurrentlyActivePlayer { get; set; }
 
         public void Fold() { HasFolded = true; }
 

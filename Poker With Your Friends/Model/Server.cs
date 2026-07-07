@@ -33,6 +33,7 @@ namespace Poker_With_Your_Friends.Model
         {
             _listener = new TcpListener(IPAddress.Any, port);
             game.ServerMode = true;
+            Table.OnUpdateTableRequest += UpdateTable;
         }
 
         private readonly ConcurrentDictionary<string, PipeWriter> _connectedClients = new();
@@ -181,6 +182,18 @@ namespace Poker_With_Your_Friends.Model
         }
 
         /* --------------------------------------------------------
+         * Server Logic
+         *
+         -------------------------------------------------------*/
+
+        public async void UpdateTable(Table t)
+        {
+            int TableIndex = game.Tables.IndexOf(t);
+
+            await BroadcastTableUpdate(TableIndex, t);
+        }
+
+        /* --------------------------------------------------------
          * Recieiving network data 
          *
          -------------------------------------------------------*/
@@ -193,6 +206,7 @@ namespace Poker_With_Your_Friends.Model
                 case "51": CreateNewTable(message.Remove(0, 2)); break;
                 case "52": AddPlayerToTable(clientId, message.Remove(0, 2)); break;
                 case "53": RemovePlayerFromTable(clientId, message.Remove(0, 2)); break;
+                case "54": HandlePlayerAction(clientId, message.Remove(0, 2)); break;
             }
         }
 
@@ -243,6 +257,20 @@ namespace Poker_With_Your_Friends.Model
 
             await BroadcastTableUpdate(TableIndex, game.Tables[TableIndex]);
             SendLeftTable(clientId);
+        }
+
+        private void HandlePlayerAction(string clientId, string actionData)
+        {
+            // Assume actionData format: "TableIndex,ActionType" (e.g., "0,Call")
+            string[] parts = actionData.Split(',');
+            if (parts.Length == 2 && int.TryParse(parts[0], out int tableIndex))
+            {
+                Table t = game.Tables[tableIndex];
+                if (Enum.TryParse(parts[1], out Table.PlayerAction action))
+                {
+                    t.PlayerActionTcs?.TrySetResult(action);
+                }
+            }
         }
 
         /* --------------------------------------------------------

@@ -17,8 +17,14 @@ namespace Poker_With_Your_Friends
         public InGamePage()
         {
             InitializeComponent();
-            Client.OnTableJoined += JoinGameHandle;
-            Client.OnTableLeft += LeaveGameHandle;
+        }
+
+        protected override void OnNavigatedFrom(NavigationEventArgs e)
+        {
+            base.OnNavigatedFrom(e);
+            // Unsubscribe here
+            Client.OnTableJoined -= JoinGameHandle;
+            Client.OnTableLeft -= LeaveGameHandle;
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -31,6 +37,9 @@ namespace Poker_With_Your_Friends
                 // It could be different from Client.CurrentTable if they are spectating!
 
                 // You can pass this to your InGamePageViewModel to load the correct UI data
+                Client.OnTableJoined += JoinGameHandle;
+                Client.OnTableLeft += LeaveGameHandle;
+
                 viewModel.Initialize(tableToDisplay);
                 if (Client.CurrentTable == viewModel.Table)
                 {

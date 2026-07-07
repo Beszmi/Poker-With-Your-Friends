@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Navigation;
 using Poker_With_Your_Friends.Model;
 using System;
 
@@ -15,6 +16,28 @@ namespace Poker_With_Your_Friends.ViewModel
         {
             _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
             Client.CurrentPlayer.OnPlayerButtonsChanged += UpdatePlayerActionButtons;
+        }
+        public InGamePage()
+        {
+            InitializeComponent();
+        }
+
+        protected override void OnNavigatedTo(NavigationEventArgs e)
+        {
+            base.OnNavigatedTo(e);
+            // Subscribe here
+            Client.OnTableJoined += JoinGameHandle;
+            Client.OnTableLeft += LeaveGameHandle;
+
+            // ... rest of your existing logic ...
+        }
+
+        protected override void OnNavigatedFrom(NavigationEventArgs e)
+        {
+            base.OnNavigatedFrom(e);
+            // Unsubscribe here
+            Client.OnTableJoined -= JoinGameHandle;
+            Client.OnTableLeft -= LeaveGameHandle;
         }
         public void Initialize(Table table)
         {
