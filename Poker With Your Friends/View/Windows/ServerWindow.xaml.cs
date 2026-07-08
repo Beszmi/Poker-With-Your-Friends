@@ -61,5 +61,9 @@ namespace Poker_With_Your_Friends
             viewModel.EditPlayer();
             EditPanelVisible = Visibility.Collapsed;
         }
+        public void DebugMode_Click(object sender, RoutedEventArgs e)
+        {
+            viewModel.FlipDebug();
+        }
     }
 }

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
@@ -18,16 +19,10 @@ namespace Poker_With_Your_Friends
         private GameWindowViewModel viewModel = new GameWindowViewModel();
 
         public Frame Frame { get; private set; } = new Frame();
-        public GameWindow()
-        {
-            InitializeComponent();
-
-            RootFrame.Navigate(typeof(GameMenuPage));
-        }
-
         public GameWindow(Client client)
         {
             InitializeComponent();
+
             this.client = client;
 
             RootFrame.Navigate(typeof(GameMenuPage), this.client);

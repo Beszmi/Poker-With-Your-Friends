@@ -1,10 +1,11 @@
-﻿using Microsoft.UI.Xaml;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Xaml;
+using Poker_With_Your_Friends.Model;
+using Poker_With_Your_Friends.ViewModel;
+using System;
 
 namespace Poker_With_Your_Friends
 {
-    /// <summary>
-    /// Provides application-specific behavior to supplement the default Application class.
-    /// </summary>
     public partial class App : Application
     {
         private Window? _window;
@@ -12,19 +13,22 @@ namespace Poker_With_Your_Friends
         public static MainWindow MainWindowInstance { get; private set; }
         public static Microsoft.UI.Dispatching.DispatcherQueue MainDispatcher { get; set; } = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
 
-        /// <summary>
-        /// Initializes the singleton application object.  This is the first line of authored code
-        /// executed, and as such is the logical equivalent of main() or WinMain().
-        /// </summary>
+        public new static App Current => (App)Application.Current;
+        public IServiceProvider Services { get; }
         public App()
         {
             InitializeComponent();
+
+            var services = new ServiceCollection();
+            services.AddSingleton<IPlayerStore, PlayerStore>();
+            services.AddSingleton<Client>();
+
+            services.AddTransient<GameMenuPageViewModel>();
+            services.AddTransient<InGamePageViewModel>();
+
+            Services = services.BuildServiceProvider();
         }
 
-        /// <summary>
-        /// Invoked when the application is launched.
-        /// </summary>
-        /// <param name="args">Details about the launch request and process.</param>
         protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
             _window = new MainWindow();

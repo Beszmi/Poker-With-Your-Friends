@@ -23,7 +23,8 @@ namespace Poker_With_Your_Friends.Model
             }
         }
 
-        [XmlIgnore]
+        [XmlArray("Cards")]
+        [XmlArrayItem("Card")]
         [ObservableProperty]
         public partial ObservableCollection<Card> Cards { get; set; } = new ObservableCollection<Card>();
 
@@ -56,46 +57,19 @@ namespace Poker_With_Your_Friends.Model
             Cards.Clear();
         }
 
-        private bool isAtTable = false;
-        [XmlIgnore]
-        public bool IsAtTable
-        {
-            get { return isAtTable; }
-            set { isAtTable = value; }
-        }
-
-        private Table? currentTable;
-        [XmlIgnore]
-        public Table? CurrentTable
-        {
-            get { return currentTable; }
-            set { currentTable = value; }
-        }
-
         [XmlIgnore]
         [ObservableProperty]
-        public partial bool HasFolded { get; set; } = false;
+        private bool isAtTable = false;
+
+        [XmlAttribute("hasFolded")]
+        [ObservableProperty]
+        private bool hasFolded = false;
 
         [XmlIgnore]
         [ObservableProperty]
         public partial int CurrentBet { get; set; } = 0;
 
-        [XmlIgnore]
-        [ObservableProperty]
-        public partial bool CanLeaveGame
-        { 
-            get
-            {
-                if (isAtTable)
-                {
-                    return HasFolded || !(CurrentTable?.IsGameActive ?? false);
-                }
-                return true; //Fallback: If the player is not at a table, they can leave the game.
-            }
-            private set;
-        }
-
-        [XmlIgnore]
+        [XmlAttribute("IsCurrentlyActivePlayer")]
         [ObservableProperty]
         public partial bool IsCurrentlyActivePlayer { get; set; }
 
@@ -122,6 +96,21 @@ namespace Poker_With_Your_Friends.Model
         public void Win(int amount)
         {
             Chips += amount;
+        }
+
+        public void UpdateProperties(Player NewPlayer)
+        {
+            Chips = NewPlayer.Chips;
+            // IsAtTable Should be handled by joining and leaving code
+            HasFolded = NewPlayer.HasFolded;
+            CurrentBet = NewPlayer.CurrentBet;
+            IsCurrentlyActivePlayer = NewPlayer.IsCurrentlyActivePlayer;
+
+            Cards.Clear();
+            foreach (var card in NewPlayer.Cards)
+            {
+                Cards.Add(card);
+            }
         }
     }
 }

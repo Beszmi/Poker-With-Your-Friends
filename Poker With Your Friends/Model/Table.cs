@@ -1,7 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
@@ -17,18 +17,32 @@ namespace Poker_With_Your_Friends.Model
             Raise,
             Fold
         }
+
+        /* -------------------------------------------------
+         *  Properties
+         *
+         -------------------------------------------------*/
         [XmlIgnore]
         private AutoResetEvent playerJoined = new AutoResetEvent(false);
         [XmlIgnore]
         private Deck deck = new Deck();
+
         [XmlIgnore]
         [ObservableProperty]
         private partial Player? CurrentlyActivePlayer { get; set; } = null;
+
+        /*------------------------------
+         * FOR NETWORK TRANSMISSION ONLY
+        ------------------------------*/
+        [XmlAttribute("ActivePlayerName")]
+        [ObservableProperty]
+        public partial String ActivePlayerName { get; set; } = string.Empty;
+
         [XmlIgnore]
         private static int maxPlayers = 6;
 
         [XmlIgnore]
-        public static Action<Table>? OnUpdateTableRequest;
+        public static Action<Table>? OnUpdateTableRequest; //TODO: Might be unnecesarry
 
         [XmlAttribute("Name")]
         [ObservableProperty]
@@ -45,7 +59,7 @@ namespace Poker_With_Your_Friends.Model
         [XmlArray("Housecards")]
         [XmlArrayItem("Housecard")]
         [ObservableProperty]
-        public partial ObservableCollection<Card> Housecards { get; set; }
+        public partial ObservableCollection<Card> Housecards { get; set; } = new ObservableCollection<Card>();
 
         [XmlAttribute("Pot")]
         [ObservableProperty]
@@ -54,12 +68,17 @@ namespace Poker_With_Your_Friends.Model
         [XmlArray("Players")]
         [XmlArrayItem("Player")]
         [ObservableProperty]
-        public partial ObservableCollection<Player> Players { get; set; }
+        public partial ObservableCollection<Player> Players { get; set; } = new ObservableCollection<Player>();
 
         [XmlAttribute("IsGameActive")]
         [ObservableProperty]
         public partial bool IsGameActive { get; set; }
 
+
+        /* -------------------------------------------------
+         *  Constructors
+         *
+         -------------------------------------------------*/
         public Table() { }
 
         public Table(String name)
@@ -67,18 +86,10 @@ namespace Poker_With_Your_Friends.Model
             Name = name;
         }
 
-        public Table(Table t)
-        {
-            Name = t.Name;
-            Round = t.Round;
-            SmallBlind = t.SmallBlind;
-            Pot = t.Pot;
-            IsGameActive = t.IsGameActive;
-            this.deck = t.deck;
-            Players = t.Players;
-            Housecards = t.Housecards;
-        }
-
+        /* -------------------------------------------------
+         *  Methods
+         *
+         -------------------------------------------------*/
         public void AddPlayer(Player player)
         {
             if (!player.IsAtTable)
@@ -106,15 +117,7 @@ namespace Poker_With_Your_Friends.Model
         {
             Round++;
             Pot = 0;
-            var dispatcher = App.MainDispatcher;
-            if (dispatcher != null && !dispatcher.HasThreadAccess)
-            {
-                dispatcher.TryEnqueue(() => Housecards.Clear());
-            }
-            else
-            {
-                Housecards.Clear();
-            }
+            Housecards.Clear();
         }
 
         public void DealToPlayers()
@@ -144,14 +147,16 @@ namespace Poker_With_Your_Friends.Model
             _playerActionTcs = new TaskCompletionSource<PlayerAction>();
 
             CurrentlyActivePlayer = player;
+            ActivePlayerName = player.Name;
             if (player.HasFolded || !IsGameActive)
             {
+                ActivePlayerName = string.Empty;
                 return;
             }
             player.IsCurrentlyActivePlayer = true;
+            OnUpdateTableRequest?.Invoke(this);
 
             PlayerAction action = await _playerActionTcs.Task;
-            OnUpdateTableRequest?.Invoke(this);
             switch (action)
             {
                 case PlayerAction.Call:
@@ -168,7 +173,8 @@ namespace Poker_With_Your_Friends.Model
             }
 
             player.IsCurrentlyActivePlayer = false;
-            CurrentlyActivePlayer = null; // Reset after action is taken
+            CurrentlyActivePlayer = null;
+            ActivePlayerName = string.Empty;
             OnUpdateTableRequest?.Invoke(this);
         }
 
@@ -180,25 +186,15 @@ namespace Poker_With_Your_Friends.Model
             DealToPlayers();
 
             var dispatcher = App.MainDispatcher;
-            if (dispatcher != null && !dispatcher.HasThreadAccess)
-            {
-                dispatcher.TryEnqueue(() =>
-                {
-                    Housecards.Add(deck.DrawCard());
-                    Housecards.Add(deck.DrawCard());
-                    Housecards.Add(deck.DrawCard());
-                });
-            }
-            else
-            {
-                Housecards.Add(deck.DrawCard());
-                Housecards.Add(deck.DrawCard());
-                Housecards.Add(deck.DrawCard());
-            }
+
+            Housecards.Add(deck.DrawCard());
+            Housecards.Add(deck.DrawCard());
+            Housecards.Add(deck.DrawCard());
+
             OnUpdateTableRequest?.Invoke(this);
 
             System.Diagnostics.Debug.WriteLine("Cards dealt to: " + Players.Count + " players");
-            foreach (var player in Players)
+            foreach (var player in Players.ToList())
             {
                 foreach (var card in player.Cards)
                 {
@@ -213,6 +209,50 @@ namespace Poker_With_Your_Friends.Model
         {
             deck.Shuffle();
             Task.Run(() => Play());
+        }
+
+        public void HandlePlayerDisconnected(Player player)
+        {
+            if (Players.Contains(player))
+            {
+                if (CurrentlyActivePlayer == player &&
+                    _playerActionTcs != null &&
+                    !_playerActionTcs.Task.IsCompleted)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Auto-folding for disconnected player: {player.Name}");
+                    _playerActionTcs.TrySetResult(PlayerAction.Fold);
+                }
+
+                RemovePlayer(player);
+                OnUpdateTableRequest?.Invoke(this);
+            }
+        }
+
+        public void ChangeActivePlayerByName(String name) //For clients
+        {
+            CurrentlyActivePlayer = Game.ClientInstance.GetPlayerFromName(name);
+        }
+
+        public static void HandleUpdateFromNetwork(int TableIndex, Table NetworkTable) // NOT FOR ADDING OR REMOVING PLAYERS, USE WHEN RECIEVING NETCODE "05" for clients
+        {
+            Table LocalTable = Game.ClientInstance.Tables[TableIndex];
+            LocalTable.ChangeActivePlayerByName(NetworkTable.ActivePlayerName);
+            LocalTable.Name = NetworkTable.Name;
+            LocalTable.Pot = NetworkTable.Pot;
+            LocalTable.Housecards = NetworkTable.Housecards;
+
+            LocalTable.Players.Clear();
+            if (NetworkTable.Players.Count > maxPlayers) { throw new ArgumentException("Recieved Network table has too mayn players."); }
+            foreach (Player player in NetworkTable.Players)
+            {
+                Player LocalPlayer = Game.ClientInstance.GetPlayerFromName(player.Name);
+                LocalTable.Players.Add(LocalPlayer);
+                LocalPlayer.UpdateProperties(player);
+            }
+
+            LocalTable.IsGameActive = NetworkTable.IsGameActive;
+            LocalTable.Pot = NetworkTable.Pot;
+
         }
     }
 }

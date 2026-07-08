@@ -61,7 +61,7 @@
         </TextBlock>
 
         <StackPanel Grid.Column="0" Grid.Row="3" HorizontalAlignment="Center" VerticalAlignment="Bottom" Visibility="{x:Bind viewModel.IsplayerOnOwnTable, Mode=OneWay}">
-            <ListView ItemsSource="{x:Bind Model:Client.CurrentPlayer.Cards, Mode=OneWay}">
+            <ListView ItemsSource="{x:Bind viewModel.MyCards, Mode=OneWay}">
                 <ListView.ItemsPanel>
                     <ItemsPanelTemplate>
                         <ItemsStackPanel Orientation="Horizontal" />

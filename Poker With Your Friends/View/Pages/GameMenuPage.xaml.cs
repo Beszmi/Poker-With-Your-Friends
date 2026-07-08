@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Animation;
@@ -14,6 +15,7 @@ namespace Poker_With_Your_Friends
         {
             this.InitializeComponent();
 
+            viewModel = App.Current.Services.GetRequiredService<GameMenuPageViewModel>();
             this.DataContext = viewModel;
 
             viewModel.NavigationRequested += (targetPageType, parameter) =>
@@ -21,13 +23,14 @@ namespace Poker_With_Your_Friends
                 this.Frame.Navigate(targetPageType, parameter, new DrillInNavigationTransitionInfo());
             };
         }
+
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
 
             if (e.Parameter is Client c)
             {
-                viewModel.SetClient(c);
+                viewModel.Initialize(c);
             }
         }
         private void Table_ItemClick(object sender, ItemClickEventArgs e)

@@ -10,10 +10,22 @@ namespace Poker_With_Your_Friends.ViewModel
 {
     internal partial class GameMenuPageViewModel : ObservableObject
     {
-        private Client client;
+        public Client client;
+        public IPlayerStore PlayerStore { get; private set; }
+
+        private Game game;
+        public ObservableCollection<Table> Tables { get; set; }
+        
+        public static Action<String> GameMenuError;
+
+        public String? NewTableName { get; set; }
+
+        [ObservableProperty]
+        public bool isNewTableButtonEnabled = true;
+
         public GameMenuPageViewModel()
         {
-            game = Game.Instance;
+            game = Game.ClientInstance;
             Tables = game.Tables;
 
             GoToPage2Command = new RelayCommand(() =>
@@ -22,19 +34,11 @@ namespace Poker_With_Your_Friends.ViewModel
             });
         }
 
-        public void SetClient(Client c)
+        public void Initialize(Client c)
         {
             client = c;
+            PlayerStore = c.PlayerStore;
         }
-        public static Action<String> GameMenuError;
-
-        // Add a new table with a name
-        public String? NewTableName { get; set; }
-        private Game game;
-        public ObservableCollection<Table> Tables { get; set; }
-
-        [ObservableProperty]
-        public bool isNewTableButtonEnabled = true;
 
         public async Task CreateNewTableAsync()
         {
@@ -59,7 +63,7 @@ namespace Poker_With_Your_Friends.ViewModel
 
                 game.OnTableAdded += CheckNewTable;
 
-                client?.CreateNewTable(NewTableName);
+                client.CreateNewTable(NewTableName);
 
                 try
                 {
@@ -89,7 +93,7 @@ namespace Poker_With_Your_Friends.ViewModel
 
         public void ViewTable(Table table)
         {
-            NavigationRequested?.Invoke(typeof(InGamePage), table);
+            NavigationRequested?.Invoke(typeof(InGamePage), new object[] { client, table });
         }
     }
 }

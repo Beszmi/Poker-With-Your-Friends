@@ -4,7 +4,6 @@ using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
 using System.Net.Sockets;
-using System.Numerics;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,40 +13,39 @@ namespace Poker_With_Your_Friends.Model
 {
     public class Client
     {
+        public IPlayerStore PlayerStore { get; }
+
+        public event Action<String>? OnSendPlayerAction;
         public event Action<String> OnErrorReceived;
         public event Action<String> OnLocalError;
-        public event Action OnTableUpdated;
-        public static event Action OnTableJoined;
-        public static event Action OnTableLeft;
+        public event Action? OnTableUpdated;
+        public event Action? OnTableJoined;
+        public event Action? OnTableLeft;
         public String Host { get; set; }
         public int Port { get; set; }
-        public static Player CurrentPlayer { get; set; }
-        public static Table? CurrentTable { get; set; }
-        public static int CurrentTableIndex { get; set; } = -1;
-
-        private Player? containedPlayer;
-        public Player? ContainedPlayer
-        {
-            get { return containedPlayer; }
-            set
-            {
-                containedPlayer = value;
-                CurrentPlayer = value;
-            }
-        }
 
         private PipeWriter? _writer;
         private TcpClient? _tcpClient;
         private CancellationTokenSource _cts = new();
 
-        private Game game = Game.Instance;
+        private Game game = Game.ClientInstance;
 
-        public Client(String host, int port)
+        public Client(String host, int port, IPlayerStore playerStore)
         {
             Host = host;
             Port = port;
+            this.PlayerStore = playerStore;
+
             InGamePage.OnJoinGameClick += PlayerJoiningTable;
             InGamePage.OnLeaveGameClick += PlayerLeavingTable;
+
+            OnSendPlayerAction = (actionStr) =>
+            {
+                if (game.Tables.IndexOf(PlayerStore.CurrentTable) != -1)
+                {
+                    SendMessage($"54{game.Tables.IndexOf(PlayerStore.CurrentTable)},{actionStr}");
+                }
+            };
         }
 
         public async Task ConnectAndRunAsync()
@@ -137,8 +135,8 @@ namespace Poker_With_Your_Friends.Model
             {
                 int tableId = game.Tables.IndexOf(liveTable);
 
-                CurrentTableIndex = tableId;
-                SendMessage("52" + tableId + CurrentPlayer.Name);
+                PlayerStore.CurrentTable = liveTable;
+                SendMessage("52" + tableId + PlayerStore.CurrentPlayer.Name);
             }
             else
             {
@@ -148,8 +146,8 @@ namespace Poker_With_Your_Friends.Model
 
         public void PlayerLeavingTable(Table table)
         {
-            SendMessage("53" + CurrentTableIndex + CurrentPlayer.Name);
-            CurrentTableIndex = -1;
+            SendMessage("53" + game.Tables.IndexOf(PlayerStore.CurrentTable) + PlayerStore.CurrentPlayer.Name);
+            PlayerStore.CurrentTable = null;
         }
 
         /* --------------------------------------------------------
@@ -159,18 +157,21 @@ namespace Poker_With_Your_Friends.Model
          -------------------------------------------------------*/
         private void InterpretMessage(String message)
         {
-            switch (message.Substring(0, 2))
+            string command = message.Substring(0, 2);
+            string payload = message.Substring(2);
+
+            switch (command)
             {
                 case "00": UpdateGameState(message); break;
-                case "01": game.AddPlayer(new Player(message.Remove(0, 2)), false); break;
-                case "02": game.RemovePlayer(game.GetPlayerFromName(message.Remove(0, 2))); break;
-                case "03": game.AddTable(message.Remove(0, 2), false); break;
+                case "01": game.AddPlayer(new Player(payload), false); break;
+                case "02": game.RemovePlayer(game.GetPlayerFromName(payload)); break;
+                case "03": game.AddTable(payload, false); break;
                 case "04": throw new NotImplementedException(); break;
-                case "05": UpdateTableState(message.Remove(0, 2)); break;
+                case "05": UpdateTableState(payload); break;
                 case "06": OnTableJoined?.Invoke(); break;
                 case "07": OnTableLeft?.Invoke(); break;
 
-                case "99": OnErrorReceived?.Invoke(message.Remove(0, 2)); break;
+                case "99": OnErrorReceived?.Invoke(payload); break;
             }
         }
 
@@ -195,10 +196,23 @@ namespace Poker_With_Your_Friends.Model
             XmlSerializer serializer = new XmlSerializer(typeof(Table));
             if (serializer.Deserialize(new StringReader(tableData)) is Table deserializedTable)
             {
-                game.Tables[tableIndex] = deserializedTable;
-                System.Diagnostics.Debug.WriteLine("Table state broadcast recieved succesfully.");
+                var dispatcher = App.MainDispatcher;
+                if (dispatcher != null && !dispatcher.HasThreadAccess)
+                {
+                    dispatcher.TryEnqueue(() =>
+                    {
+                        game.Tables[tableIndex] = deserializedTable;
+                        System.Diagnostics.Debug.WriteLine("Table state broadcast recieved succesfully.");
+                        OnTableUpdated?.Invoke();
+                    });
+                }
+                else
+                {
+                    game.Tables[tableIndex] = deserializedTable;
+                    System.Diagnostics.Debug.WriteLine("Table state broadcast recieved succesfully.");
+                    OnTableUpdated?.Invoke();
+                }
             }
-            OnTableUpdated?.Invoke();
         }
 
         public void Disconnect()

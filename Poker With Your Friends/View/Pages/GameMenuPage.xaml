@@ -23,7 +23,7 @@
 
         <TextBlock Grid.Column="0" Grid.Row="0" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="24" FontWeight="Bold">
         <Run Text="Hi, "/>
-        <Run Text="{x:Bind Model:Client.CurrentPlayer.Name}"/>
+        <Run Text="{x:Bind viewModel.client.PlayerStore.CurrentPlayer.Name, Mode=OneWay}"/>
         </TextBlock>
 
         <StackPanel Grid.Row="0" Orientation="Vertical" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,20,0,0" Spacing="5" Canvas.ZIndex="1">

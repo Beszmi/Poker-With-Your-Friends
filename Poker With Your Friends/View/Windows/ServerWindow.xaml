@@ -22,7 +22,7 @@
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="2*" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
         <TextBlock Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="3" Text="Server Window" HorizontalAlignment="Center" VerticalAlignment="Top" FontSize="24" Margin="10"/>
@@ -60,5 +60,6 @@
                 </ItemsControl>
             </ScrollViewer>
         </Border>
+        <Button Grid.Column="2" Grid.Row="1" Content="Debug messages flip" Click="DebugMode_Click" VerticalAlignment="Center" HorizontalAlignment="Center"></Button>
     </Grid>
 </Window>

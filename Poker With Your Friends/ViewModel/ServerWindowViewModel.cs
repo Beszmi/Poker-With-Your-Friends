@@ -23,7 +23,7 @@ namespace Poker_With_Your_Friends.ViewModel
 
         private Server server;
 
-        public Game game = Game.Instance;
+        public Game game = Game.ServerInstance;
 
         public ServerWindowViewModel(Server server)
         {
@@ -87,14 +87,9 @@ namespace Poker_With_Your_Friends.ViewModel
             server?.Stop();
         }
 
-        public void Window_Closed(object sender, WindowEventArgs args)
-        {
-            game.SavePlayersToXml(Game.PlayerfilePath);
-        }
-
         public void Log(string message)
         {
-            if (ServerLogs.Count > 20)
+            if (ServerLogs.Count > 25)
             {
                 ServerLogs.RemoveAt(0);
             }
@@ -104,6 +99,10 @@ namespace Poker_With_Your_Friends.ViewModel
             });
                 
             System.Diagnostics.Debug.WriteLine("Logged: " + message);
+        }
+        public void FlipDebug()
+        {
+            server.debugMessages = !server.debugMessages;
         }
     }
 }

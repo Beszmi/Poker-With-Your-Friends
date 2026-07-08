@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO.Pipelines;
 using System.Net;
 using System.Net.Sockets;
@@ -17,7 +18,7 @@ namespace Poker_With_Your_Friends.Model
         private readonly TcpListener _listener;
         private readonly CancellationTokenSource _cts = new();
 
-        private Game game = Game.Instance;
+        private Game game = Game.ServerInstance;
 
         public Action<String>? OnServerLoggedEvent;
 
@@ -37,6 +38,9 @@ namespace Poker_With_Your_Friends.Model
         }
 
         private readonly ConcurrentDictionary<string, PipeWriter> _connectedClients = new();
+        private readonly ConcurrentDictionary<string, string> _clientToPlayerName = new();
+
+        public bool debugMessages = false;
 
         public async Task StartAsync()
         {
@@ -90,8 +94,6 @@ namespace Poker_With_Your_Friends.Model
 
                         while (TryReadMessage(ref buffer, out string? message))
                         {
-                            OnServerLoggedEvent?.Invoke($"Received Action from {clientId}: {message}");
-
                             InterpretMessage(clientId, message);
                         }
 
@@ -107,8 +109,9 @@ namespace Poker_With_Your_Friends.Model
                 {
                     if (_connectedClients.TryRemove(clientId, out _))
                     {
-                        OnServerLoggedEvent?.Invoke($"Player {clientId} successfully unregistered from broadcasts.");
+                        OnServerLoggedEvent?.Invoke($"Player {clientId} socket closed normally.");
                     }
+                    _ = HandlePlayerDisconnectAsync(clientId);
 
                     await reader.CompleteAsync();
                     await writer.CompleteAsync();
@@ -137,9 +140,11 @@ namespace Poker_With_Your_Friends.Model
         {
             byte[] bytes = Encoding.UTF8.GetBytes(SerializedXML + "\n");
 
+            List<string> deadClients = new List<string>();
+
             foreach (var kvp in _connectedClients)
             {
-                string playerId = kvp.Key;
+                string clientId = kvp.Key;
                 PipeWriter writer = kvp.Value;
 
                 try
@@ -148,15 +153,17 @@ namespace Poker_With_Your_Friends.Model
                 }
                 catch (Exception ex)
                 {
-                    OnServerLoggedEvent?.Invoke($"Broadcast failed for {playerId}. Error: {ex.Message}");
+                    OnServerLoggedEvent?.Invoke($"Broadcast failed for {clientId}. Error: {ex.Message}");
+                    deadClients.Add(clientId);
+                }
+            }
 
-                    if (_connectedClients.TryRemove(playerId, out _))
-                    {
-                        OnServerLoggedEvent?.Invoke($"Player {playerId} has been aggressively disconnected due to dead socket.");
-                        // TODO: game.HandlePlayerDisconnect(playerId);
-                    }
-
-                    try { await writer.CompleteAsync(); } catch { /* Ignore */ }
+            foreach (string deadClient in deadClients)
+            {
+                if (_connectedClients.TryRemove(deadClient, out _))
+                {
+                    OnServerLoggedEvent?.Invoke($"Player {deadClient} aggressively disconnected.");
+                    _ = HandlePlayerDisconnectAsync(deadClient);
                 }
             }
         }
@@ -181,6 +188,35 @@ namespace Poker_With_Your_Friends.Model
             }
         }
 
+        private async Task HandlePlayerDisconnectAsync(string clientId)
+        {
+            if (_clientToPlayerName.TryRemove(clientId, out string playerName))
+            {
+                OnServerLoggedEvent?.Invoke($"Handling disconnect for: {playerName}");
+
+                try
+                {
+                    Player disconnectedPlayer = game.GetPlayerFromName(playerName);
+
+                    foreach (var table in game.Tables)
+                    {
+                        if (table.Players.Contains(disconnectedPlayer))
+                        {
+                            table.HandlePlayerDisconnected(disconnectedPlayer);
+                        }
+                    }
+
+                    game.RemovePlayer(disconnectedPlayer);
+
+                    await BroadcastDeletedPlayer(playerName);
+                }
+                catch (ArgumentException)
+                {
+                    // Player already removed or not found
+                }
+            }
+        }
+
         /* --------------------------------------------------------
          * Server Logic
          *
@@ -200,20 +236,35 @@ namespace Poker_With_Your_Friends.Model
 
         private async Task InterpretMessage(string clientId, string message)
         {
-            switch (message.Substring(0, 2))
+            if (string.IsNullOrWhiteSpace(message) || message.Length < 2)
             {
-                case "50": RegisterNewPlayer(message.Remove(0, 2)); break;
-                case "51": CreateNewTable(message.Remove(0, 2)); break;
-                case "52": AddPlayerToTable(clientId, message.Remove(0, 2)); break;
-                case "53": RemovePlayerFromTable(clientId, message.Remove(0, 2)); break;
-                case "54": HandlePlayerAction(clientId, message.Remove(0, 2)); break;
+                System.Diagnostics.Debug.WriteLine($"Malformed message received from {clientId}. Length: {message?.Length}");
+                return;
+            }
+
+            if (debugMessages)
+            {
+                OnServerLoggedEvent?.Invoke($"DEBUG: Recieved from [{clientId}]:  {message}");
+            }
+
+            string command = message.Substring(0, 2);
+            string payload = message.Substring(2);
+
+            switch (command)
+            {
+                case "50": RegisterNewPlayer(clientId, payload); break;
+                case "51": CreateNewTable(payload); break;
+                case "52": AddPlayerToTable(clientId, payload); break;
+                case "53": RemovePlayerFromTable(clientId, payload); break;
+                case "54": HandlePlayerAction(clientId, payload); break;
             }
         }
 
-        private void RegisterNewPlayer(string message)
+        private void RegisterNewPlayer(string clientId, string playerName)
         {
-            game.AddPlayer(new Player(message), true);
-            BroadcastNewPlayer(message);
+            _clientToPlayerName[clientId] = playerName;
+            game.AddPlayer(new Player(playerName), true);
+            BroadcastNewPlayer(playerName);
         }
 
         private void CreateNewTable(string message)
@@ -223,7 +274,7 @@ namespace Poker_With_Your_Friends.Model
             BroadcastNewTable(t);
         }
         
-        private async void AddPlayerToTable(string clientId, string message)
+        private async void AddPlayerToTable(string ClientId, string message)
         {
             int FirstOpeningChar = Utils.GetFirstNonNumberIndex(message);
             int TableIndex = Int32.Parse(message.Substring(0, FirstOpeningChar));
@@ -233,15 +284,15 @@ namespace Poker_With_Your_Friends.Model
             }
             catch (InvalidOperationException ex)
             {
-                await BroadcastServerError(ex.Message);
+                await BroadcastServerErrorClient(ClientId, ex.Message);
                 return;
             }
 
             await BroadcastTableUpdate(TableIndex, game.Tables[TableIndex]);
-            SendJoinedTable(clientId);
+            SendJoinedTable(ClientId);
         }
 
-        private async void RemovePlayerFromTable(string clientId, String message)
+        private async void RemovePlayerFromTable(string ClientId, String message)
         {
             int FirstOpeningChar = Utils.GetFirstNonNumberIndex(message);
             int TableIndex = Int32.Parse(message.Substring(0, FirstOpeningChar));
@@ -251,17 +302,17 @@ namespace Poker_With_Your_Friends.Model
             }
             catch (InvalidOperationException ex)
             {
-                await BroadcastServerError(ex.Message);
+                await BroadcastServerErrorClient(ClientId, ex.Message);
                 return;
             }
 
             await BroadcastTableUpdate(TableIndex, game.Tables[TableIndex]);
-            SendLeftTable(clientId);
+            SendLeftTable(ClientId);
         }
 
         private void HandlePlayerAction(string clientId, string actionData)
         {
-            // Assume actionData format: "TableIndex,ActionType" (e.g., "0,Call")
+            // format: "TableIndex,ActionType" (e.g., "0,Call")
             string[] parts = actionData.Split(',');
             if (parts.Length == 2 && int.TryParse(parts[0], out int tableIndex))
             {
@@ -283,11 +334,13 @@ namespace Poker_With_Your_Friends.Model
         private async Task SendJoinedTable(String ClientId)
         {
             SendMessageAsync(ClientId, "06");
+            OnServerLoggedEvent?.Invoke($"Sent Table joined to {ClientId} (06)");
         }
 
         private async Task SendLeftTable(String ClientId)
         {
             SendMessageAsync(ClientId, "07");
+            OnServerLoggedEvent?.Invoke($"Sent Table Left to {ClientId} (07)");
         }
 
         //Broadcasts
@@ -303,9 +356,9 @@ namespace Poker_With_Your_Friends.Model
                 XmlSerializerNamespaces namespaces = new XmlSerializerNamespaces();
                 namespaces.Add("", "");
 
-                serializer.Serialize(writer, Game.Instance, namespaces);
+                serializer.Serialize(writer, Game.ServerInstance, namespaces);
             }
-
+            
             return sb.ToString();
         }
         public async Task BroadcastGameStateAsync()
@@ -313,16 +366,22 @@ namespace Poker_With_Your_Friends.Model
             string serializedGameState = GameStateSerializer();
             await BroadcastAsync(serializedGameState);
             OnServerLoggedEvent?.Invoke("Game state broadcast sent.");
+            if (debugMessages)
+            {
+                OnServerLoggedEvent?.Invoke($"DEBUG: Sent to: [BROADCAST]:  {serializedGameState}");
+            }
         }
 
         public async Task BroadcastNewPlayer(string playerName)
         {
             await BroadcastAsync("01" + playerName);
+            OnServerLoggedEvent?.Invoke($"New player broadcast {playerName} (01)");
         }
 
         public async Task BroadcastDeletedPlayer(string playerName)
         {
             await BroadcastAsync("02" + playerName);
+            OnServerLoggedEvent?.Invoke($"Player deleted broadcast {playerName} (02)");
         }
 
         public async Task BroadcastNewTable(Table table)
@@ -341,11 +400,29 @@ namespace Poker_With_Your_Friends.Model
             }
 
             await BroadcastAsync(sb.ToString());
+            OnServerLoggedEvent?.Invoke($"New table broadcast {table.Name}");
+            if (debugMessages)
+            {
+                OnServerLoggedEvent?.Invoke($"DEBUG: Sent to: [BROADCAST]:  {sb.ToString()}");
+            }
         }
 
-        public async Task BroadcastServerError(string ErrorMessage)
+        public async Task BroadcastServerErrorBroadcast(string ErrorMessage)
         {
             await BroadcastAsync("99" + ErrorMessage);
+            if (debugMessages)
+            {
+                OnServerLoggedEvent?.Invoke($"DEBUG: Sent to: [BROADCAST]:  99{ErrorMessage}");
+            }
+        }
+
+        public async Task BroadcastServerErrorClient(String ClientId, string ErrorMessage)
+        {
+            await BroadcastAsync("99" + ErrorMessage);
+            if (debugMessages)
+            {
+                OnServerLoggedEvent?.Invoke($"DEBUG: Sent to: [BROADCAST]:  99{ErrorMessage}");
+            }
         }
 
         public async Task BroadcastTableUpdate(int indexOfTable, Table t)
@@ -365,6 +442,10 @@ namespace Poker_With_Your_Friends.Model
             }
 
             await BroadcastAsync(sb.ToString());
+            if (debugMessages)
+            {
+                OnServerLoggedEvent?.Invoke($"DEBUG: Sent to: [BROADCAST]: {sb.ToString()}");
+            }
         }
 
         public void Stop()

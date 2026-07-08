@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Animation;
@@ -5,6 +6,7 @@ using Microsoft.UI.Xaml.Navigation;
 using Poker_With_Your_Friends.Model;
 using Poker_With_Your_Friends.ViewModel;
 using System;
+using System.Linq;
 
 namespace Poker_With_Your_Friends
 {
@@ -13,7 +15,9 @@ namespace Poker_With_Your_Friends
         public static Action<Table>? OnJoinGameClick;
         public static Action<Table>? OnLeaveGameClick;
 
-        private InGamePageViewModel viewModel = new InGamePageViewModel();
+        public InGamePageViewModel viewModel { get; } = new InGamePageViewModel();
+        private Client client;
+
         public InGamePage()
         {
             InitializeComponent();
@@ -23,25 +27,28 @@ namespace Poker_With_Your_Friends
         {
             base.OnNavigatedFrom(e);
             // Unsubscribe here
-            Client.OnTableJoined -= JoinGameHandle;
-            Client.OnTableLeft -= LeaveGameHandle;
+            client.OnTableJoined -= JoinGameHandle;
+            client.OnTableLeft -= LeaveGameHandle;
+            client.OnTableUpdated -= viewModel.NetworkTableUpdated;
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
 
-            if (e.Parameter is Table tableToDisplay)
+            if (e.Parameter is object[] args && args.Length == 2)
             {
                 // This is the table the user is CURRENTLY LOOKING AT.
-                // It could be different from Client.CurrentTable if they are spectating!
 
-                // You can pass this to your InGamePageViewModel to load the correct UI data
-                Client.OnTableJoined += JoinGameHandle;
-                Client.OnTableLeft += LeaveGameHandle;
+                client = args[0] as Client;
+                Table tableToDisplay = args[1] as Table;
 
-                viewModel.Initialize(tableToDisplay);
-                if (Client.CurrentTable == viewModel.Table)
+                client.OnTableJoined += JoinGameHandle;
+                client.OnTableLeft += LeaveGameHandle;
+                client.OnTableUpdated += viewModel.NetworkTableUpdated;
+
+                viewModel.Initialize(client, tableToDisplay);
+                if (viewModel.PlayerStore.CurrentTable == viewModel.Table)
                 {
                     viewModel.IsplayerOnOwnTable = Visibility.Visible;
                 }
@@ -58,7 +65,7 @@ namespace Poker_With_Your_Friends
         }
         private void LeaveGameButton_Click(object sender, RoutedEventArgs e)
         {
-            if (Client.CurrentTable != null && Client.CurrentTable == viewModel.Table)
+            if (viewModel.PlayerStore.CurrentPlayer != null && viewModel.PlayerStore.CurrentTable == viewModel.Table)
             {
                 viewModel.LeaveTableButtonEnabled = false;
                 OnLeaveGameClick?.Invoke(viewModel.Table);
@@ -67,7 +74,8 @@ namespace Poker_With_Your_Friends
 
         private async void JoinGameButton_Click(object sender, RoutedEventArgs e)
         {
-            if (Client.CurrentTable != null)
+            bool isAlreadyPlayingSomewhere = Game.ClientInstance.Tables.Any(t => t.Players.Any(p => p.Name == viewModel.PlayerStore?.CurrentPlayer?.Name));
+            if (isAlreadyPlayingSomewhere)
             {
                 DisplayErrorDialog("You are already in a game. Please leave your current game before joining a new one.");
                 return;
@@ -95,11 +103,8 @@ namespace Poker_With_Your_Friends
             {
                 try
                 {
-                    Client.CurrentTable = viewModel.Table;
-
-                    viewModel.IsplayerOnOwnTable = Visibility.Visible;
-                    viewModel.IsJoinButtonVisible = Visibility.Collapsed;
-                    viewModel.IsLeaveButtonVisible = Visibility.Visible;
+                    viewModel.PlayerStore.CurrentTable = viewModel.Table;
+                    viewModel.RefreshLocalState();
                 }
                 catch (InvalidOperationException ex)
                 {
@@ -113,20 +118,14 @@ namespace Poker_With_Your_Friends
         {
             DispatcherQueue.TryEnqueue(() =>
             {
-                Client.CurrentTable.RemovePlayer(Client.CurrentPlayer);
-                Client.CurrentTable = null;
+                viewModel.PlayerStore.CurrentTable?.RemovePlayer(viewModel.PlayerStore.CurrentPlayer);
+                viewModel.PlayerStore.CurrentTable = null;
 
                 viewModel.IsplayerOnOwnTable = Visibility.Collapsed;
                 viewModel.IsJoinButtonVisible = Visibility.Visible;
                 viewModel.IsLeaveButtonVisible = Visibility.Collapsed;
                 viewModel.LeaveTableButtonEnabled = true;
             });
-        }
-        protected override void OnNavigatedFrom(NavigationEventArgs e)
-        {
-            base.OnNavigatedFrom(e);
-            Client.OnTableJoined -= JoinGameHandle;
-            Client.OnTableLeft -= LeaveGameHandle;
         }
     }
 }

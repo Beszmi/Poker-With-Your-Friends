@@ -19,22 +19,32 @@ namespace Poker_With_Your_Friends.Model
         public static string PlayerfilePath = Path.Combine(PlayerfolderPath, "players.xml");
 
         [XmlIgnore]
-        private static Game instance;
+        private static Game Clientinstance;
+        [XmlIgnore]
+        private static Game Serverinstance;
 
         [XmlIgnore]
         public bool ServerMode = false;
 
-        public Game()
-        {
-        }
+        public Game() { }
 
         [XmlIgnore]
-        public static Game Instance
+        public static Game ClientInstance
         {
             get
             {
-                instance ??= new Game();
-                return instance;
+                Clientinstance ??= new Game();
+                return Clientinstance;
+            }
+        }
+
+        [XmlIgnore]
+        public static Game ServerInstance
+        {
+            get
+            {
+                Serverinstance ??= new Game();
+                return Serverinstance;
             }
         }
 
@@ -64,8 +74,6 @@ namespace Poker_With_Your_Friends.Model
                 RefreshPlayerNames();
                 OnPlayerAdded?.Invoke(player);
             }
-            if (isServer)
-                SavePlayersToXml(PlayerfilePath);
         }
 
         public void RemovePlayer(Player player)
@@ -258,6 +266,15 @@ namespace Poker_With_Your_Friends.Model
                 System.Diagnostics.Debug.WriteLine($"SAVE FAILED: Players empty");
                 return;
             }
+            foreach (var player in Players)
+            {
+                player.IsCurrentlyActivePlayer = false;
+                player.IsAtTable = false;
+                player.HasFolded = false;
+                player.ClearCards();
+                player.CurrentBet = 0;
+            }
+
             try
             {
                 XmlSerializer serializer = new XmlSerializer(typeof(ObservableCollection<Player>));

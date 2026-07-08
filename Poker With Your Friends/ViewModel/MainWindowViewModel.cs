@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml;
 using Poker_With_Your_Friends.Model;
 using System;
 using System.Threading.Tasks;
+using Windows.Media.Protection.PlayReady;
 
 namespace Poker_With_Your_Friends.ViewModel
 {
@@ -11,7 +12,7 @@ namespace Poker_With_Your_Friends.ViewModel
         public event Action<String>? OnClientError;
         public event Action<Client>? OnServerConnected;
 
-        public Game game = Game.Instance;
+        public Game game = Game.ClientInstance;
         public String NewPlayerName { get; set; }
 
         public object? SelectedPlayerName { get; set; }
@@ -37,19 +38,18 @@ namespace Poker_With_Your_Friends.ViewModel
         public bool isRegisterButtonEnabled = true;
 
         public Client? client;
+        public IPlayerStore PlayerStore { get; } = new PlayerStore();
 
-        public MainWindowViewModel()
-        {
-        }
-        //TODO: Move this to server code!
+        public MainWindowViewModel() { }
         
         public void StartGameClick(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
         {
             string? playerName = SelectedPlayerName as string;
-
             if (string.IsNullOrEmpty(playerName)) return;
 
-            client?.ContainedPlayer = game.GetPlayerFromName(playerName);
+            PlayerStore.CurrentPlayer = game.GetPlayerFromName(playerName);
+
+            // 2. Pass the client to the GameWindow!
             GameWindow newWindow = new GameWindow(client);
             newWindow.Activate();
         }
@@ -104,7 +104,7 @@ namespace Poker_With_Your_Friends.ViewModel
 
                     Player newlyRegisteredPlayer = await tcs.Task;
 
-                    client!.ContainedPlayer = newlyRegisteredPlayer;
+                    PlayerStore.CurrentPlayer = newlyRegisteredPlayer;
 
                     GameWindow newWindow = new GameWindow(client);
                     newWindow.Activate();
@@ -119,7 +119,7 @@ namespace Poker_With_Your_Friends.ViewModel
 
         public async void ConnectToServer_Click(object sender, RoutedEventArgs e)
         {
-            client = new Client(ServerHostName, ServerPort);
+            client = new Client(ServerHostName, ServerPort, PlayerStore);
 
             IsConnectButtonEnabled = false;
 
