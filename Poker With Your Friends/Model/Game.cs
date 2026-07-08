@@ -299,7 +299,7 @@ namespace Poker_With_Your_Friends.Model
             {
                 GetPlayerFromName(name);
             }
-            catch (ArgumentException ex)
+            catch (ArgumentException)
             {
                 return false;
             }

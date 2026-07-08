@@ -16,8 +16,8 @@ namespace Poker_With_Your_Friends.Model
         public IPlayerStore PlayerStore { get; }
 
         public event Action<String>? OnSendPlayerAction;
-        public event Action<String> OnErrorReceived;
-        public event Action<String> OnLocalError;
+        public event Action<String>? OnErrorReceived;
+        public event Action<String>? OnLocalError;
         public event Action? OnTableUpdated;
         public event Action? OnTableJoined;
         public event Action? OnTableLeft;
