@@ -44,6 +44,11 @@ namespace Poker_With_Your_Friends.Model
 
         public bool debugMessages = false;
 
+        private bool IsPlayerLoggedIn(String name)
+        {
+            return _clientToPlayerName.Values.Contains(name);
+        }
+
         public async Task StartAsync()
         {
             _listener.Start();
@@ -276,6 +281,11 @@ namespace Poker_With_Your_Friends.Model
 
         private void RegisterNewPlayer(string clientId, string playerName)
         {
+            if (game.DoesPlayerAlreadyExist(playerName) && IsPlayerLoggedIn(playerName))
+            {
+                BroadcastServerErrorClient(clientId, $"Someone already logged in as {playerName}");
+                return;
+            }
             _clientToPlayerName[clientId] = playerName;
 
             if (!game.DoesPlayerAlreadyExist(playerName))

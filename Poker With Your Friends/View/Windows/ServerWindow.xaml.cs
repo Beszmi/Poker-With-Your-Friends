@@ -42,8 +42,8 @@ namespace Poker_With_Your_Friends
 
         public ServerWindow(Server server)
         {
-            viewModel = new ServerWindowViewModel(server);
             InitializeComponent();
+            viewModel = new ServerWindowViewModel(server, DispatcherQueue);
         }
 
         public void DeletePlayerButton_Click(object sender, RoutedEventArgs e)

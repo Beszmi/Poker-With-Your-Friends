@@ -269,13 +269,13 @@ namespace Poker_With_Your_Friends.Model
             {
                 while (true)
                 {
-                    TableText = "Table Inactive, waiting for 2 players to join";
+                    TableTextUpdate("Table Inactive, waiting for 2 players to join");
                     await EnoughplayersJoined.WaitAsync();
                     lock (_playerJoinLock)
                     {
                         _enoughPlayersSignaled = false;
                     }
-                    TableText = "Enough players joined Starting soon!";
+                    TableTextUpdate("Enough players joined Starting soon!");
 
                     if (!await WaitForStartDelayAsync())
                     {

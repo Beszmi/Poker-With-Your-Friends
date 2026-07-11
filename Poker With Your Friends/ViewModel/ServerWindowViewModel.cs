@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Poker_With_Your_Friends.Model;
 using System;
@@ -22,12 +23,14 @@ namespace Poker_With_Your_Friends.ViewModel
         public partial ObservableCollection<string>? ServerLogs { get; set; } = new ObservableCollection<string>();
 
         private Server server;
+        private readonly DispatcherQueue _dispatcherQueue;
 
         public Game game = Game.ServerInstance;
 
-        public ServerWindowViewModel(Server server)
+        public ServerWindowViewModel(Server server, DispatcherQueue dispatcherQueue)
         {
             this.server = server;
+            _dispatcherQueue = dispatcherQueue;
             game.ReadPlayersFromXml(Game.PlayerfilePath);
 
             server.OnServerLoggedEvent += Log;
@@ -89,15 +92,15 @@ namespace Poker_With_Your_Friends.ViewModel
 
         public void Log(string message)
         {
-            if (ServerLogs.Count > 25)
+            _dispatcherQueue.TryEnqueue(() =>
             {
-                ServerLogs.RemoveAt(0);
-            }
-            App.MainDispatcher.TryEnqueue(() =>
-            {
+                if (ServerLogs.Count > 25)
+                {
+                    ServerLogs.RemoveAt(0);
+                }
                 ServerLogs.Add(message);
             });
-                
+
             System.Diagnostics.Debug.WriteLine("Logged: " + message);
         }
         public void FlipDebug()
