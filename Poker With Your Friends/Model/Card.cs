@@ -12,7 +12,7 @@ namespace Poker_With_Your_Friends.Model
     }
 
     [XmlRoot("Card")]
-    public class Card
+    public class Card : IComparable<Card>
     {
         public Card() { }
         private int value;
@@ -116,6 +116,37 @@ namespace Poker_With_Your_Friends.Model
         public override String ToString()
         {
             return $"{ValueSymbol}{SuitSymbol}";
+        }
+
+        public int CompareTo(Card other)
+        {
+            if (other == null) return 1;
+            return Value.CompareTo(other.Value);
+        }
+
+        public static bool operator >(Card operand1, Card operand2)
+        {
+            return operand1.CompareTo(operand2) > 0;
+        }
+
+        public static bool operator <(Card operand1, Card operand2)
+        {
+            return operand1.CompareTo(operand2) < 0;
+        }
+
+        public static bool operator >=(Card operand1, Card operand2)
+        {
+            return operand1.CompareTo(operand2) >= 0;
+        }
+
+        public static bool operator <=(Card operand1, Card operand2)
+        {
+            return operand1.CompareTo(operand2) <= 0;
+        }
+
+        public int diff(Card op) // Card value difference
+        {
+            return Math.Abs(this.Value - op.Value);
         }
     }
 }

@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Poker_With_Your_Friends.Model
+﻿namespace Poker_With_Your_Friends.Model
 {
     public class Utils
     {
@@ -14,7 +10,7 @@ namespace Poker_With_Your_Friends.Model
             {
                 if (!char.IsDigit(input[i]))
                 {
-                    return i; // Found it!
+                    return i;
                 }
             }
             return -1;
