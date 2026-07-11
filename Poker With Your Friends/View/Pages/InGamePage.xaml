@@ -38,7 +38,7 @@
             <Run Text=" Players: "/>
         </TextBlock>
 
-        <TextBlock Grid.Column="0" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" FontSize="24" Text="{x:Bind viewModel.TableText, Mode=OneWay}"/>
+        <TextBlock Grid.Column="0" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" FontSize="24" Text="{x:Bind viewModel.Table.TableText, Mode=OneWay}"/>
 
         <ListView Grid.Column="0" Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Center" ItemsSource="{x:Bind viewModel.Table.Housecards, Mode=OneWay}" Margin="10">
             <ListView.ItemsPanel>
@@ -53,7 +53,7 @@
             </ListView.ItemTemplate>
         </ListView>
 
-        <TextBlock Grid.Column="0" Grid.Row="3" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="10">
+        <TextBlock Grid.Column="0" Grid.Row="3" Grid.ColumnSpan="3" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="10">
             <Run Text="Pot: "/>
             <Run Text="{x:Bind viewModel.Table.Pot, Mode=OneWay}"/>
             <LineBreak/>
@@ -65,7 +65,7 @@
             <Run Text="$"/>
         </TextBlock>
 
-        <StackPanel Grid.Column="0" Grid.Row="3" HorizontalAlignment="Center" VerticalAlignment="Bottom" Visibility="{x:Bind viewModel.IsplayerOnOwnTable, Mode=OneWay}">
+        <StackPanel Grid.Column="0" Grid.Row="3" Grid.ColumnSpan="3" HorizontalAlignment="Center" VerticalAlignment="Bottom" Visibility="{x:Bind viewModel.IsplayerOnOwnTable, Mode=OneWay}">
             <ListView ItemsSource="{x:Bind viewModel.MyCards, Mode=OneWay}">
                 <ListView.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -85,7 +85,7 @@
             </StackPanel>
         </StackPanel>
 
-        <ListView Grid.Column="2" Grid.Row="4" HorizontalAlignment="Center" VerticalAlignment="Bottom" ItemsSource="{x:Bind viewModel.Table.Players, Mode=OneWay}" Margin="10">
+        <ListView Grid.Column="1" Grid.Row="4" HorizontalAlignment="Center" VerticalAlignment="Bottom" ItemsSource="{x:Bind viewModel.Table.Players, Mode=OneWay}" Margin="10">
             <ListView.ItemsPanel>
                 <ItemsPanelTemplate>
                     <ItemsStackPanel Orientation="Horizontal" />
@@ -107,7 +107,7 @@
         <Button Grid.Column="0" Grid.Row="4" Content="➕Join Game" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="10" Click="JoinGameButton_Click" Visibility="{x:Bind viewModel.IsJoinButtonVisible, Mode=OneWay}"/>
         <Button Grid.Column="0" Grid.Row="4" Content="➖Leave Game" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="10" Click="LeaveGameButton_Click" Visibility="{x:Bind viewModel.IsLeaveButtonVisible, Mode=OneWay}"/>
 
-        <StackPanel Grid.Column="3" Grid.Row="4" Orientation="Vertical">
+        <StackPanel Grid.Column="2" Grid.Row="4" Orientation="Vertical">
             <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center">
                 <Run Text="Time left: "/>
                 <Run Text="{x:Bind viewModel.TimerRemainingText, Mode=OneWay}"/>

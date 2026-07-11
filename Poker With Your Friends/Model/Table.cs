@@ -59,7 +59,10 @@ namespace Poker_With_Your_Friends.Model
         private static int maxPlayers = 6;
 
         [XmlIgnore]
-        public static Action<Table>? OnUpdateTableRequest; //TODO: Might be unnecesarry
+        public static Action<Table>? OnUpdateTableRequest;
+
+        [XmlIgnore]
+        public static Action<Table>? OnUpdateTextRequest;
 
         [XmlAttribute("Name")]
         [ObservableProperty]
@@ -98,9 +101,15 @@ namespace Poker_With_Your_Friends.Model
         private readonly object _actionLock = new object();
         [XmlIgnore]
         private static readonly TimeSpan ActionTimeout = TimeSpan.FromSeconds(30);
+        [XmlIgnore]
+        private static readonly TimeSpan StartDelay = TimeSpan.FromSeconds(5);
 
         [XmlIgnore]
-        public static Action<Table, int>? OnTimerStartRequest; 
+        public static Action<Table, int>? OnTimerStartRequest;
+
+        [XmlAttribute("TableText")]
+        [ObservableProperty]
+        public partial String TableText { get; set; } = "Empty text";
 
         /* -------------------------------------------------
          *  Constructors
@@ -151,6 +160,7 @@ namespace Poker_With_Your_Friends.Model
         public void StartRound()
         {
             Round++;
+            TableText = "Round started with players: //";
             Pot = 0;
             Housecards.Clear();
         }
@@ -183,6 +193,7 @@ namespace Poker_With_Your_Friends.Model
                 PlayerActionTcs = tcs;
                 CurrentlyActivePlayer = player;
             }
+            TableText = $"In game, active player: {player.Name}";
             ActivePlayerName = player.Name;
             player.IsCurrentlyActivePlayer = true;
             OnUpdateTableRequest?.Invoke(this);
@@ -231,14 +242,47 @@ namespace Poker_With_Your_Friends.Model
             OnUpdateTableRequest?.Invoke(this);
         }
 
+        async Task<bool> WaitForStartDelayAsync()
+        {
+            OnTimerStartRequest?.Invoke(this, StartDelay.Seconds - 1);
+            var remaining = StartDelay;
+            while (remaining > TimeSpan.Zero)
+            {
+                if (Players.Count < 2)
+                {
+                    return false;
+                }
+
+                var wait = remaining > TimeSpan.FromMilliseconds(100)
+                    ? TimeSpan.FromMilliseconds(100)
+                    : remaining;
+                await Task.Delay(wait);
+                remaining -= wait;
+            }
+
+            return Players.Count >= 2;
+        }
+
         async Task Play()
         {
             try
             {
-                await EnoughplayersJoined.WaitAsync();
-                lock (_playerJoinLock)
+                while (true)
                 {
-                    _enoughPlayersSignaled = false;
+                    TableText = "Table Inactive, waiting for 2 players to join";
+                    await EnoughplayersJoined.WaitAsync();
+                    lock (_playerJoinLock)
+                    {
+                        _enoughPlayersSignaled = false;
+                    }
+                    TableText = "Enough players joined Starting soon!";
+
+                    if (!await WaitForStartDelayAsync())
+                    {
+                        continue;
+                    }
+
+                    break;
                 }
 
                 IsGameActive = true;
@@ -350,6 +394,7 @@ namespace Poker_With_Your_Friends.Model
             localTable.SmallBlind = networkTable.SmallBlind;
             localTable.Pot = networkTable.Pot;
             localTable.IsGameActive = networkTable.IsGameActive;
+            localTable.TableText = networkTable.TableText;
 
             localTable.Housecards.Clear();
             foreach (Card card in networkTable.Housecards)
@@ -381,6 +426,12 @@ namespace Poker_With_Your_Friends.Model
         {
             var table = Game.ClientInstance.Tables.FirstOrDefault(t => t.Name == name);
             return Game.ClientInstance.Tables.IndexOf(table);
+        }
+
+        public void TableTextUpdate(String text)
+        {
+            TableText = text;
+            OnUpdateTextRequest?.Invoke(this);
         }
     }
 }

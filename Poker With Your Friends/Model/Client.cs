@@ -166,6 +166,7 @@ namespace Poker_With_Your_Friends.Model
                 case "06": OnTableJoined?.Invoke(); break;
                 case "07": OnTableLeft?.Invoke(); break;
                 case "08": StartTableTimer(message); break;
+                case "09": SetTableText(message); break;
 
                 case "99": OnErrorReceived?.Invoke(payload); break;
             }
@@ -252,6 +253,23 @@ namespace Poker_With_Your_Friends.Model
             {
                 SendMessage($"54{tableIndex}{playerName},{action},{amount}");
             }
+        }
+
+        private void SetTableText(String message)
+        {
+            if (string.IsNullOrEmpty(message))
+            {
+                string[] parts = message.Split(',');
+
+                if (parts.Length < 3)
+                {
+                    return;
+                }
+
+                int tableIndex = Int32.Parse(parts[1]);
+                game.Tables[tableIndex].TableText = parts[2];
+            }
+
         }
 
         public void Disconnect()

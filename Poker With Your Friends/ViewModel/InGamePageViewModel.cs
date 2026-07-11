@@ -31,9 +31,6 @@ public partial class InGamePageViewModel : ObservableObject
     public partial Visibility IsplayerOnOwnTable { get; set; }
 
     [ObservableProperty]
-    public partial String? TableText { get; set; } = "Empty text";
-
-    [ObservableProperty]
     public partial bool PlayerActionButtonsEnabled { get; set; } = false;
 
     public ObservableCollection<Card>? MyCards => PlayerStore?.CurrentPlayer?.Cards;
@@ -150,7 +147,6 @@ public partial class InGamePageViewModel : ObservableObject
             IsLeaveButtonVisible = Visibility.Collapsed;
             PlayerActionButtonsEnabled = false;
         }
-        TableText = Table.Name + " Active: " + Table.IsGameActive + "Current player: " + Table.ActivePlayerName;
     }
 
     public void CallButton_Click(object sender, RoutedEventArgs e)

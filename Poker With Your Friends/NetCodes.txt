@@ -7,6 +7,7 @@
 06: Player joining a table Server -> Client
 07: Player leaving table Server -> Client
 08: Start table timer Server -> Client
+09: Send table text Server -> Client (temporary)
 
 50: RegisterNewPlayer Client -> Server
 51: Adding new Table Client -> Server

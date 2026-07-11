@@ -36,6 +36,7 @@ namespace Poker_With_Your_Friends.Model
             game.ServerMode = true;
             Table.OnUpdateTableRequest += UpdateTable;
             Table.OnTimerStartRequest += SendTimer;
+            Table.OnUpdateTextRequest += SendTableText;
         }
 
         private readonly ConcurrentDictionary<string, PipeWriter> _connectedClients = new();
@@ -233,6 +234,13 @@ namespace Poker_With_Your_Friends.Model
             int TableIndex = game.Tables.IndexOf(t);
 
             await BroadcastTableTimer(TableIndex, s);
+        }
+
+        public async void SendTableText(Table t)
+        {
+            int TableIndex = game.Tables.IndexOf(t);
+
+            await BroadcastTableText(TableIndex, t.TableText);
         }
 
         /* --------------------------------------------------------
@@ -534,6 +542,20 @@ namespace Poker_With_Your_Friends.Model
             sb.Append(indexOfTable);
             sb.Append(",");
             sb.Append(seconds);
+            await BroadcastAsync(sb.ToString());
+            if (debugMessages)
+            {
+                OnServerLoggedEvent?.Invoke($"DEBUG: Sent to: [BROADCAST]: {sb.ToString()}");
+            }
+        }
+
+        public async Task BroadcastTableText(int indexOfTable, String text)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append("09,");
+            sb.Append(indexOfTable);
+            sb.Append(",");
+            sb.Append(text);
             await BroadcastAsync(sb.ToString());
             if (debugMessages)
             {
