@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
@@ -528,6 +529,17 @@ public partial class Table : ObservableObject
             localTable.Players.Add(localPlayer);
             localPlayer.UpdateProperties(networkPlayer);
             localPlayer.IsAtTable = true;
+            if (localPlayer.Cards.Count == 2)
+            {
+                List<Card> handcards = new List<Card>();
+                handcards.AddRange(localPlayer.Cards);
+                handcards.AddRange(localTable.Housecards);
+                localPlayer.Hand = new Hand(handcards.ToArray());
+            }
+            else
+            {
+                localPlayer.Hand = null;
+            }
         }
     }
 

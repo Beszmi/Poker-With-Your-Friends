@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using System;
 
 namespace Poker_With_Your_Friends.Model;
 
@@ -16,16 +17,18 @@ public enum HandRank
     RoyalFlush
 }
 
-public class Hand : IComparable<Hand>
+public partial class Hand : ObservableObject, IComparable<Hand>
 {
-    public HandRank Rank { get; private set; }
-    public int HighestValue { get; private set; }
+    [ObservableProperty]
+    public partial HandRank Rank { get; private set; }
+    [ObservableProperty]
+    public partial int HighestValue { get; private set; }
     public int[] Kickers { get; private set; } = Array.Empty<int>();
 
     public Hand(Card[] cards)
     {
-        if (cards is null || cards.Length is < 5 or > 7)
-            throw new ArgumentException("Hand requires 5 to 7 cards.", nameof(cards));
+        if (cards is null || cards.Length is < 2 or > 7)
+            throw new ArgumentException("Hand requires 2 to 7 cards.", nameof(cards));
 
         foreach (var card in cards)
         {
@@ -33,9 +36,12 @@ public class Hand : IComparable<Hand>
                 throw new ArgumentException("Each card must have a rank between 1 (Ace) and 13 (King).", nameof(cards));
         }
 
-        var best = cards.Length == 5
-            ? EvaluateFiveCards(cards)
-            : FindBestHand(cards);
+        var best = cards.Length switch
+        {
+            < 5 => EvaluatePartialCards(cards),
+            5 => EvaluateFiveCards(cards),
+            _ => FindBestHand(cards)
+        };
 
         Rank = best.Rank;
         Kickers = best.Kickers;
@@ -112,6 +118,22 @@ public class Hand : IComparable<Hand>
         return left.Kickers.Length.CompareTo(right.Kickers.Length);
     }
 
+    private static (HandRank Rank, int[] Kickers) EvaluatePartialCards(Card[] cards)
+    {
+        Span<int> rankCounts = stackalloc int[14];
+        foreach (var card in cards)
+            rankCounts[card.Value]++;
+
+        Span<int> quads = stackalloc int[1];
+        Span<int> trips = stackalloc int[2];
+        Span<int> pairs = stackalloc int[2];
+        Span<int> singles = stackalloc int[5];
+        BuildRankGroups(rankCounts, quads, trips, pairs, singles,
+            out int quadCount, out int tripCount, out int pairCount, out int singleCount);
+
+        return ClassifyRankOnlyHand(quadCount, quads, tripCount, trips, pairCount, pairs, singleCount, singles);
+    }
+
     private static (HandRank Rank, int[] Kickers) EvaluateFiveCards(params Card[] cards)
     {
         Span<int> rankCounts = stackalloc int[14];
@@ -140,7 +162,39 @@ public class Hand : IComparable<Hand>
         Span<int> trips = stackalloc int[2];
         Span<int> pairs = stackalloc int[2];
         Span<int> singles = stackalloc int[5];
-        int quadCount = 0, tripCount = 0, pairCount = 0, singleCount = 0;
+        BuildRankGroups(rankCounts, quads, trips, pairs, singles,
+            out int quadCount, out int tripCount, out int pairCount, out int singleCount);
+
+        if (quadCount == 1)
+            return (HandRank.FourOfAKind, BuildKickers(quads.Slice(0, 1), singles, singleCount, 1));
+
+        if (tripCount == 1 && pairCount >= 1)
+            return (HandRank.FullHouse, new[] { trips[0], pairs[0] });
+
+        if (isFlush)
+            return (HandRank.Flush, CopyStrengths(singles, singleCount, pairs, pairCount, trips, tripCount));
+
+        if (isStraight)
+            return (HandRank.Straight, new[] { straightHigh });
+
+        return ClassifyRankOnlyHand(quadCount, quads, tripCount, trips, pairCount, pairs, singleCount, singles);
+    }
+
+    private static void BuildRankGroups(
+        Span<int> rankCounts,
+        Span<int> quads,
+        Span<int> trips,
+        Span<int> pairs,
+        Span<int> singles,
+        out int quadCount,
+        out int tripCount,
+        out int pairCount,
+        out int singleCount)
+    {
+        quadCount = 0;
+        tripCount = 0;
+        pairCount = 0;
+        singleCount = 0;
 
         for (int value = 13; value >= 1; value--)
         {
@@ -164,29 +218,39 @@ public class Hand : IComparable<Hand>
                     break;
             }
         }
+    }
 
+    private static (HandRank Rank, int[] Kickers) ClassifyRankOnlyHand(
+        int quadCount, Span<int> quads,
+        int tripCount, Span<int> trips,
+        int pairCount, Span<int> pairs,
+        int singleCount, Span<int> singles)
+    {
         if (quadCount == 1)
-            return (HandRank.FourOfAKind, new[] { quads[0], singles[0] });
-
-        if (tripCount == 1 && pairCount >= 1)
-            return (HandRank.FullHouse, new[] { trips[0], pairs[0] });
-
-        if (isFlush)
-            return (HandRank.Flush, CopyStrengths(singles, singleCount, pairs, pairCount, trips, tripCount));
-
-        if (isStraight)
-            return (HandRank.Straight, new[] { straightHigh });
+            return (HandRank.FourOfAKind, BuildKickers(quads.Slice(0, 1), singles, singleCount, 1));
 
         if (tripCount == 1)
-            return (HandRank.ThreeOfAKind, new[] { trips[0], singles[0], singles[1] });
+            return (HandRank.ThreeOfAKind, BuildKickers(trips.Slice(0, 1), singles, singleCount, 2));
 
         if (pairCount == 2)
-            return (HandRank.Twopair, new[] { pairs[0], pairs[1], singles[0] });
+            return (HandRank.Twopair, BuildKickers(pairs.Slice(0, 2), singles, singleCount, 1));
 
         if (pairCount == 1)
-            return (HandRank.Pair, new[] { pairs[0], singles[0], singles[1], singles[2] });
+            return (HandRank.Pair, BuildKickers(pairs.Slice(0, 1), singles, singleCount, 3));
 
         return (HandRank.HighCard, CopyStrengths(singles, singleCount, pairs, pairCount, trips, tripCount));
+    }
+
+    private static int[] BuildKickers(Span<int> madeHandRanks, Span<int> singles, int singleCount, int maxExtraKickers)
+    {
+        int extraKickers = Math.Min(singleCount, maxExtraKickers);
+        var kickers = new int[madeHandRanks.Length + extraKickers];
+        madeHandRanks.CopyTo(kickers);
+
+        for (int i = 0; i < extraKickers; i++)
+            kickers[madeHandRanks.Length + i] = singles[i];
+
+        return kickers;
     }
 
     private static int[] CopyStrengths(Span<int> singles, int singleCount, Span<int> pairs, int pairCount, Span<int> trips, int tripCount)

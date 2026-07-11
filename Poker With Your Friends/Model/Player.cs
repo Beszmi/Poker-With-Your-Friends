@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Xml.Serialization;
 
 namespace Poker_With_Your_Friends.Model;
@@ -78,6 +79,10 @@ public partial class Player : ObservableObject
     [XmlAttribute("IsAllIn")]
     [ObservableProperty]
     public partial bool IsAllIn { get; set; } = false;
+
+    [XmlIgnore]
+    [ObservableProperty]
+    public partial Hand Hand { get; set; }
 
     public void Fold() { HasFolded = true; }
 
