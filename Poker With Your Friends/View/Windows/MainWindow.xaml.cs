@@ -4,72 +4,60 @@ using Poker_With_Your_Friends.Model;
 using Poker_With_Your_Friends.ViewModel;
 using System;
 
-namespace Poker_With_Your_Friends
+namespace Poker_With_Your_Friends;
+
+public sealed partial class MainWindow : Window
 {
-    public sealed partial class MainWindow : Window
+    private MainWindowViewModel viewModel = new MainWindowViewModel();
+    public MainWindow()
     {
-        private MainWindowViewModel viewModel = new MainWindowViewModel();
-        public MainWindow()
+        InitializeComponent();
+
+        App.MainDispatcher = this.DispatcherQueue;
+
+        viewModel.OnServerConnected += (Client c) =>
         {
-            InitializeComponent();
+            SetUpServerErrorHandler(c);
+            LocalErrorHandler();
+        };
 
-            App.MainDispatcher = this.DispatcherQueue;
-
-            viewModel.OnServerConnected += (Client c) =>
-            {
-                SetUpServerErrorHandler(c);
-                LocalErrorHandler();
-            };
-
-            viewModel.OnClientError += (String msg) =>
-            {
-                DisplayErrorDialog(msg);
-            };
-            GameMenuPageViewModel.GameMenuError += DisplayErrorDialog;
-        }
-        public async void DisplayErrorDialog(String message)
+        viewModel.OnClientError += (String msg) =>
         {
-            ContentDialog myDialog = new ContentDialog();
+            DisplayErrorDialog(msg);
+        };
+        GameMenuPageViewModel.GameMenuError += DisplayErrorDialog;
+    }
+    public async void DisplayErrorDialog(String message)
+    {
+        ContentDialog myDialog = new ContentDialog();
 
-            myDialog.XamlRoot = this.Content.XamlRoot;
+        myDialog.XamlRoot = this.Content.XamlRoot;
 
-            myDialog.Title = "Local Error";
-            myDialog.Content = message;
-            myDialog.PrimaryButtonText = "Ok";
+        myDialog.Title = "Local Error";
+        myDialog.Content = message;
+        myDialog.PrimaryButtonText = "Ok";
 
-            ContentDialogResult result = await myDialog.ShowAsync();
-        }
+        ContentDialogResult result = await myDialog.ShowAsync();
+    }
 
-        public async void DisplayServerErrorDialog(String message)
+    public async void DisplayServerErrorDialog(String message)
+    {
+        ContentDialog myDialog = new ContentDialog();
+
+        myDialog.XamlRoot = this.Content.XamlRoot;
+
+        myDialog.Title = "Error Recieved from server";
+        myDialog.Content = message;
+        myDialog.PrimaryButtonText = "Ok";
+
+        ContentDialogResult result = await myDialog.ShowAsync();
+    }
+
+    public void SetUpServerErrorHandler(Client c)
+    {
+        if (c != null)
         {
-            ContentDialog myDialog = new ContentDialog();
-
-            myDialog.XamlRoot = this.Content.XamlRoot;
-
-            myDialog.Title = "Error Recieved from server";
-            myDialog.Content = message;
-            myDialog.PrimaryButtonText = "Ok";
-
-            ContentDialogResult result = await myDialog.ShowAsync();
-        }
-
-        public void SetUpServerErrorHandler(Client c)
-        {
-            if (c != null)
-            {
-                c.OnErrorReceived += (errorMessage) =>
-                {
-                    App.MainDispatcher.TryEnqueue(() =>
-                    {
-                        DisplayServerErrorDialog(errorMessage);
-                    });
-                };
-            }
-        }
-
-        public void LocalErrorHandler()
-        {
-            viewModel.client.OnLocalError += (errorMessage) =>
+            c.OnErrorReceived += (errorMessage) =>
             {
                 App.MainDispatcher.TryEnqueue(() =>
                 {
@@ -77,5 +65,16 @@ namespace Poker_With_Your_Friends
                 });
             };
         }
+    }
+
+    public void LocalErrorHandler()
+    {
+        viewModel.client.OnLocalError += (errorMessage) =>
+        {
+            App.MainDispatcher.TryEnqueue(() =>
+            {
+                DisplayServerErrorDialog(errorMessage);
+            });
+        };
     }
 }

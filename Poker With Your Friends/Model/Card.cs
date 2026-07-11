@@ -1,152 +1,151 @@
 ﻿using System;
 using System.Xml.Serialization;
 
-namespace Poker_With_Your_Friends.Model
+namespace Poker_With_Your_Friends.Model;
+
+public enum Suit
 {
-    public enum Suit
+    Spade,
+    Diamond,
+    Heart,
+    Club
+}
+
+[XmlRoot("Card")]
+public class Card : IComparable<Card>
+{
+    public Card() { }
+    private int value;
+
+    [XmlAttribute("Value")]
+    public int Value
     {
-        Spade,
-        Diamond,
-        Heart,
-        Club
+        get { return value; }
+        set { this.value = value; }
     }
 
-    [XmlRoot("Card")]
-    public class Card : IComparable<Card>
+    private Suit suit;
+
+    [XmlAttribute("Suit")]
+    public Suit Suit
     {
-        public Card() { }
-        private int value;
+        get { return suit; }
+        set { this.suit = value; }
+    }
 
-        [XmlAttribute("Value")]
-        public int Value
+    public Card(int value, Suit suit)
+    {
+        this.value = value;
+        this.suit = suit;
+    }
+
+    public Card(int value, int suit)
+    {
+        this.value = value;
+        switch (suit)
         {
-            get { return value; }
-            set { this.value = value; }
+            case 0:
+                this.suit = Suit.Spade;
+                break;
+            case 1:
+                this.suit = Suit.Diamond;
+                break;
+            case 2:
+                this.suit = Suit.Heart;
+                break;
+            case 3:
+                this.suit = Suit.Club;
+                break;
+            default:
+                throw new ArgumentException("Invalid suit value");
         }
 
-        private Suit suit;
-
-        [XmlAttribute("Suit")]
-        public Suit Suit
+    }
+    public String SuitSymbol
+    {
+        get
         {
-            get { return suit; }
-            set { this.suit = value; }
-        }
-
-        public Card(int value, Suit suit)
-        {
-            this.value = value;
-            this.suit = suit;
-        }
-
-        public Card(int value, int suit)
-        {
-            this.value = value;
-            switch (suit)
+            return suit switch
             {
-                case 0:
-                    this.suit = Suit.Spade;
-                    break;
-                case 1:
-                    this.suit = Suit.Diamond;
-                    break;
-                case 2:
-                    this.suit = Suit.Heart;
-                    break;
-                case 3:
-                    this.suit = Suit.Club;
-                    break;
-                default:
-                    throw new ArgumentException("Invalid suit value");
-            }
-
+                Suit.Spade => "♠",
+                Suit.Diamond => "♦",
+                Suit.Heart => "♥",
+                Suit.Club => "♣",
+                _ => throw new ArgumentException("Invalid suit value"),
+            };
         }
-        public String SuitSymbol
+    }
+    public String ValueSymbol
+    {
+        get
         {
-            get
+            return value switch
             {
-                return suit switch
-                {
-                    Suit.Spade => "♠",
-                    Suit.Diamond => "♦",
-                    Suit.Heart => "♥",
-                    Suit.Club => "♣",
-                    _ => throw new ArgumentException("Invalid suit value"),
-                };
-            }
+                1 => "A",
+                2 => "2",
+                3 => "3",
+                4 => "4",
+                5 => "5",
+                6 => "6",
+                7 => "7",
+                8 => "8",
+                9 => "9",
+                10 => "10",
+                11 => "J",
+                12 => "Q",
+                13 => "K",
+                _ => throw new ArgumentException("Invalid value"),
+            };
         }
-        public String ValueSymbol
+    }
+
+    public String Color
+    {
+        get
         {
-            get
+            return suit switch
             {
-                return value switch
-                {
-                    1 => "A",
-                    2 => "2",
-                    3 => "3",
-                    4 => "4",
-                    5 => "5",
-                    6 => "6",
-                    7 => "7",
-                    8 => "8",
-                    9 => "9",
-                    10 => "10",
-                    11 => "J",
-                    12 => "Q",
-                    13 => "K",
-                    _ => throw new ArgumentException("Invalid value"),
-                };
-            }
+                Suit.Spade => "Black",
+                Suit.Club => "Black",
+                Suit.Diamond => "Red",
+                Suit.Heart => "Red",
+                _ => throw new ArgumentException("Invalid suit value"),
+            };
         }
+    }
+    public override String ToString()
+    {
+        return $"{ValueSymbol}{SuitSymbol}";
+    }
 
-        public String Color
-        {
-            get
-            {
-                return suit switch
-                {
-                    Suit.Spade => "Black",
-                    Suit.Club => "Black",
-                    Suit.Diamond => "Red",
-                    Suit.Heart => "Red",
-                    _ => throw new ArgumentException("Invalid suit value"),
-                };
-            }
-        }
-        public override String ToString()
-        {
-            return $"{ValueSymbol}{SuitSymbol}";
-        }
+    public int CompareTo(Card other)
+    {
+        if (other == null) return 1;
+        return Value.CompareTo(other.Value);
+    }
 
-        public int CompareTo(Card other)
-        {
-            if (other == null) return 1;
-            return Value.CompareTo(other.Value);
-        }
+    public static bool operator >(Card operand1, Card operand2)
+    {
+        return operand1.CompareTo(operand2) > 0;
+    }
 
-        public static bool operator >(Card operand1, Card operand2)
-        {
-            return operand1.CompareTo(operand2) > 0;
-        }
+    public static bool operator <(Card operand1, Card operand2)
+    {
+        return operand1.CompareTo(operand2) < 0;
+    }
 
-        public static bool operator <(Card operand1, Card operand2)
-        {
-            return operand1.CompareTo(operand2) < 0;
-        }
+    public static bool operator >=(Card operand1, Card operand2)
+    {
+        return operand1.CompareTo(operand2) >= 0;
+    }
 
-        public static bool operator >=(Card operand1, Card operand2)
-        {
-            return operand1.CompareTo(operand2) >= 0;
-        }
+    public static bool operator <=(Card operand1, Card operand2)
+    {
+        return operand1.CompareTo(operand2) <= 0;
+    }
 
-        public static bool operator <=(Card operand1, Card operand2)
-        {
-            return operand1.CompareTo(operand2) <= 0;
-        }
-
-        public int diff(Card op) // Card value difference
-        {
-            return Math.Abs(this.Value - op.Value);
-        }
+    public int diff(Card op) // Card value difference
+    {
+        return Math.Abs(this.Value - op.Value);
     }
 }

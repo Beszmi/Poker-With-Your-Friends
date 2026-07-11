@@ -6,94 +6,93 @@ using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using System.Windows.Input;
 
-namespace Poker_With_Your_Friends.ViewModel
+namespace Poker_With_Your_Friends.ViewModel;
+
+internal partial class GameMenuPageViewModel : ObservableObject
 {
-    internal partial class GameMenuPageViewModel : ObservableObject
+    public Client client;
+    public IPlayerStore PlayerStore { get; private set; }
+
+    private Game game;
+    public ObservableCollection<Table> Tables { get; set; }
+    
+    public static Action<String> GameMenuError;
+
+    public String? NewTableName { get; set; }
+
+    [ObservableProperty]
+    public bool isNewTableButtonEnabled = true;
+
+    public GameMenuPageViewModel()
     {
-        public Client client;
-        public IPlayerStore PlayerStore { get; private set; }
+        game = Game.ClientInstance;
+        Tables = game.Tables;
 
-        private Game game;
-        public ObservableCollection<Table> Tables { get; set; }
-        
-        public static Action<String> GameMenuError;
-
-        public String? NewTableName { get; set; }
-
-        [ObservableProperty]
-        public bool isNewTableButtonEnabled = true;
-
-        public GameMenuPageViewModel()
+        GoToPage2Command = new RelayCommand(() =>
         {
-            game = Game.ClientInstance;
-            Tables = game.Tables;
+            NavigationRequested?.Invoke(typeof(InGamePage), null);
+        });
+    }
 
-            GoToPage2Command = new RelayCommand(() =>
+    public void Initialize(Client c)
+    {
+        client = c;
+        PlayerStore = c.PlayerStore;
+    }
+
+    public async Task CreateNewTableAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(NewTableName))
+        {
+            if (game.IsTableNameTaken(NewTableName))
             {
-                NavigationRequested?.Invoke(typeof(InGamePage), null);
-            });
-        }
+                GameMenuError?.Invoke("Table with this name already exists!");
+                return;
+            }
+            IsNewTableButtonEnabled = false;
 
-        public void Initialize(Client c)
-        {
-            client = c;
-            PlayerStore = c.PlayerStore;
-        }
+            var tcs = new TaskCompletionSource<Table>();
 
-        public async Task CreateNewTableAsync()
-        {
-            if (!string.IsNullOrWhiteSpace(NewTableName))
+            void CheckNewTable(Table t)
             {
-                if (game.IsTableNameTaken(NewTableName))
+                if (t.Name == NewTableName)
                 {
-                    GameMenuError?.Invoke("Table with this name already exists!");
-                    return;
-                }
-                IsNewTableButtonEnabled = false;
-
-                var tcs = new TaskCompletionSource<Table>();
-
-                void CheckNewTable(Table t)
-                {
-                    if (t.Name == NewTableName)
-                    {
-                        tcs.TrySetResult(t);
-                    }
-                }
-
-                game.OnTableAdded += CheckNewTable;
-
-                client.CreateNewTable(NewTableName);
-
-                try
-                {
-                    var timeoutTask = Task.Delay(TimeSpan.FromSeconds(10));
-                    var completedTask = await Task.WhenAny(tcs.Task, timeoutTask);
-
-                    if (completedTask == timeoutTask)
-                    {
-                        System.Diagnostics.Debug.WriteLine("Adding new table failed. Server did not respond.");
-                        return;
-                    }
-
-                    Table newlyCreatedTable = await tcs.Task;
-                }
-                finally
-                {
-                    game.OnTableAdded -= CheckNewTable;
-                    IsNewTableButtonEnabled = true;
+                    tcs.TrySetResult(t);
                 }
             }
+
+            game.OnTableAdded += CheckNewTable;
+
+            client.CreateNewTable(NewTableName);
+
+            try
+            {
+                var timeoutTask = Task.Delay(TimeSpan.FromSeconds(10));
+                var completedTask = await Task.WhenAny(tcs.Task, timeoutTask);
+
+                if (completedTask == timeoutTask)
+                {
+                    System.Diagnostics.Debug.WriteLine("Adding new table failed. Server did not respond.");
+                    return;
+                }
+
+                Table newlyCreatedTable = await tcs.Task;
+            }
+            finally
+            {
+                game.OnTableAdded -= CheckNewTable;
+                IsNewTableButtonEnabled = true;
+            }
         }
+    }
 
-        //Navigation event to notify the view when navigation is requested
-        public Action<Type, object?>? NavigationRequested;
+    //Navigation event to notify the view when navigation is requested
+    public Action<Type, object?>? NavigationRequested;
 
-        public ICommand GoToPage2Command { get; }
+    public ICommand GoToPage2Command { get; }
 
-        public void ViewTable(Table table)
-        {
-            NavigationRequested?.Invoke(typeof(InGamePage), new object[] { client, table });
-        }
+    public void ViewTable(Table table)
+    {
+        NavigationRequested?.Invoke(typeof(InGamePage), new object[] { client, table });
     }
 }

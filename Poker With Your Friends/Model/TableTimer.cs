@@ -2,7 +2,6 @@
 using DispatcherQueueTimer = Microsoft.UI.Dispatching.DispatcherQueueTimer;
 using DispatcherQueue = Microsoft.UI.Dispatching.DispatcherQueue;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Poker_With_Your_Friends;
 
 namespace Poker_With_Your_Friends.Model;
 

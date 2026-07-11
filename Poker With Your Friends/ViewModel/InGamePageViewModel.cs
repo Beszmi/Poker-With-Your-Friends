@@ -2,7 +2,6 @@
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Poker_With_Your_Friends.Model;
-using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;

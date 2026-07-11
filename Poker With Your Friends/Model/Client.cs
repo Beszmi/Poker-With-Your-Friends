@@ -1,283 +1,280 @@
-﻿using Poker_With_Your_Friends.ViewModel;
-using System;
+﻿using System;
 using System.Buffers;
 using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
 using System.Net.Sockets;
-using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
 
-namespace Poker_With_Your_Friends.Model
+namespace Poker_With_Your_Friends.Model;
+
+public class Client
 {
-    public class Client
+    public IPlayerStore PlayerStore { get; }
+
+    public TimerService TimerService { get; } = new TimerService();
+    
+    public event Action<String>? OnErrorReceived;
+    public event Action<String>? OnLocalError;
+    public event Action? OnTableUpdated;
+    public event Action? OnTableJoined;
+    public event Action? OnTableLeft;
+    public String Host { get; set; }
+    public int Port { get; set; }
+
+    private PipeWriter? _writer;
+    private TcpClient? _tcpClient;
+    private CancellationTokenSource _cts = new();
+
+    private Game game = Game.ClientInstance;
+
+    public Client(String host, int port, IPlayerStore playerStore)
     {
-        public IPlayerStore PlayerStore { get; }
+        Host = host;
+        Port = port;
+        this.PlayerStore = playerStore;
 
-        public TimerService TimerService { get; } = new TimerService();
-        
-        public event Action<String>? OnErrorReceived;
-        public event Action<String>? OnLocalError;
-        public event Action? OnTableUpdated;
-        public event Action? OnTableJoined;
-        public event Action? OnTableLeft;
-        public String Host { get; set; }
-        public int Port { get; set; }
+        InGamePage.OnJoinGameClick += PlayerJoiningTable;
+        InGamePage.OnLeaveGameClick += PlayerLeavingTable;
+    }
 
-        private PipeWriter? _writer;
-        private TcpClient? _tcpClient;
-        private CancellationTokenSource _cts = new();
+    public async Task ConnectAndRunAsync()
+    {
+        _tcpClient = new TcpClient();
+        await _tcpClient.ConnectAsync(Host, Port);
+        System.Diagnostics.Debug.WriteLine("Connected to server!");
 
-        private Game game = Game.ClientInstance;
+        var stream = _tcpClient.GetStream();
+        var reader = PipeReader.Create(stream);
+        _writer = PipeWriter.Create(stream);
 
-        public Client(String host, int port, IPlayerStore playerStore)
+        // Run the receive loop in the background indefinitely
+        _ = ReceiveLoopAsync(reader, _cts.Token);
+    }
+
+    private async Task ReceiveLoopAsync(PipeReader reader, CancellationToken token)
+    {
+        try
         {
-            Host = host;
-            Port = port;
-            this.PlayerStore = playerStore;
-
-            InGamePage.OnJoinGameClick += PlayerJoiningTable;
-            InGamePage.OnLeaveGameClick += PlayerLeavingTable;
-        }
-
-        public async Task ConnectAndRunAsync()
-        {
-            _tcpClient = new TcpClient();
-            await _tcpClient.ConnectAsync(Host, Port);
-            System.Diagnostics.Debug.WriteLine("Connected to server!");
-
-            var stream = _tcpClient.GetStream();
-            var reader = PipeReader.Create(stream);
-            _writer = PipeWriter.Create(stream);
-
-            // Run the receive loop in the background indefinitely
-            _ = ReceiveLoopAsync(reader, _cts.Token);
-        }
-
-        private async Task ReceiveLoopAsync(PipeReader reader, CancellationToken token)
-        {
-            try
+            while (!token.IsCancellationRequested)
             {
-                while (!token.IsCancellationRequested)
+                ReadResult result = await reader.ReadAsync(token);
+                ReadOnlySequence<byte> buffer = result.Buffer;
+
+                while (TryReadMessage(ref buffer, out string? response))
                 {
-                    ReadResult result = await reader.ReadAsync(token);
-                    ReadOnlySequence<byte> buffer = result.Buffer;
+                    InterpretMessage(response);
 
-                    while (TryReadMessage(ref buffer, out string? response))
-                    {
-                        InterpretMessage(response);
-
-                        System.Diagnostics.Debug.WriteLine($"[Game Update]: {response}");
-                    }
-
-                    reader.AdvanceTo(buffer.Start, buffer.End);
-                    if (result.IsCompleted) break;
+                    System.Diagnostics.Debug.WriteLine($"[Game Update]: {response}");
                 }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Connection lost: {ex.Message}");
-            }
-            finally
-            {
-                await reader.CompleteAsync();
+
+                reader.AdvanceTo(buffer.Start, buffer.End);
+                if (result.IsCompleted) break;
             }
         }
-
-        private bool TryReadMessage(ref ReadOnlySequence<byte> buffer, out string? message)
+        catch (Exception ex)
         {
-            SequencePosition? position = buffer.PositionOf((byte)'\n');
-            if (position == null)
+            System.Diagnostics.Debug.WriteLine($"Connection lost: {ex.Message}");
+        }
+        finally
+        {
+            await reader.CompleteAsync();
+        }
+    }
+
+    private bool TryReadMessage(ref ReadOnlySequence<byte> buffer, out string? message)
+    {
+        SequencePosition? position = buffer.PositionOf((byte)'\n');
+        if (position == null)
+        {
+            message = null;
+            return false;
+        }
+        message = Encoding.UTF8.GetString(buffer.Slice(0, position.Value));
+        buffer = buffer.Slice(buffer.GetPosition(1, position.Value));
+        return true;
+    }
+
+    /* --------------------------------------------------------
+     * 
+     * Sending network data
+     *
+     -------------------------------------------------------*/
+    private void SendMessage(string message)
+    {
+        if (_writer == null) return;
+        byte[] messageBytes = Encoding.UTF8.GetBytes(message + "\n");
+        _writer.WriteAsync(messageBytes);
+        _writer.FlushAsync();
+    }
+
+    public void RegisterNewPlayer(String name)
+    {
+        SendMessage("50" + name);
+    }
+    public void CreateNewTable(String tableName)
+    {
+        SendMessage("51" + tableName);
+    }
+
+    public void PlayerJoiningTable(Table table)
+    {
+        var liveTable = game.Tables.FirstOrDefault(t => t.Name == table.Name);
+
+        if (liveTable != null)
+        {
+            int tableId = game.Tables.IndexOf(liveTable);
+
+            PlayerStore.CurrentTable = liveTable;
+            SendMessage("52" + tableId + PlayerStore.CurrentPlayer.Name);
+        }
+        else
+        {
+            OnLocalError?.Invoke("Error: Attempted to join a table that no longer exists in the game list.");
+        }
+    }
+
+    public void PlayerLeavingTable(Table table)
+    {
+        SendMessage("53" + game.Tables.IndexOf(PlayerStore.CurrentTable) + PlayerStore.CurrentPlayer.Name);
+        PlayerStore.CurrentTable = null;
+    }
+
+    /* --------------------------------------------------------
+     * 
+     * Recieiving network data 
+     *
+     -------------------------------------------------------*/
+    private void InterpretMessage(String message)
+    {
+        string command = message.Substring(0, 2);
+        string payload = message.Substring(2);
+
+        switch (command)
+        {
+            case "00": UpdateGameState(message); break;
+            case "01": game.AddPlayer(new Player(payload), false); break;
+            case "02": game.RemovePlayer(game.GetPlayerFromName(payload)); break;
+            case "03": game.AddTable(payload, false); break;
+            case "04": throw new NotImplementedException(); break;
+            case "05": UpdateTableState(payload); break;
+            case "06": OnTableJoined?.Invoke(); break;
+            case "07": OnTableLeft?.Invoke(); break;
+            case "08": StartTableTimer(message); break;
+            case "09": SetTableText(message); break;
+
+            case "99": OnErrorReceived?.Invoke(payload); break;
+        }
+    }
+
+    private void UpdateGameState(String message)
+    {
+        message = message.Remove(0, 2);
+        XmlSerializer serializer = new XmlSerializer(typeof(Game));
+        {
+            if (serializer.Deserialize(new StringReader(message)) is Game deserializedGame)
             {
-                message = null;
-                return false;
+                game.GameStateUpdate(deserializedGame);
             }
-            message = Encoding.UTF8.GetString(buffer.Slice(0, position.Value));
-            buffer = buffer.Slice(buffer.GetPosition(1, position.Value));
-            return true;
         }
+    }
 
-        /* --------------------------------------------------------
-         * 
-         * Sending network data
-         *
-         -------------------------------------------------------*/
-        private void SendMessage(string message)
-        {
-            if (_writer == null) return;
-            byte[] messageBytes = Encoding.UTF8.GetBytes(message + "\n");
-            _writer.WriteAsync(messageBytes);
-            _writer.FlushAsync();
-        }
+    private void UpdateTableState(String message)
+    {
+        int firstOpeningChar = message.IndexOf('<');
+        int tableIndex = Int32.Parse(message.Substring(0, firstOpeningChar));
+        String tableData = message.Substring(firstOpeningChar);
 
-        public void RegisterNewPlayer(String name)
+        XmlSerializer serializer = new XmlSerializer(typeof(Table));
+        if (serializer.Deserialize(new StringReader(tableData)) is Table deserializedTable)
         {
-            SendMessage("50" + name);
-        }
-        public void CreateNewTable(String tableName)
-        {
-            SendMessage("51" + tableName);
-        }
-
-        public void PlayerJoiningTable(Table table)
-        {
-            var liveTable = game.Tables.FirstOrDefault(t => t.Name == table.Name);
-
-            if (liveTable != null)
+            var dispatcher = App.MainDispatcher;
+            if (dispatcher != null && !dispatcher.HasThreadAccess)
             {
-                int tableId = game.Tables.IndexOf(liveTable);
-
-                PlayerStore.CurrentTable = liveTable;
-                SendMessage("52" + tableId + PlayerStore.CurrentPlayer.Name);
-            }
-            else
-            {
-                OnLocalError?.Invoke("Error: Attempted to join a table that no longer exists in the game list.");
-            }
-        }
-
-        public void PlayerLeavingTable(Table table)
-        {
-            SendMessage("53" + game.Tables.IndexOf(PlayerStore.CurrentTable) + PlayerStore.CurrentPlayer.Name);
-            PlayerStore.CurrentTable = null;
-        }
-
-        /* --------------------------------------------------------
-         * 
-         * Recieiving network data 
-         *
-         -------------------------------------------------------*/
-        private void InterpretMessage(String message)
-        {
-            string command = message.Substring(0, 2);
-            string payload = message.Substring(2);
-
-            switch (command)
-            {
-                case "00": UpdateGameState(message); break;
-                case "01": game.AddPlayer(new Player(payload), false); break;
-                case "02": game.RemovePlayer(game.GetPlayerFromName(payload)); break;
-                case "03": game.AddTable(payload, false); break;
-                case "04": throw new NotImplementedException(); break;
-                case "05": UpdateTableState(payload); break;
-                case "06": OnTableJoined?.Invoke(); break;
-                case "07": OnTableLeft?.Invoke(); break;
-                case "08": StartTableTimer(message); break;
-                case "09": SetTableText(message); break;
-
-                case "99": OnErrorReceived?.Invoke(payload); break;
-            }
-        }
-
-        private void UpdateGameState(String message)
-        {
-            message = message.Remove(0, 2);
-            XmlSerializer serializer = new XmlSerializer(typeof(Game));
-            {
-                if (serializer.Deserialize(new StringReader(message)) is Game deserializedGame)
-                {
-                    game.GameStateUpdate(deserializedGame);
-                }
-            }
-        }
-
-        private void UpdateTableState(String message)
-        {
-            int firstOpeningChar = message.IndexOf('<');
-            int tableIndex = Int32.Parse(message.Substring(0, firstOpeningChar));
-            String tableData = message.Substring(firstOpeningChar);
-
-            XmlSerializer serializer = new XmlSerializer(typeof(Table));
-            if (serializer.Deserialize(new StringReader(tableData)) is Table deserializedTable)
-            {
-                var dispatcher = App.MainDispatcher;
-                if (dispatcher != null && !dispatcher.HasThreadAccess)
-                {
-                    dispatcher.TryEnqueue(() =>
-                    {
-                        Table.HandleUpdateFromNetwork(tableIndex, deserializedTable);
-                        System.Diagnostics.Debug.WriteLine("Table state broadcast recieved succesfully.");
-                        OnTableUpdated?.Invoke();
-                    });
-                }
-                else
+                dispatcher.TryEnqueue(() =>
                 {
                     Table.HandleUpdateFromNetwork(tableIndex, deserializedTable);
                     System.Diagnostics.Debug.WriteLine("Table state broadcast recieved succesfully.");
                     OnTableUpdated?.Invoke();
-                }
+                });
+            }
+            else
+            {
+                Table.HandleUpdateFromNetwork(tableIndex, deserializedTable);
+                System.Diagnostics.Debug.WriteLine("Table state broadcast recieved succesfully.");
+                OnTableUpdated?.Invoke();
             }
         }
+    }
 
-        private void StartTableTimer(String message)
+    private void StartTableTimer(String message)
+    {
+        // Message format: "08,{tableIndex},{seconds}"
+        string[] parts = message.Split(',');
+        if (parts.Length < 3)
         {
-            // Message format: "08,{tableIndex},{seconds}"
+            return;
+        }
+
+        int tableIndex = Int32.Parse(parts[1]);
+        int seconds = Int32.Parse(parts[2]);
+
+        var dispatcher = App.MainDispatcher;
+        if (dispatcher != null && !dispatcher.HasThreadAccess)
+        {
+            dispatcher.TryEnqueue(() => StartTableTimerOnUiThread(tableIndex, seconds));
+        }
+        else
+        {
+            StartTableTimerOnUiThread(tableIndex, seconds);
+        }
+    }
+
+    private void StartTableTimerOnUiThread(int tableIndex, int seconds)
+    {
+        if (tableIndex < 0 || tableIndex >= game.Tables.Count)
+        {
+            return;
+        }
+
+        TimerService.GetOrCreateTimer(game.Tables[tableIndex]).StartTimer(seconds);
+    }
+
+    public void SendPlayerAction(Table.PlayerAction action, int amount)
+    {
+        int tableIndex = Table.GetTableIdByName(PlayerStore.CurrentTable?.Name ?? "");
+        string? playerName = PlayerStore.CurrentPlayer?.Name;
+        if (tableIndex != -1 && !string.IsNullOrEmpty(playerName))
+        {
+            SendMessage($"54{tableIndex}{playerName},{action},{amount}");
+        }
+    }
+
+    private void SetTableText(String message)
+    {
+        if (string.IsNullOrEmpty(message))
+        {
             string[] parts = message.Split(',');
+
             if (parts.Length < 3)
             {
                 return;
             }
 
             int tableIndex = Int32.Parse(parts[1]);
-            int seconds = Int32.Parse(parts[2]);
-
-            var dispatcher = App.MainDispatcher;
-            if (dispatcher != null && !dispatcher.HasThreadAccess)
-            {
-                dispatcher.TryEnqueue(() => StartTableTimerOnUiThread(tableIndex, seconds));
-            }
-            else
-            {
-                StartTableTimerOnUiThread(tableIndex, seconds);
-            }
+            game.Tables[tableIndex].TableText = parts[2];
         }
 
-        private void StartTableTimerOnUiThread(int tableIndex, int seconds)
-        {
-            if (tableIndex < 0 || tableIndex >= game.Tables.Count)
-            {
-                return;
-            }
+    }
 
-            TimerService.GetOrCreateTimer(game.Tables[tableIndex]).StartTimer(seconds);
-        }
-
-        public void SendPlayerAction(Table.PlayerAction action, int amount)
-        {
-            int tableIndex = Table.GetTableIdByName(PlayerStore.CurrentTable?.Name ?? "");
-            string? playerName = PlayerStore.CurrentPlayer?.Name;
-            if (tableIndex != -1 && !string.IsNullOrEmpty(playerName))
-            {
-                SendMessage($"54{tableIndex}{playerName},{action},{amount}");
-            }
-        }
-
-        private void SetTableText(String message)
-        {
-            if (string.IsNullOrEmpty(message))
-            {
-                string[] parts = message.Split(',');
-
-                if (parts.Length < 3)
-                {
-                    return;
-                }
-
-                int tableIndex = Int32.Parse(parts[1]);
-                game.Tables[tableIndex].TableText = parts[2];
-            }
-
-        }
-
-        public void Disconnect()
-        {
-            _cts.Cancel();
-            _writer?.Complete();
-            _tcpClient?.Close();
-            System.Diagnostics.Debug.WriteLine("Disconnected manually.");
-        }
+    public void Disconnect()
+    {
+        _cts.Cancel();
+        _writer?.Complete();
+        _tcpClient?.Close();
+        System.Diagnostics.Debug.WriteLine("Disconnected manually.");
     }
 }

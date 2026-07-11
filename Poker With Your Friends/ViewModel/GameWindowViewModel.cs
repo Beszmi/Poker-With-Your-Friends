@@ -1,9 +1,8 @@
 ﻿using Poker_With_Your_Friends.Model;
 
-namespace Poker_With_Your_Friends.ViewModel
+namespace Poker_With_Your_Friends.ViewModel;
+
+internal class GameWindowViewModel
 {
-    internal class GameWindowViewModel
-    {
-        public GameWindowViewModel() {}
-    }
+    public GameWindowViewModel() {}
 }

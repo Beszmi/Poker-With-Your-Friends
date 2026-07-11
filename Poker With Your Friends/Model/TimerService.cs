@@ -1,39 +1,38 @@
 ﻿using System;
 using System.Collections.Concurrent;
 
-namespace Poker_With_Your_Friends.Model
+namespace Poker_With_Your_Friends.Model;
+
+public class TimerService
 {
-    public class TimerService
+    private readonly ConcurrentDictionary<Table, TableTimer> timers = new();
+
+    public TableTimer GetOrCreateTimer(Table table)
     {
-        private readonly ConcurrentDictionary<Table, TableTimer> timers = new();
+        return timers.GetOrAdd(table, t => new TableTimer(t));
+    }
 
-        public TableTimer GetOrCreateTimer(Table table)
+    public void StartTimer(Table table, int seconds)
+    {
+        var timer = GetOrCreateTimer(table);
+        timer.StartTimer(seconds);
+    }
+
+    public void StopTimer(Table table)
+    {
+        if (timers.TryGetValue(table, out TableTimer? timer))
         {
-            return timers.GetOrAdd(table, t => new TableTimer(t));
+            timer.StopTimer();
+        }
+    }
+
+    public void Clear()
+    {
+        foreach (TableTimer timer in timers.Values)
+        {
+            timer.StopTimer();
         }
 
-        public void StartTimer(Table table, int seconds)
-        {
-            var timer = GetOrCreateTimer(table);
-            timer.StartTimer(seconds);
-        }
-
-        public void StopTimer(Table table)
-        {
-            if (timers.TryGetValue(table, out TableTimer? timer))
-            {
-                timer.StopTimer();
-            }
-        }
-
-        public void Clear()
-        {
-            foreach (TableTimer timer in timers.Values)
-            {
-                timer.StopTimer();
-            }
-
-            timers.Clear();
-        }
+        timers.Clear();
     }
 }

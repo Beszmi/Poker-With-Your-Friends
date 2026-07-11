@@ -4,317 +4,316 @@ using System.IO;
 using System.Linq;
 using System.Xml.Serialization;
 
-namespace Poker_With_Your_Friends.Model
+namespace Poker_With_Your_Friends.Model;
+
+[XmlRoot("Game")]
+public class Game //Singleton
 {
-    [XmlRoot("Game")]
-    public class Game //Singleton
+    public event Action<Player>? OnPlayerAdded;
+    public event Action<Table>? OnTableAdded;
+
+    [XmlIgnore]
+    public static string PlayerfolderPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Poker_With_Your_Friends");
+
+    [XmlIgnore]
+    public static string PlayerfilePath = Path.Combine(PlayerfolderPath, "players.xml");
+
+    [XmlIgnore]
+    private static Game Clientinstance;
+    [XmlIgnore]
+    private static Game Serverinstance;
+
+    [XmlIgnore]
+    public bool ServerMode = false;
+
+    public Game() { }
+
+    [XmlIgnore]
+    public static Game ClientInstance
     {
-        public event Action<Player>? OnPlayerAdded;
-        public event Action<Table>? OnTableAdded;
-
-        [XmlIgnore]
-        public static string PlayerfolderPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Poker_With_Your_Friends");
-
-        [XmlIgnore]
-        public static string PlayerfilePath = Path.Combine(PlayerfolderPath, "players.xml");
-
-        [XmlIgnore]
-        private static Game Clientinstance;
-        [XmlIgnore]
-        private static Game Serverinstance;
-
-        [XmlIgnore]
-        public bool ServerMode = false;
-
-        public Game() { }
-
-        [XmlIgnore]
-        public static Game ClientInstance
+        get
         {
-            get
-            {
-                Clientinstance ??= new Game();
-                return Clientinstance;
-            }
+            Clientinstance ??= new Game();
+            return Clientinstance;
         }
+    }
 
-        [XmlIgnore]
-        public static Game ServerInstance
+    [XmlIgnore]
+    public static Game ServerInstance
+    {
+        get
         {
-            get
-            {
-                Serverinstance ??= new Game();
-                return Serverinstance;
-            }
+            Serverinstance ??= new Game();
+            return Serverinstance;
         }
+    }
 
-        /* 
-         * Players
-        */
+    /* 
+     * Players
+    */
 
-        [XmlArray("Players")]
-        [XmlArrayItem("Player")]
-        public ObservableCollection<Player> Players { get; set; } = new ObservableCollection<Player>();
+    [XmlArray("Players")]
+    [XmlArrayItem("Player")]
+    public ObservableCollection<Player> Players { get; set; } = new ObservableCollection<Player>();
 
-        public void AddPlayer(Player player, bool isServer)
+    public void AddPlayer(Player player, bool isServer)
+    {
+        var dispatcher = App.MainDispatcher;
+        if (dispatcher != null && !dispatcher.HasThreadAccess)
         {
-            var dispatcher = App.MainDispatcher;
-            if (dispatcher != null && !dispatcher.HasThreadAccess)
-            {
-                dispatcher.TryEnqueue(() =>
-                {
-                    Players.Add(player);
-                    RefreshPlayerNames();
-                    OnPlayerAdded?.Invoke(player);
-                });
-            }
-            else
+            dispatcher.TryEnqueue(() =>
             {
                 Players.Add(player);
                 RefreshPlayerNames();
                 OnPlayerAdded?.Invoke(player);
-            }
+            });
         }
-
-        public void RemovePlayer(Player player)
+        else
         {
-            var dispatcher = App.MainDispatcher;
-            if (dispatcher != null && !dispatcher.HasThreadAccess)
-            {
-                dispatcher.TryEnqueue(() =>
-                {
-                    Players.Remove(player);
-                    RefreshPlayerNames();
-                });
-            }
-            else
+            Players.Add(player);
+            RefreshPlayerNames();
+            OnPlayerAdded?.Invoke(player);
+        }
+    }
+
+    public void RemovePlayer(Player player)
+    {
+        var dispatcher = App.MainDispatcher;
+        if (dispatcher != null && !dispatcher.HasThreadAccess)
+        {
+            dispatcher.TryEnqueue(() =>
             {
                 Players.Remove(player);
                 RefreshPlayerNames();
-            }
+            });
         }
-
-        [XmlIgnore]
-        public ObservableCollection<String> PlayerNames { get; } = new ObservableCollection<String>();
-
-        public void RefreshPlayerNames()
+        else
         {
-            var dispatcher = App.MainDispatcher;
-            if (dispatcher != null && !dispatcher.HasThreadAccess)
-            {
-                dispatcher.TryEnqueue(RefreshNamesInternal);
-            }
-            else
-            {
-                RefreshNamesInternal();
-            }
+            Players.Remove(player);
+            RefreshPlayerNames();
         }
+    }
 
-        private void RefreshNamesInternal()
+    [XmlIgnore]
+    public ObservableCollection<String> PlayerNames { get; } = new ObservableCollection<String>();
+
+    public void RefreshPlayerNames()
+    {
+        var dispatcher = App.MainDispatcher;
+        if (dispatcher != null && !dispatcher.HasThreadAccess)
         {
-            PlayerNames.Clear();
-            foreach (var player in Players)
-            {
-                PlayerNames.Add(player.Name);
-            }
+            dispatcher.TryEnqueue(RefreshNamesInternal);
         }
-
-        public Player GetPlayerFromName(String name)
+        else
         {
-            return Players.FirstOrDefault(p => p.Name == name) ?? throw new ArgumentException("Player not found");
+            RefreshNamesInternal();
         }
+    }
 
-        /* 
-         * TABLES
-        */
-        [XmlArray("Tables")]
-        [XmlArrayItem("Table")]
-        public ObservableCollection<Table> Tables { get; set; } = new ObservableCollection<Table>();
-
-        public void AddTable(String message, bool isServer)
+    private void RefreshNamesInternal()
+    {
+        PlayerNames.Clear();
+        foreach (var player in Players)
         {
-            if (!isServer)
+            PlayerNames.Add(player.Name);
+        }
+    }
+
+    public Player GetPlayerFromName(String name)
+    {
+        return Players.FirstOrDefault(p => p.Name == name) ?? throw new ArgumentException("Player not found");
+    }
+
+    /* 
+     * TABLES
+    */
+    [XmlArray("Tables")]
+    [XmlArrayItem("Table")]
+    public ObservableCollection<Table> Tables { get; set; } = new ObservableCollection<Table>();
+
+    public void AddTable(String message, bool isServer)
+    {
+        if (!isServer)
+        {
+            XmlSerializer serializer = new XmlSerializer(typeof(Table));
             {
-                XmlSerializer serializer = new XmlSerializer(typeof(Table));
+                if (serializer.Deserialize(new StringReader(message)) is Table deserializedTable)
                 {
-                    if (serializer.Deserialize(new StringReader(message)) is Table deserializedTable)
-                    {
-                        Tables.Add(deserializedTable);
-                    }
+                    Tables.Add(deserializedTable);
                 }
-                return;
             }
-            throw new ArgumentException();
+            return;
         }
+        throw new ArgumentException();
+    }
 
-        public void AddTable(Table table)
+    public void AddTable(Table table)
+    {
+        var dispatcher = App.MainDispatcher;
+        if (dispatcher != null && !dispatcher.HasThreadAccess)
         {
-            var dispatcher = App.MainDispatcher;
-            if (dispatcher != null && !dispatcher.HasThreadAccess)
-            {
-                dispatcher.TryEnqueue(() =>
-                {
-                    Tables.Add(table);
-                    OnTableAdded?.Invoke(table);
-                });
-            }
-            else
+            dispatcher.TryEnqueue(() =>
             {
                 Tables.Add(table);
                 OnTableAdded?.Invoke(table);
-            }
-            Server.InitializeServerTable(table);
+            });
         }
-
-        public void RemoveTable(Table table)
+        else
         {
-            Tables.Remove(table);
+            Tables.Add(table);
+            OnTableAdded?.Invoke(table);
+        }
+        Server.InitializeServerTable(table);
+    }
+
+    public void RemoveTable(Table table)
+    {
+        Tables.Remove(table);
+    }
+
+    public void GameStateUpdate(Game UpdatedGame)
+    {
+        var dispatcher = App.MainDispatcher;
+
+        if (dispatcher != null && !dispatcher.HasThreadAccess)
+        {
+            dispatcher.TryEnqueue(() => ApplyState(UpdatedGame));
+        }
+        else if (dispatcher != null && dispatcher.HasThreadAccess)
+        {
+            ApplyState(UpdatedGame);
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine("CRITICAL: App.MainDispatcher is null! Cannot safely update UI.");
+        }
+    }
+    private void ApplyState(Game UpdatedGame)
+    {
+        Players.Clear();
+        foreach (var player in UpdatedGame.Players)
+        {
+            Players.Add(player);
         }
 
-        public void GameStateUpdate(Game UpdatedGame)
+        Tables.Clear();
+        foreach (var table in UpdatedGame.Tables)
+        {
+            Tables.Add(table);
+        }
+
+        RefreshPlayerNames();
+    }
+
+    public void ReadPlayersFromXml(String xmlFilePath)
+    {
+        if (!Directory.Exists(Game.PlayerfolderPath))
+        {
+            Directory.CreateDirectory(Game.PlayerfolderPath);
+        }
+        XmlSerializer serializer = new XmlSerializer(typeof(ObservableCollection<Player>));
+
+        if (!File.Exists(xmlFilePath))
+        {
+            ObservableCollection<Player> empty = new ObservableCollection<Player>();
+
+            using (FileStream fileStream = new FileStream(xmlFilePath, FileMode.Create))
+            {
+                serializer.Serialize(fileStream, empty);
+            }
+            return;
+        }
+
+        ObservableCollection<Player>? deserializedList = null;
+
+        using (FileStream fileStream = new FileStream(xmlFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+        {
+            deserializedList = serializer.Deserialize(fileStream) as ObservableCollection<Player>;
+        }
+        if (deserializedList != null)
         {
             var dispatcher = App.MainDispatcher;
 
+            Action loadAction = () =>
+            {
+                Players.Clear();
+                foreach (var player in deserializedList)
+                {
+                    Players.Add(player);
+                }
+                RefreshPlayerNames();
+            };
+
             if (dispatcher != null && !dispatcher.HasThreadAccess)
             {
-                dispatcher.TryEnqueue(() => ApplyState(UpdatedGame));
-            }
-            else if (dispatcher != null && dispatcher.HasThreadAccess)
-            {
-                ApplyState(UpdatedGame);
+                dispatcher.TryEnqueue(() => loadAction());
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine("CRITICAL: App.MainDispatcher is null! Cannot safely update UI.");
+                loadAction();
             }
         }
-        private void ApplyState(Game UpdatedGame)
+    }
+    public void SavePlayersToXml(String xmlFilePath)
+    {
+        if (!Directory.Exists(Game.PlayerfolderPath))
         {
-            Players.Clear();
-            foreach (var player in UpdatedGame.Players)
-            {
-                Players.Add(player);
-            }
-
-            Tables.Clear();
-            foreach (var table in UpdatedGame.Tables)
-            {
-                Tables.Add(table);
-            }
-
-            RefreshPlayerNames();
+            Directory.CreateDirectory(Game.PlayerfolderPath);
         }
 
-        public void ReadPlayersFromXml(String xmlFilePath)
+        if (Players == null || Players.Count == 0)
         {
-            if (!Directory.Exists(Game.PlayerfolderPath))
-            {
-                Directory.CreateDirectory(Game.PlayerfolderPath);
-            }
+            System.Diagnostics.Debug.WriteLine($"SAVE FAILED: Players empty");
+            return;
+        }
+        foreach (var player in Players)
+        {
+            player.IsCurrentlyActivePlayer = false;
+            player.IsAtTable = false;
+            player.HasFolded = false;
+            player.ClearCards();
+            player.PotBet = 0;
+            player.RoundBet = 0;
+            player.IsAllIn = false;
+        }
+
+        try
+        {
             XmlSerializer serializer = new XmlSerializer(typeof(ObservableCollection<Player>));
-
-            if (!File.Exists(xmlFilePath))
+            using (FileStream fileStream = new FileStream(xmlFilePath, FileMode.Create))
             {
-                ObservableCollection<Player> empty = new ObservableCollection<Player>();
-
-                using (FileStream fileStream = new FileStream(xmlFilePath, FileMode.Create))
-                {
-                    serializer.Serialize(fileStream, empty);
-                }
-                return;
-            }
-
-            ObservableCollection<Player>? deserializedList = null;
-
-            using (FileStream fileStream = new FileStream(xmlFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
-            {
-                deserializedList = serializer.Deserialize(fileStream) as ObservableCollection<Player>;
-            }
-            if (deserializedList != null)
-            {
-                var dispatcher = App.MainDispatcher;
-
-                Action loadAction = () =>
-                {
-                    Players.Clear();
-                    foreach (var player in deserializedList)
-                    {
-                        Players.Add(player);
-                    }
-                    RefreshPlayerNames();
-                };
-
-                if (dispatcher != null && !dispatcher.HasThreadAccess)
-                {
-                    dispatcher.TryEnqueue(() => loadAction());
-                }
-                else
-                {
-                    loadAction();
-                }
+                serializer.Serialize(fileStream, Players);
             }
         }
-        public void SavePlayersToXml(String xmlFilePath)
+        catch (Exception ex)
         {
-            if (!Directory.Exists(Game.PlayerfolderPath))
+            System.Diagnostics.Debug.WriteLine($"SAVE FAILED: {ex.Message}");
+            if (ex.InnerException != null)
             {
-                Directory.CreateDirectory(Game.PlayerfolderPath);
-            }
-
-            if (Players == null || Players.Count == 0)
-            {
-                System.Diagnostics.Debug.WriteLine($"SAVE FAILED: Players empty");
-                return;
-            }
-            foreach (var player in Players)
-            {
-                player.IsCurrentlyActivePlayer = false;
-                player.IsAtTable = false;
-                player.HasFolded = false;
-                player.ClearCards();
-                player.PotBet = 0;
-                player.RoundBet = 0;
-                player.IsAllIn = false;
-            }
-
-            try
-            {
-                XmlSerializer serializer = new XmlSerializer(typeof(ObservableCollection<Player>));
-                using (FileStream fileStream = new FileStream(xmlFilePath, FileMode.Create))
-                {
-                    serializer.Serialize(fileStream, Players);
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"SAVE FAILED: {ex.Message}");
-                if (ex.InnerException != null)
-                {
-                    System.Diagnostics.Debug.WriteLine($"INNER EXCEPTION: {ex.InnerException.Message}");
-                }
+                System.Diagnostics.Debug.WriteLine($"INNER EXCEPTION: {ex.InnerException.Message}");
             }
         }
+    }
 
-        public bool DoesPlayerAlreadyExist(String name)
+    public bool DoesPlayerAlreadyExist(String name)
+    {
+        try
         {
-            try
-            {
-                GetPlayerFromName(name);
-            }
-            catch (ArgumentException)
-            {
-                return false;
-            }
-            return true;
+            GetPlayerFromName(name);
         }
-
-        public bool IsTableNameTaken(String tableName)
+        catch (ArgumentException)
         {
-            foreach(Table table in Tables)
-            {
-                if (table.Name == tableName) return true;
-            }
             return false;
         }
+        return true;
+    }
+
+    public bool IsTableNameTaken(String tableName)
+    {
+        foreach(Table table in Tables)
+        {
+            if (table.Name == tableName) return true;
+        }
+        return false;
     }
 }
