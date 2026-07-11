@@ -16,11 +16,8 @@ namespace Poker_With_Your_Friends.Model
         [XmlAttribute("Chips")]
         public int Chips
         {
-            get { return chips; }
-            set
-            {
-                chips = Math.Max(0, value);
-            }
+            get => chips;
+            set => SetProperty(ref chips, Math.Max(0, value));
         }
 
         [XmlArray("Cards")]
@@ -33,6 +30,7 @@ namespace Poker_With_Your_Friends.Model
         public Player(String name)
         {
             Name = name;
+            chips = 100;
         }
 
         public Player(String name, int chips)
@@ -59,39 +57,44 @@ namespace Poker_With_Your_Friends.Model
 
         [XmlIgnore]
         [ObservableProperty]
-        private bool isAtTable = false;
+        public partial bool IsAtTable { get; set; } = false;
 
         [XmlAttribute("hasFolded")]
         [ObservableProperty]
-        private bool hasFolded = false;
+        public partial bool HasFolded { get; set; } = false;
 
-        [XmlIgnore]
+        [XmlAttribute("PotBet")]
         [ObservableProperty]
-        public partial int CurrentBet { get; set; } = 0;
+        public partial int PotBet { get; set; } = 0;
+
+        [XmlAttribute("RoundBet")]
+        [ObservableProperty]
+        public partial int RoundBet { get; set; } = 0;
 
         [XmlAttribute("IsCurrentlyActivePlayer")]
         [ObservableProperty]
         public partial bool IsCurrentlyActivePlayer { get; set; }
 
+        [XmlAttribute("IsAllIn")]
+        [ObservableProperty]
+        public partial bool IsAllIn { get; set; } = false;
+
         public void Fold() { HasFolded = true; }
 
-        public void Call()
+        public void Spend(int amount)
         {
-            System.Diagnostics.Debug.WriteLine("player calling not implemented");
+            if (amount > chips)
+            {
+                throw new ArgumentOutOfRangeException("Not enough chips");
+            }
+            SetProperty(ref chips, chips - amount, nameof(Chips));
+            PotBet += amount;
+            RoundBet += amount;
         }
-
-        public void Raise(int amount)
-        {
-            System.Diagnostics.Debug.WriteLine("player raising not implemented");
-        } 
 
         public void Lose()
         {
-            Chips-= CurrentBet;
-            if (Chips <= 0)
-            {
-                throw new NotImplementedException(); // Player is out of chips and loses the game
-            }
+            // TODO: see if its needed
         }
         public void Win(int amount)
         {
@@ -103,8 +106,10 @@ namespace Poker_With_Your_Friends.Model
             Chips = NewPlayer.Chips;
             // IsAtTable Should be handled by joining and leaving code
             HasFolded = NewPlayer.HasFolded;
-            CurrentBet = NewPlayer.CurrentBet;
+            RoundBet = NewPlayer.RoundBet;
+            PotBet = NewPlayer.PotBet;
             IsCurrentlyActivePlayer = NewPlayer.IsCurrentlyActivePlayer;
+            IsAllIn = NewPlayer.IsAllIn;
 
             Cards.Clear();
             foreach (var card in NewPlayer.Cards)

@@ -15,7 +15,8 @@ namespace Poker_With_Your_Friends.Model
         {
             Call,
             Raise,
-            Fold
+            Fold,
+            AllIn
         }
 
         public readonly struct PlayerDecision
@@ -75,6 +76,14 @@ namespace Poker_With_Your_Friends.Model
         [XmlAttribute("SmallBlind")]
         [ObservableProperty]
         public partial int SmallBlind { get; set; } = 5;
+
+        [XmlAttribute("ToCall")]
+        [ObservableProperty]
+        public partial int ToCall { get; set; } = 0;
+
+        [XmlAttribute("Antee")]
+        [ObservableProperty]
+        public partial int Antee { get; set; } = 5;
 
         [XmlArray("Housecards")]
         [XmlArrayItem("Housecard")]
@@ -159,10 +168,14 @@ namespace Poker_With_Your_Friends.Model
 
         public void StartRound()
         {
+            BeforeBigBlind = true;
             Round++;
+            SmallBlind = Round * 5;
+            ToCall = SmallBlind;
             TableText = "Round started with players: //";
             Pot = 0;
             Housecards.Clear();
+            ZeroAllBets();
         }
 
         public void DealToPlayers()
@@ -217,13 +230,36 @@ namespace Poker_With_Your_Friends.Model
             switch (decision.Action)
             {
                 case PlayerAction.Call:
-                    player.Call();
+                    int callAmount = ToCall - player.RoundBet;
+                    if (callAmount > 0)
+                    {
+                        player.Spend(callAmount);
+                        Pot += callAmount;
+                    }
                     break;
                 case PlayerAction.Raise:
-                    player.Raise(decision.Amount);
+                    player.Spend(decision.Amount);
+                    Pot += decision.Amount;
+                    ToCall = player.RoundBet;
+                    ResetPlayersNeedToCover();
                     break;
                 case PlayerAction.Fold:
                     player.Fold();
+                    break;
+                case PlayerAction.AllIn:
+                    int allInAmount = Math.Min(decision.Amount, player.Chips);
+                    if (allInAmount <= 0 && player.Chips > 0)
+                    {
+                        allInAmount = player.Chips;
+                    }
+                    player.Spend(allInAmount);
+                    Pot += allInAmount;
+                    if (player.RoundBet > ToCall)
+                    {
+                        ToCall = player.RoundBet;
+                        ResetPlayersNeedToCover();
+                    }
+                    player.IsAllIn = true;
                     break;
             }
 
@@ -263,6 +299,18 @@ namespace Poker_With_Your_Friends.Model
             return Players.Count >= 2;
         }
 
+        ///-------------------------------------------------------------
+        /// 
+        ///     Main Game loop logic
+        ///  
+        ///-------------------------------------------------------------
+
+        [XmlIgnore]
+        private int PlayersNeedToCover = 0;
+
+        [XmlIgnore]
+        private bool BeforeBigBlind = true;
+
         async Task Play()
         {
             try
@@ -287,21 +335,27 @@ namespace Poker_With_Your_Friends.Model
 
                 IsGameActive = true;
                 StartRound();
+
+                // 1st round without player cards
+                await PlayRound();
+
+                //2nd round without any housecards
                 DealToPlayers();
+                await PlayRound();
 
                 Housecards.Add(deck.DrawCard());
                 Housecards.Add(deck.DrawCard());
                 Housecards.Add(deck.DrawCard());
+                //Flop
+                await PlayRound();
 
-                OnUpdateTableRequest?.Invoke(this);
+                //Turn
+                Housecards.Add(deck.DrawCard());
+                await PlayRound();
 
-                foreach (var player in Players.ToList())
-                {
-                    if (!Players.Contains(player)) continue;
-
-                    await WaitForPlayerActionAsync(player);
-                    OnUpdateTableRequest?.Invoke(this);
-                }
+                //River
+                Housecards.Add(deck.DrawCard());
+                await PlayRound();
             }
             catch (Exception ex)
             {
@@ -309,6 +363,59 @@ namespace Poker_With_Your_Friends.Model
                 IsGameActive = false;
                 OnUpdateTableRequest?.Invoke(this);
             }
+        }
+
+        private int CountPlayersWhoCanAct()
+        {
+            return Players.Count(p => !p.HasFolded && !p.IsAllIn);
+        }
+
+        private void ResetPlayersNeedToCover()
+        {
+            PlayersNeedToCover = CountPlayersWhoCanAct();
+        }
+
+        private async Task PlayRound()
+        {
+            ResetPlayersNeedToCover();
+
+            if (PlayersNeedToCover <= 1)
+            {
+                ZeroRoundBets();
+                OnUpdateTableRequest?.Invoke(this);
+                return;
+            }
+
+            while (PlayersNeedToCover > 0)
+            {
+                foreach (var player in Players.ToList())
+                {
+                    if (!Players.Contains(player)) continue;
+                    if (player.HasFolded || player.IsAllIn) continue;
+                    if (PlayersNeedToCover <= 0) break;
+
+                    await WaitForPlayerActionAsync(player);
+
+                    if (BeforeBigBlind)
+                    {
+                        ToCall += 10;
+                        BeforeBigBlind = false;
+                    }
+
+                    PlayersNeedToCover--;
+                    OnUpdateTableRequest?.Invoke(this);
+
+                    if (CountPlayersWhoCanAct() <= 1)
+                    {
+                        PlayersNeedToCover = 0;
+                        break;
+                    }
+                }
+                System.Diagnostics.Debug.WriteLine($"\nPlayersNeedToCover: {PlayersNeedToCover}\n");
+            }
+
+            ZeroRoundBets();
+            OnUpdateTableRequest?.Invoke(this);
         }
 
         public bool SubmitPlayerAction(Player player, PlayerAction action, int amount = 0)
@@ -395,6 +502,8 @@ namespace Poker_With_Your_Friends.Model
             localTable.Pot = networkTable.Pot;
             localTable.IsGameActive = networkTable.IsGameActive;
             localTable.TableText = networkTable.TableText;
+            localTable.Antee = networkTable.Antee;
+            localTable.ToCall = networkTable.ToCall;
 
             localTable.Housecards.Clear();
             foreach (Card card in networkTable.Housecards)
@@ -432,6 +541,22 @@ namespace Poker_With_Your_Friends.Model
         {
             TableText = text;
             OnUpdateTextRequest?.Invoke(this);
+        }
+        private void ZeroRoundBets()
+        {
+            foreach(Player player in Players)
+            {
+                player.RoundBet = 0;
+            }
+        }
+
+        private void ZeroAllBets()
+        {
+            foreach (Player player in Players)
+            {
+                player.RoundBet = 0;
+                player.PotBet = 0;
+            }
         }
     }
 }

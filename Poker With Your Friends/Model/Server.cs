@@ -306,6 +306,11 @@ namespace Poker_With_Your_Friends.Model
         {
             int FirstOpeningChar = Utils.GetFirstNonNumberIndex(message);
             int TableIndex = Int32.Parse(message.Substring(0, FirstOpeningChar));
+            if (game.GetPlayerFromName(message[FirstOpeningChar..]).Chips < game.Tables[TableIndex].SmallBlind+10)
+            {
+                BroadcastServerErrorClient(ClientId, $"You don't have enough chips to join this table's big blind ({game.Tables[TableIndex].SmallBlind+10}$)");
+                return;
+            }
             try
             {
                 game.Tables[TableIndex].AddPlayer(game.GetPlayerFromName(message[FirstOpeningChar..]));

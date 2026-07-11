@@ -38,7 +38,7 @@
             <Run Text=" Players: "/>
         </TextBlock>
 
-        <TextBlock Grid.Column="0" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" FontSize="24" Text="{x:Bind viewModel.Table.TableText, Mode=OneWay}"/>
+        <TextBlock Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="3" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" FontSize="24" Text="{x:Bind viewModel.Table.TableText, Mode=OneWay}"/>
 
         <ListView Grid.Column="0" Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Center" ItemsSource="{x:Bind viewModel.Table.Housecards, Mode=OneWay}" Margin="10">
             <ListView.ItemsPanel>
@@ -62,6 +62,10 @@
             <LineBreak/>
             <Run Text="Small blind: "/>
             <Run Text="{x:Bind viewModel.Table.SmallBlind, Mode=OneWay}"/>
+            <Run Text="$"/>
+            <LineBreak/>
+            <Run Text="To call: "/>
+            <Run Text="{x:Bind viewModel.Table.ToCall, Mode=OneWay}"/>
             <Run Text="$"/>
         </TextBlock>
 
@@ -94,10 +98,10 @@
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="Model:Player">
                     <Grid Background="LightGreen" Height="50" Width="200">
-                        <TextBlock Text="{x:Bind Name}" VerticalAlignment="Top" HorizontalAlignment="Center" FontSize="24" Foreground="Red"/>
+                        <TextBlock Text="{x:Bind Name, Mode=OneWay}" VerticalAlignment="Top" HorizontalAlignment="Center" FontSize="24" Foreground="Red"/>
                         <TextBlock VerticalAlignment="Bottom" HorizontalAlignment="Left" FontSize="12">
                     <Run Text="Chips: "/>
-                    <Run Text="{x:Bind Chips}"/>
+                    <Run Text="{x:Bind Chips, Mode=OneWay}"/>
                         </TextBlock>
                     </Grid>
                 </DataTemplate>

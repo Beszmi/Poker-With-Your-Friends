@@ -272,7 +272,9 @@ namespace Poker_With_Your_Friends.Model
                 player.IsAtTable = false;
                 player.HasFolded = false;
                 player.ClearCards();
-                player.CurrentBet = 0;
+                player.PotBet = 0;
+                player.RoundBet = 0;
+                player.IsAllIn = false;
             }
 
             try
