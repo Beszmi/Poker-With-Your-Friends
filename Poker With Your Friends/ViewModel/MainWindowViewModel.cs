@@ -48,6 +48,7 @@ namespace Poker_With_Your_Friends.ViewModel
             if (string.IsNullOrEmpty(playerName)) return;
 
             PlayerStore.CurrentPlayer = game.GetPlayerFromName(playerName);
+            client?.RegisterNewPlayer(playerName);
 
             // 2. Pass the client to the GameWindow!
             GameWindow newWindow = new GameWindow(client);

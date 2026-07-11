@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Poker_With_Your_Friends.ViewModel;
+using System;
 using System.Buffers;
 using System.IO;
 using System.IO.Pipelines;
@@ -15,7 +16,7 @@ namespace Poker_With_Your_Friends.Model
     {
         public IPlayerStore PlayerStore { get; }
 
-        public event Action<String>? OnSendPlayerAction;
+        
         public event Action<String>? OnErrorReceived;
         public event Action<String>? OnLocalError;
         public event Action? OnTableUpdated;
@@ -39,11 +40,13 @@ namespace Poker_With_Your_Friends.Model
             InGamePage.OnJoinGameClick += PlayerJoiningTable;
             InGamePage.OnLeaveGameClick += PlayerLeavingTable;
 
-            OnSendPlayerAction = (actionStr) =>
+            InGamePageViewModel.OnSendPlayerAction += (action, amount) =>
             {
-                if (game.Tables.IndexOf(PlayerStore.CurrentTable) != -1)
+                int tableIndex = Table.GetTableIdByName(PlayerStore.CurrentTable?.Name ?? "");
+                string? playerName = PlayerStore.CurrentPlayer?.Name;
+                if (tableIndex != -1 && !string.IsNullOrEmpty(playerName))
                 {
-                    SendMessage($"54{game.Tables.IndexOf(PlayerStore.CurrentTable)},{actionStr}");
+                    SendMessage($"54{tableIndex}{playerName},{action},{amount}");
                 }
             };
         }

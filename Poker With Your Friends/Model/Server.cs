@@ -206,8 +206,6 @@ namespace Poker_With_Your_Friends.Model
                         }
                     }
 
-                    game.RemovePlayer(disconnectedPlayer);
-
                     await BroadcastDeletedPlayer(playerName);
                 }
                 catch (ArgumentException)
@@ -234,7 +232,7 @@ namespace Poker_With_Your_Friends.Model
          *
          -------------------------------------------------------*/
 
-        private async Task InterpretMessage(string clientId, string message)
+        private void InterpretMessage(string clientId, string message)
         {
             if (string.IsNullOrWhiteSpace(message) || message.Length < 2)
             {
@@ -263,8 +261,12 @@ namespace Poker_With_Your_Friends.Model
         private void RegisterNewPlayer(string clientId, string playerName)
         {
             _clientToPlayerName[clientId] = playerName;
-            game.AddPlayer(new Player(playerName), true);
-            BroadcastNewPlayer(playerName);
+
+            if (!game.DoesPlayerAlreadyExist(playerName))
+            {
+                game.AddPlayer(new Player(playerName), true);
+                BroadcastNewPlayer(playerName);
+            }
         }
 
         private void CreateNewTable(string message)
@@ -312,15 +314,73 @@ namespace Poker_With_Your_Friends.Model
 
         private void HandlePlayerAction(string clientId, string actionData)
         {
-            // format: "TableIndex,ActionType" (e.g., "0,Call")
-            string[] parts = actionData.Split(',');
-            if (parts.Length == 2 && int.TryParse(parts[0], out int tableIndex))
+            // format: "TableIndexPlayerName,ActionType,Amount" (e.g. "0Alice,Call,0" or "1Bob,Raise,20")
+            int firstOpeningChar = Utils.GetFirstNonNumberIndex(actionData);
+            if (firstOpeningChar <= 0)
             {
-                Table t = game.Tables[tableIndex];
-                if (Enum.TryParse(parts[1], out Table.PlayerAction action))
+                OnServerLoggedEvent?.Invoke($"Malformed player action from {clientId}: '{actionData}'");
+                return;
+            }
+
+            if (!int.TryParse(actionData.Substring(0, firstOpeningChar), out int tableIndex))
+            {
+                OnServerLoggedEvent?.Invoke($"Malformed player action from {clientId}: '{actionData}'");
+                return;
+            }
+
+            string[] parts = actionData.Substring(firstOpeningChar).Split(',');
+            if (parts.Length < 2)
+            {
+                OnServerLoggedEvent?.Invoke($"Malformed player action from {clientId}: '{actionData}'");
+                return;
+            }
+
+            string playerName = parts[0];
+
+            if (tableIndex < 0 || tableIndex >= game.Tables.Count)
+            {
+                OnServerLoggedEvent?.Invoke($"Player action referenced unknown table {tableIndex} from {clientId}");
+                return;
+            }
+
+            if (!Enum.TryParse(parts[1], out Table.PlayerAction action))
+            {
+                OnServerLoggedEvent?.Invoke($"Unrecognized action '{parts[1]}' from {clientId}");
+                return;
+            }
+
+            int amount = 0;
+            if (parts.Length >= 3) int.TryParse(parts[2], out amount);
+
+            if (_clientToPlayerName.TryGetValue(clientId, out string? registeredName))
+            {
+                if (!string.Equals(registeredName, playerName, StringComparison.Ordinal))
                 {
-                    t.PlayerActionTcs?.TrySetResult(action);
+                    OnServerLoggedEvent?.Invoke(
+                        $"Client {clientId} sent action for '{playerName}' but is registered as '{registeredName}'.");
+                    return;
                 }
+            }
+            else
+            {
+                _clientToPlayerName[clientId] = playerName;
+            }
+
+            Player player;
+            try
+            {
+                player = game.GetPlayerFromName(playerName);
+            }
+            catch (ArgumentException)
+            {
+                OnServerLoggedEvent?.Invoke($"Player '{playerName}' not found while submitting action.");
+                return;
+            }
+
+            Table t = game.Tables[tableIndex];
+            if (!t.SubmitPlayerAction(player, action, amount))
+            {
+                OnServerLoggedEvent?.Invoke($"Rejected out-of-turn/stale action '{action}' from {playerName}.");
             }
         }
 
@@ -333,13 +393,13 @@ namespace Poker_With_Your_Friends.Model
 
         private async Task SendJoinedTable(String ClientId)
         {
-            SendMessageAsync(ClientId, "06");
+            await SendMessageAsync(ClientId, "06");
             OnServerLoggedEvent?.Invoke($"Sent Table joined to {ClientId} (06)");
         }
 
         private async Task SendLeftTable(String ClientId)
         {
-            SendMessageAsync(ClientId, "07");
+            await SendMessageAsync(ClientId, "07");
             OnServerLoggedEvent?.Invoke($"Sent Table Left to {ClientId} (07)");
         }
 
@@ -418,10 +478,10 @@ namespace Poker_With_Your_Friends.Model
 
         public async Task BroadcastServerErrorClient(String ClientId, string ErrorMessage)
         {
-            await BroadcastAsync("99" + ErrorMessage);
+            await SendMessageAsync(ClientId, "99" + ErrorMessage);
             if (debugMessages)
             {
-                OnServerLoggedEvent?.Invoke($"DEBUG: Sent to: [BROADCAST]:  99{ErrorMessage}");
+                OnServerLoggedEvent?.Invoke($"DEBUG: Sent to: [{ClientId}]:  99{ErrorMessage}");
             }
         }
 

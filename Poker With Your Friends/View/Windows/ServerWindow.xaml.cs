@@ -9,8 +9,8 @@ namespace Poker_With_Your_Friends
     {
         public void Window_Closed(object sender, WindowEventArgs args)
         {
-            viewModel.StopServer();
             viewModel.game.SavePlayersToXml(Game.PlayerfilePath);
+            viewModel.StopServer();
         }
 
         private ServerWindowViewModel viewModel;

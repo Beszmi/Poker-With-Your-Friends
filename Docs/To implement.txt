@@ -1,5 +1,3 @@
-table state over Network (only update table taht needs to be update)
-
 table Front end
 	- table layout
 		- Canvas for players location on screen?

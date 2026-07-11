@@ -18,12 +18,29 @@ namespace Poker_With_Your_Friends.Model
             Fold
         }
 
+        public readonly struct PlayerDecision
+        {
+            public PlayerAction Action { get; }
+            public int Amount { get; }
+
+            public PlayerDecision(PlayerAction action, int amount = 0)
+            {
+                Action = action;
+                Amount = amount;
+            }
+        }
+
         /* -------------------------------------------------
          *  Properties
          *
          -------------------------------------------------*/
         [XmlIgnore]
-        private AutoResetEvent playerJoined = new AutoResetEvent(false);
+        private readonly SemaphoreSlim EnoughplayersJoined = new SemaphoreSlim(0, 1);
+        [XmlIgnore]
+        private bool _enoughPlayersSignaled = false;
+        [XmlIgnore]
+        private readonly object _playerJoinLock = new object();
+
         [XmlIgnore]
         private Deck deck = new Deck();
 
@@ -72,7 +89,15 @@ namespace Poker_With_Your_Friends.Model
 
         [XmlAttribute("IsGameActive")]
         [ObservableProperty]
-        public partial bool IsGameActive { get; set; }
+        public partial bool IsGameActive { get; set; } = false;
+
+        [XmlIgnore]
+        public TaskCompletionSource<PlayerDecision>? PlayerActionTcs { get; private set; }
+
+        [XmlIgnore]
+        private readonly object _actionLock = new object();
+        [XmlIgnore]
+        private static readonly TimeSpan ActionTimeout = TimeSpan.FromSeconds(30);
 
 
         /* -------------------------------------------------
@@ -96,11 +121,19 @@ namespace Poker_With_Your_Friends.Model
             {
                 Players.Add(player);
                 player.IsAtTable = true;
-                playerJoined.Set(); // Signal that a player has joined
             }
             if (Players.Count > maxPlayers)
             {
                 throw new InvalidOperationException("Table is full. Cannot add more players.");
+            }
+
+            lock (_playerJoinLock)
+            {
+                if (Players.Count >= 2 && !IsGameActive && !_enoughPlayersSignaled)
+                {
+                    _enoughPlayersSignaled = true;
+                    EnoughplayersJoined.Release();
+                }
             }
         }
 
@@ -134,38 +167,46 @@ namespace Poker_With_Your_Friends.Model
             OnUpdateTableRequest?.Invoke(this);
         }
 
-        private TaskCompletionSource<PlayerAction>? _playerActionTcs;
-
-        [XmlIgnore]
-        public TaskCompletionSource<PlayerAction>? PlayerActionTcs
-        {
-            get { return _playerActionTcs; }
-            set { _playerActionTcs = value; }
-        }
         public async Task WaitForPlayerActionAsync(Player player)
         {
-            _playerActionTcs = new TaskCompletionSource<PlayerAction>();
-
-            CurrentlyActivePlayer = player;
-            ActivePlayerName = player.Name;
             if (player.HasFolded || !IsGameActive)
             {
                 ActivePlayerName = string.Empty;
                 return;
             }
+            var tcs = new TaskCompletionSource<PlayerDecision>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            lock (_actionLock)
+            {
+                PlayerActionTcs = tcs;
+                CurrentlyActivePlayer = player;
+            }
+            ActivePlayerName = player.Name;
             player.IsCurrentlyActivePlayer = true;
             OnUpdateTableRequest?.Invoke(this);
 
-            PlayerAction action = await _playerActionTcs.Task;
-            switch (action)
+            PlayerDecision decision;
+            var timeoutTask = Task.Delay(ActionTimeout);
+            var finished = await Task.WhenAny(tcs.Task, timeoutTask);
+
+            if (finished == timeoutTask)
+            {
+                System.Diagnostics.Debug.WriteLine($"{player.Name} timed out — auto-folding.");
+                decision = new PlayerDecision(PlayerAction.Fold);
+                tcs.TrySetResult(decision); // in case a late action races in right after
+            }
+            else
+            {
+                decision = await tcs.Task;
+            }
+
+            switch (decision.Action)
             {
                 case PlayerAction.Call:
                     player.Call();
                     break;
                 case PlayerAction.Raise:
-                    // For simplicity, let's assume a fixed raise amount
-                    int raiseAmount = 10; // This could be dynamic based on game rules
-                    player.Raise(raiseAmount);
+                    player.Raise(decision.Amount);
                     break;
                 case PlayerAction.Fold:
                     player.Fold();
@@ -173,35 +214,70 @@ namespace Poker_With_Your_Friends.Model
             }
 
             player.IsCurrentlyActivePlayer = false;
-            CurrentlyActivePlayer = null;
+
+            lock (_actionLock)
+            {
+                if (CurrentlyActivePlayer == player)
+                {
+                    CurrentlyActivePlayer = null;
+                    PlayerActionTcs = null;
+                }
+            }
+
             ActivePlayerName = string.Empty;
             OnUpdateTableRequest?.Invoke(this);
         }
 
         async Task Play()
         {
-            IsGameActive = true;
-            playerJoined.WaitOne();
-            StartRound();
-            DealToPlayers();
-
-            var dispatcher = App.MainDispatcher;
-
-            Housecards.Add(deck.DrawCard());
-            Housecards.Add(deck.DrawCard());
-            Housecards.Add(deck.DrawCard());
-
-            OnUpdateTableRequest?.Invoke(this);
-
-            System.Diagnostics.Debug.WriteLine("Cards dealt to: " + Players.Count + " players");
-            foreach (var player in Players.ToList())
+            try
             {
-                foreach (var card in player.Cards)
+                await EnoughplayersJoined.WaitAsync();
+                lock (_playerJoinLock)
                 {
-                    System.Diagnostics.Debug.WriteLine("Player " + player.Name + " has card: " + card.ToString());
+                    _enoughPlayersSignaled = false;
                 }
-                System.Diagnostics.Debug.WriteLine("Waiting for action from: " + player.Name);
-                await WaitForPlayerActionAsync(player);
+
+                IsGameActive = true;
+                StartRound();
+                DealToPlayers();
+
+                Housecards.Add(deck.DrawCard());
+                Housecards.Add(deck.DrawCard());
+                Housecards.Add(deck.DrawCard());
+
+                OnUpdateTableRequest?.Invoke(this);
+
+                foreach (var player in Players.ToList())
+                {
+                    if (!Players.Contains(player)) continue;
+
+                    await WaitForPlayerActionAsync(player);
+                    OnUpdateTableRequest?.Invoke(this);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Play() crashed: {ex}");
+                IsGameActive = false;
+                OnUpdateTableRequest?.Invoke(this);
+            }
+        }
+
+        public bool SubmitPlayerAction(Player player, PlayerAction action, int amount = 0)
+        {
+            lock (_actionLock)
+            {
+                if (PlayerActionTcs == null || PlayerActionTcs.Task.IsCompleted)
+                {
+                    return false;
+                }
+                if (CurrentlyActivePlayer == null ||
+                    !string.Equals(CurrentlyActivePlayer.Name, player.Name, StringComparison.Ordinal))
+                {
+                    return false;
+                }
+                return PlayerActionTcs.TrySetResult(new PlayerDecision(action, amount));
             }
         }
 
@@ -213,19 +289,25 @@ namespace Poker_With_Your_Friends.Model
 
         public void HandlePlayerDisconnected(Player player)
         {
-            if (Players.Contains(player))
+            if (!Players.Contains(player))
             {
-                if (CurrentlyActivePlayer == player &&
-                    _playerActionTcs != null &&
-                    !_playerActionTcs.Task.IsCompleted)
+                return;
+            }
+            player.HasFolded = true;
+
+            lock (_actionLock)
+            {
+                if (ReferenceEquals(CurrentlyActivePlayer, player) &&
+                    PlayerActionTcs != null &&
+                    !PlayerActionTcs.Task.IsCompleted)
                 {
                     System.Diagnostics.Debug.WriteLine($"Auto-folding for disconnected player: {player.Name}");
-                    _playerActionTcs.TrySetResult(PlayerAction.Fold);
+                    PlayerActionTcs.TrySetResult(new PlayerDecision(PlayerAction.Fold));
                 }
-
-                RemovePlayer(player);
-                OnUpdateTableRequest?.Invoke(this);
             }
+
+            RemovePlayer(player);
+            OnUpdateTableRequest?.Invoke(this);
         }
 
         public void ChangeActivePlayerByName(String name) //For clients
@@ -252,7 +334,12 @@ namespace Poker_With_Your_Friends.Model
 
             LocalTable.IsGameActive = NetworkTable.IsGameActive;
             LocalTable.Pot = NetworkTable.Pot;
+        }
 
+        public static int GetTableIdByName(String name)
+        {
+            var table = Game.ClientInstance.Tables.FirstOrDefault(t => t.Name == name);
+            return Game.ClientInstance.Tables.IndexOf(table);
         }
     }
 }
