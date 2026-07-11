@@ -99,6 +99,8 @@ namespace Poker_With_Your_Friends.Model
         [XmlIgnore]
         private static readonly TimeSpan ActionTimeout = TimeSpan.FromSeconds(30);
 
+        [XmlIgnore]
+        public static Action<Table, int>? OnTimerStartRequest; 
 
         /* -------------------------------------------------
          *  Constructors
@@ -187,6 +189,7 @@ namespace Poker_With_Your_Friends.Model
 
             PlayerDecision decision;
             var timeoutTask = Task.Delay(ActionTimeout);
+            OnTimerStartRequest?.Invoke(this, ActionTimeout.Seconds - 1); // 1 second less to compensate for any network lag or delay
             var finished = await Task.WhenAny(tcs.Task, timeoutTask);
 
             if (finished == timeoutTask)
@@ -312,28 +315,66 @@ namespace Poker_With_Your_Friends.Model
 
         public void ChangeActivePlayerByName(String name) //For clients
         {
-            CurrentlyActivePlayer = Game.ClientInstance.GetPlayerFromName(name);
+            CurrentlyActivePlayer = string.IsNullOrEmpty(name)
+                ? null
+                : Game.ClientInstance.GetPlayerFromName(name);
         }
 
-        public static void HandleUpdateFromNetwork(int TableIndex, Table NetworkTable) // NOT FOR ADDING OR REMOVING PLAYERS, USE WHEN RECIEVING NETCODE "05" for clients
+        public void TimerUp()
         {
-            Table LocalTable = Game.ClientInstance.Tables[TableIndex];
-            LocalTable.ChangeActivePlayerByName(NetworkTable.ActivePlayerName);
-            LocalTable.Name = NetworkTable.Name;
-            LocalTable.Pot = NetworkTable.Pot;
-            LocalTable.Housecards = NetworkTable.Housecards;
-
-            LocalTable.Players.Clear();
-            if (NetworkTable.Players.Count > maxPlayers) { throw new ArgumentException("Recieved Network table has too mayn players."); }
-            foreach (Player player in NetworkTable.Players)
+            lock (_actionLock)
             {
-                Player LocalPlayer = Game.ClientInstance.GetPlayerFromName(player.Name);
-                LocalTable.Players.Add(LocalPlayer);
-                LocalPlayer.UpdateProperties(player);
+                if (PlayerActionTcs == null || PlayerActionTcs.Task.IsCompleted)
+                {
+                    return;
+                }
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"{CurrentlyActivePlayer?.Name ?? "Unknown player"} timed out — auto-folding.");
+                PlayerActionTcs.TrySetResult(new PlayerDecision(PlayerAction.Fold));
+            }
+        }
+
+        public static void HandleUpdateFromNetwork(int tableIndex, Table networkTable)
+        {
+            if (tableIndex < 0 || tableIndex >= Game.ClientInstance.Tables.Count)
+            {
+                throw new ArgumentOutOfRangeException(nameof(tableIndex), "Network update referenced an unknown table index.");
             }
 
-            LocalTable.IsGameActive = NetworkTable.IsGameActive;
-            LocalTable.Pot = NetworkTable.Pot;
+            Table localTable = Game.ClientInstance.Tables[tableIndex];
+            localTable.ActivePlayerName = networkTable.ActivePlayerName;
+            localTable.ChangeActivePlayerByName(networkTable.ActivePlayerName);
+            localTable.Name = networkTable.Name;
+            localTable.Round = networkTable.Round;
+            localTable.SmallBlind = networkTable.SmallBlind;
+            localTable.Pot = networkTable.Pot;
+            localTable.IsGameActive = networkTable.IsGameActive;
+
+            localTable.Housecards.Clear();
+            foreach (Card card in networkTable.Housecards)
+            {
+                localTable.Housecards.Add(card);
+            }
+
+            foreach (Player seatedPlayer in localTable.Players)
+            {
+                seatedPlayer.IsAtTable = false;
+            }
+
+            localTable.Players.Clear();
+            if (networkTable.Players.Count > maxPlayers)
+            {
+                throw new ArgumentException("Recieved Network table has too many players.");
+            }
+
+            foreach (Player networkPlayer in networkTable.Players)
+            {
+                Player localPlayer = Game.ClientInstance.GetPlayerFromName(networkPlayer.Name);
+                localTable.Players.Add(localPlayer);
+                localPlayer.UpdateProperties(networkPlayer);
+                localPlayer.IsAtTable = true;
+            }
         }
 
         public static int GetTableIdByName(String name)

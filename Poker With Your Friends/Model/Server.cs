@@ -35,6 +35,7 @@ namespace Poker_With_Your_Friends.Model
             _listener = new TcpListener(IPAddress.Any, port);
             game.ServerMode = true;
             Table.OnUpdateTableRequest += UpdateTable;
+            Table.OnTimerStartRequest += SendTimer;
         }
 
         private readonly ConcurrentDictionary<string, PipeWriter> _connectedClients = new();
@@ -76,7 +77,7 @@ namespace Poker_With_Your_Friends.Model
 
                 try
                 {
-                    await BroadcastGameStateAsync();
+                    await SendGameStateAsync(clientId);
                 }
                 catch (Exception e)
                 {
@@ -225,6 +226,13 @@ namespace Poker_With_Your_Friends.Model
             int TableIndex = game.Tables.IndexOf(t);
 
             await BroadcastTableUpdate(TableIndex, t);
+        }
+
+        public async void SendTimer(Table t, int s)
+        {
+            int TableIndex = game.Tables.IndexOf(t);
+
+            await BroadcastTableTimer(TableIndex, s);
         }
 
         /* --------------------------------------------------------
@@ -403,6 +411,17 @@ namespace Poker_With_Your_Friends.Model
             OnServerLoggedEvent?.Invoke($"Sent Table Left to {ClientId} (07)");
         }
 
+        public async Task SendGameStateAsync(String ClientId) // Use to send whole game state to player on joining
+        {
+            string serializedGameState = GameStateSerializer();
+            await SendMessageAsync(ClientId, serializedGameState);
+            OnServerLoggedEvent?.Invoke("Game state broadcast sent.");
+            if (debugMessages)
+            {
+                OnServerLoggedEvent?.Invoke($"DEBUG: Sent to: [BROADCAST]:  {serializedGameState}");
+            }
+        }
+
         //Broadcasts
         private string GameStateSerializer()
         {
@@ -421,7 +440,7 @@ namespace Poker_With_Your_Friends.Model
             
             return sb.ToString();
         }
-        public async Task BroadcastGameStateAsync()
+        /*public async Task BroadcastGameStateAsync() // Dont use unless necessary
         {
             string serializedGameState = GameStateSerializer();
             await BroadcastAsync(serializedGameState);
@@ -430,7 +449,7 @@ namespace Poker_With_Your_Friends.Model
             {
                 OnServerLoggedEvent?.Invoke($"DEBUG: Sent to: [BROADCAST]:  {serializedGameState}");
             }
-        }
+        }*/
 
         public async Task BroadcastNewPlayer(string playerName)
         {
@@ -501,6 +520,20 @@ namespace Poker_With_Your_Friends.Model
                 serializer.Serialize(writer, t, namespaces);
             }
 
+            await BroadcastAsync(sb.ToString());
+            if (debugMessages)
+            {
+                OnServerLoggedEvent?.Invoke($"DEBUG: Sent to: [BROADCAST]: {sb.ToString()}");
+            }
+        }
+
+        public async Task BroadcastTableTimer(int indexOfTable, int seconds)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append("08,");
+            sb.Append(indexOfTable);
+            sb.Append(",");
+            sb.Append(seconds);
             await BroadcastAsync(sb.ToString());
             if (debugMessages)
             {

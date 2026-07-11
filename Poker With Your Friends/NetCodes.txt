@@ -6,11 +6,12 @@
 05: Sending table state update Server -> Client
 06: Player joining a table Server -> Client
 07: Player leaving table Server -> Client
+08: Start table timer Server -> Client
 
 50: RegisterNewPlayer Client -> Server
 51: Adding new Table Client -> Server
 52: Player joining a table Client -> Server
 53: Player leaving table Client -> Server
-54: player action Client -> Server
+54: Player action Client -> Server
 
 99: error message Server -> Client

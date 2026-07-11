@@ -24,6 +24,11 @@
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
 
         <Button Grid.Column="0" Grid.Row="0" Content="❌ leave Table" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10" Click="LeaveTableButton_Click" IsEnabled="{x:Bind viewModel.LeaveTableButtonEnabled, Mode=OneWay}"/>
 
@@ -80,7 +85,7 @@
             </StackPanel>
         </StackPanel>
 
-        <ListView Grid.Column="0" Grid.Row="4" HorizontalAlignment="Center" VerticalAlignment="Bottom" ItemsSource="{x:Bind viewModel.Table.Players, Mode=OneWay}" Margin="10">
+        <ListView Grid.Column="2" Grid.Row="4" HorizontalAlignment="Center" VerticalAlignment="Bottom" ItemsSource="{x:Bind viewModel.Table.Players, Mode=OneWay}" Margin="10">
             <ListView.ItemsPanel>
                 <ItemsPanelTemplate>
                     <ItemsStackPanel Orientation="Horizontal" />
@@ -100,6 +105,15 @@
         </ListView>
 
         <Button Grid.Column="0" Grid.Row="4" Content="➕Join Game" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="10" Click="JoinGameButton_Click" Visibility="{x:Bind viewModel.IsJoinButtonVisible, Mode=OneWay}"/>
-        <Button Grid.Column="0" Grid.Row="4" Content="➖Leave Game" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="10" Click="LeaveGameButton_Click" Visibility="{x:Bind viewModel.IsLeaveButtonVisible, Mode=OneWay}"/>
+        <Button Grid.Column="0" Grid.Row="4" Content="➖Leave Game" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="10" Click="LeaveGameButton_Click" Visibility="{x:Bind viewModel.IsLeaveButtonVisible, Mode=OneWay}"/>
+
+        <StackPanel Grid.Column="3" Grid.Row="4" Orientation="Vertical">
+            <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center">
+                <Run Text="Time left: "/>
+                <Run Text="{x:Bind viewModel.TimerRemainingText, Mode=OneWay}"/>
+                <Run Text=" Seconds"/>
+            </TextBlock>
+            <ProgressBar Minimum="0" Maximum="{x:Bind viewModel.TimerProgressMaximum, Mode=OneWay}" Width="300" Value="{x:Bind viewModel.TimerProgressValue, Mode=OneWay}" />
+        </StackPanel>
     </Grid>
 </Page>

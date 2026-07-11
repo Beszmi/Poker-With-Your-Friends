@@ -4,126 +4,177 @@ using Microsoft.UI.Xaml;
 using Poker_With_Your_Friends.Model;
 using System;
 using System.Collections.ObjectModel;
-using System.ComponentModel.Design;
+using System.ComponentModel;
 using System.Linq;
-using Windows.Media.Protection.PlayReady;
 using static Poker_With_Your_Friends.Model.Table;
-using static System.Collections.Specialized.BitVector32;
 
-namespace Poker_With_Your_Friends.ViewModel
+namespace Poker_With_Your_Friends.ViewModel;
+
+public partial class InGamePageViewModel : ObservableObject
 {
-    public partial class InGamePageViewModel : ObservableObject
+    private Client? client;
+    public IPlayerStore? PlayerStore { get; private set; }
+
+    [ObservableProperty]
+    public partial Table Table { get; set; }
+
+    [ObservableProperty]
+    public partial bool LeaveTableButtonEnabled { get; set; } = true;
+
+    [ObservableProperty]
+    public partial Visibility IsJoinButtonVisible { get; set; }
+
+    [ObservableProperty]
+    public partial Visibility IsLeaveButtonVisible { get; set; }
+
+    [ObservableProperty]
+    public partial Visibility IsplayerOnOwnTable { get; set; }
+
+    [ObservableProperty]
+    public partial String? TableText { get; set; } = "Empty text";
+
+    [ObservableProperty]
+    public partial bool PlayerActionButtonsEnabled { get; set; } = false;
+
+    public ObservableCollection<Card>? MyCards => PlayerStore?.CurrentPlayer?.Cards;
+
+    private DispatcherQueue _dispatcherQueue;
+
+    // TIMER
+    [ObservableProperty]
+    public partial TableTimer? Timer { get; set; }
+
+    public string TimerRemainingText => $"{Timer?.Remaining.TotalSeconds:F0}";
+
+    public double TimerProgressValue => Timer?.Remaining.TotalSeconds ?? 0;
+
+    public double TimerProgressMaximum => Timer?.Total.TotalSeconds ?? 60;
+
+    partial void OnTimerChanged(TableTimer? oldValue, TableTimer? newValue)
     {
-        private Client? client;
-        public IPlayerStore? PlayerStore { get; private set; }
-
-        [ObservableProperty]
-        public partial Table Table { get; set; }
-
-        [ObservableProperty]
-        public partial bool LeaveTableButtonEnabled { get; set; } = true;
-
-        [ObservableProperty]
-        public partial Visibility IsJoinButtonVisible { get; set; }
-
-        [ObservableProperty]
-        public partial Visibility IsLeaveButtonVisible { get; set; }
-
-        [ObservableProperty]
-        public partial Visibility IsplayerOnOwnTable { get; set; }
-
-        [ObservableProperty]
-        public partial String? TableText { get; set; } = "Empty text";
-
-        [ObservableProperty]
-        public partial bool PlayerActionButtonsEnabled { get; set; } = false;
-
-        public static event Action<Table.PlayerAction, int>? OnSendPlayerAction;
-
-        public ObservableCollection<Card>? MyCards => PlayerStore?.CurrentPlayer?.Cards;
-
-        private DispatcherQueue _dispatcherQueue;
-        public InGamePageViewModel()
+        if (oldValue != null)
         {
-            _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
-        }
-        public void Initialize(Client client, Table table)
-        {
-            this.client = client;
-            PlayerStore = client.PlayerStore;
-            this.Table = table;
-
-            RefreshLocalState();
+            oldValue.PropertyChanged -= OnTimerPropertyChanged;
+            oldValue.Expired -= OnTimerExpired;
         }
 
-        public void NetworkTableUpdated()
+        if (newValue != null)
         {
-            _dispatcherQueue.TryEnqueue(() =>
+            newValue.PropertyChanged += OnTimerPropertyChanged;
+            newValue.Expired += OnTimerExpired;
+        }
+
+        NotifyTimerDisplayProperties();
+    }
+
+    private void OnTimerExpired()
+    {
+        PlayerActionButtonsEnabled = false;
+    }
+
+    private void OnTimerPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(TableTimer.Remaining) or nameof(TableTimer.Total))
+        {
+            NotifyTimerDisplayProperties();
+        }
+    }
+
+    private void NotifyTimerDisplayProperties()
+    {
+        OnPropertyChanged(nameof(TimerRemainingText));
+        OnPropertyChanged(nameof(TimerProgressValue));
+        OnPropertyChanged(nameof(TimerProgressMaximum));
+    }
+
+    public InGamePageViewModel()
+    {
+        _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
+    }
+    public void Initialize(Client client, Table table)
+    {
+        this.client = client;
+        PlayerStore = client.PlayerStore;
+        this.Table = table;
+        Timer = client.TimerService.GetOrCreateTimer(table);
+
+        RefreshLocalState();
+    }
+
+    public void NetworkTableUpdated()
+    {
+        _dispatcherQueue.TryEnqueue(() =>
+        {
+            var liveTable = Game.ClientInstance.Tables.FirstOrDefault(t => t.Name == Table?.Name);
+            if (liveTable != null)
             {
-                var liveTable = Game.ClientInstance.Tables.FirstOrDefault(t => t.Name == Table?.Name);
-                if (liveTable != null)
+                Table = liveTable;
+                Timer = client?.TimerService.GetOrCreateTimer(liveTable);
+                if (PlayerStore?.CurrentTable?.Name == liveTable.Name)
                 {
-                    Table = liveTable;
-                    RefreshLocalState();
+                    PlayerStore.CurrentTable = liveTable;
                 }
-            });
-        }
 
-        public void RefreshLocalState()
+                RefreshLocalState();
+            }
+        });
+    }
+
+    public void RefreshLocalState()
+    {
+        if (PlayerStore?.CurrentPlayer == null || Table == null) return;
+
+        var updatedPlayer = Table.Players.FirstOrDefault(p => p.Name == PlayerStore.CurrentPlayer.Name);
+        if (updatedPlayer != null)
         {
-            if (PlayerStore?.CurrentPlayer == null || Table == null) return;
-
-            var updatedPlayer = Table.Players.FirstOrDefault(p => p.Name == PlayerStore.CurrentPlayer.Name);
-            if (updatedPlayer != null)
-            {
-                PlayerStore.CurrentPlayer = updatedPlayer;
-            }
-
-            OnPropertyChanged(nameof(MyCards));
-
-            bool isAtThisTable = Table.Players.Any(p => p.Name == PlayerStore.CurrentPlayer.Name);
-
-            if (isAtThisTable)
-            {
-                IsplayerOnOwnTable = Visibility.Visible;
-                IsJoinButtonVisible = Visibility.Collapsed;
-                IsLeaveButtonVisible = Visibility.Visible;
-
-                PlayerActionButtonsEnabled = (Table.ActivePlayerName == PlayerStore.CurrentPlayer.Name);
-            }
-            else
-            {
-                IsplayerOnOwnTable = Visibility.Collapsed;
-                IsJoinButtonVisible = Visibility.Visible;
-                IsLeaveButtonVisible = Visibility.Collapsed;
-                PlayerActionButtonsEnabled = false;
-            }
-            TableText = Table.Name + " Active: " + Table.IsGameActive + "Current player: " + Table.ActivePlayerName;
+            PlayerStore.CurrentPlayer = updatedPlayer;
         }
 
-        public void CallButton_Click(object sender, RoutedEventArgs e)
+        OnPropertyChanged(nameof(MyCards));
+
+        bool isAtThisTable = Table.Players.Any(p => p.Name == PlayerStore.CurrentPlayer.Name);
+
+        if (isAtThisTable)
         {
-            if (PlayerActionButtonsEnabled)
-            {
-                OnSendPlayerAction?.Invoke(PlayerAction.Call, 0);
-                //Table.SubmitPlayerAction(PlayerStore.CurrentPlayer, PlayerAction.Call, 0);
-            }
+            IsplayerOnOwnTable = Visibility.Visible;
+            IsJoinButtonVisible = Visibility.Collapsed;
+            IsLeaveButtonVisible = Visibility.Visible;
+
+            PlayerActionButtonsEnabled = !string.IsNullOrEmpty(Table.ActivePlayerName)
+                && Table.ActivePlayerName == PlayerStore.CurrentPlayer.Name;
         }
-        public void RaiseButton_Click(object sender, RoutedEventArgs e)
+        else
         {
-            if (PlayerActionButtonsEnabled)
-            {
-                OnSendPlayerAction?.Invoke(PlayerAction.Raise, 10);
-                //Table.SubmitPlayerAction(PlayerStore.CurrentPlayer, PlayerAction.Raise, 10);
-            }
+            IsplayerOnOwnTable = Visibility.Collapsed;
+            IsJoinButtonVisible = Visibility.Visible;
+            IsLeaveButtonVisible = Visibility.Collapsed;
+            PlayerActionButtonsEnabled = false;
         }
-        public void FoldButton_Click(object sender, RoutedEventArgs e)
+        TableText = Table.Name + " Active: " + Table.IsGameActive + "Current player: " + Table.ActivePlayerName;
+    }
+
+    public void CallButton_Click(object sender, RoutedEventArgs e)
+    {
+        SubmitPlayerAction(PlayerAction.Call, 0);
+    }
+    public void RaiseButton_Click(object sender, RoutedEventArgs e)
+    {
+        SubmitPlayerAction(PlayerAction.Raise, 10);
+    }
+    public void FoldButton_Click(object sender, RoutedEventArgs e)
+    {
+        SubmitPlayerAction(PlayerAction.Fold, 0);
+    }
+
+    private void SubmitPlayerAction(PlayerAction action, int amount)
+    {
+        if (!PlayerActionButtonsEnabled || client == null)
         {
-            if (PlayerActionButtonsEnabled)
-            {
-                OnSendPlayerAction?.Invoke(PlayerAction.Fold, 0);
-                //Table.SubmitPlayerAction(PlayerStore.CurrentPlayer, PlayerAction.Fold, 0);
-            }
+            return;
         }
+
+        client.SendPlayerAction(action, amount);
+        Timer?.StopTimer();
+        PlayerActionButtonsEnabled = false;
     }
 }

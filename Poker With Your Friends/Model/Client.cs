@@ -5,6 +5,7 @@ using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
 using System.Net.Sockets;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,6 +17,7 @@ namespace Poker_With_Your_Friends.Model
     {
         public IPlayerStore PlayerStore { get; }
 
+        public TimerService TimerService { get; } = new TimerService();
         
         public event Action<String>? OnErrorReceived;
         public event Action<String>? OnLocalError;
@@ -39,16 +41,6 @@ namespace Poker_With_Your_Friends.Model
 
             InGamePage.OnJoinGameClick += PlayerJoiningTable;
             InGamePage.OnLeaveGameClick += PlayerLeavingTable;
-
-            InGamePageViewModel.OnSendPlayerAction += (action, amount) =>
-            {
-                int tableIndex = Table.GetTableIdByName(PlayerStore.CurrentTable?.Name ?? "");
-                string? playerName = PlayerStore.CurrentPlayer?.Name;
-                if (tableIndex != -1 && !string.IsNullOrEmpty(playerName))
-                {
-                    SendMessage($"54{tableIndex}{playerName},{action},{amount}");
-                }
-            };
         }
 
         public async Task ConnectAndRunAsync()
@@ -173,6 +165,7 @@ namespace Poker_With_Your_Friends.Model
                 case "05": UpdateTableState(payload); break;
                 case "06": OnTableJoined?.Invoke(); break;
                 case "07": OnTableLeft?.Invoke(); break;
+                case "08": StartTableTimer(message); break;
 
                 case "99": OnErrorReceived?.Invoke(payload); break;
             }
@@ -204,17 +197,60 @@ namespace Poker_With_Your_Friends.Model
                 {
                     dispatcher.TryEnqueue(() =>
                     {
-                        game.Tables[tableIndex] = deserializedTable;
+                        Table.HandleUpdateFromNetwork(tableIndex, deserializedTable);
                         System.Diagnostics.Debug.WriteLine("Table state broadcast recieved succesfully.");
                         OnTableUpdated?.Invoke();
                     });
                 }
                 else
                 {
-                    game.Tables[tableIndex] = deserializedTable;
+                    Table.HandleUpdateFromNetwork(tableIndex, deserializedTable);
                     System.Diagnostics.Debug.WriteLine("Table state broadcast recieved succesfully.");
                     OnTableUpdated?.Invoke();
                 }
+            }
+        }
+
+        private void StartTableTimer(String message)
+        {
+            // Message format: "08,{tableIndex},{seconds}"
+            string[] parts = message.Split(',');
+            if (parts.Length < 3)
+            {
+                return;
+            }
+
+            int tableIndex = Int32.Parse(parts[1]);
+            int seconds = Int32.Parse(parts[2]);
+
+            var dispatcher = App.MainDispatcher;
+            if (dispatcher != null && !dispatcher.HasThreadAccess)
+            {
+                dispatcher.TryEnqueue(() => StartTableTimerOnUiThread(tableIndex, seconds));
+            }
+            else
+            {
+                StartTableTimerOnUiThread(tableIndex, seconds);
+            }
+        }
+
+        private void StartTableTimerOnUiThread(int tableIndex, int seconds)
+        {
+            if (tableIndex < 0 || tableIndex >= game.Tables.Count)
+            {
+                return;
+            }
+
+            TimerService.GetOrCreateTimer(game.Tables[tableIndex]).StartTimer(seconds);
+        }
+
+        public void SendPlayerAction(Table.PlayerAction action, int amount)
+        {
+            int tableIndex = Table.GetTableIdByName(PlayerStore.CurrentTable?.Name ?? "");
+            string? playerName = PlayerStore.CurrentPlayer?.Name;
+            if (tableIndex != -1 && !string.IsNullOrEmpty(playerName))
+            {
+                SendMessage($"54{tableIndex}{playerName},{action},{amount}");
             }
         }
 
