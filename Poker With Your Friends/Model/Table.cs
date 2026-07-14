@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
@@ -115,6 +116,9 @@ public partial class Table : ObservableObject
     private static readonly TimeSpan StartDelay = TimeSpan.FromSeconds(5);
 
     [XmlIgnore]
+    private static readonly TimeSpan EndDelay = TimeSpan.FromSeconds(30);
+
+    [XmlIgnore]
     public static Action<Table, int>? OnTimerStartRequest;
 
     [XmlIgnore]
@@ -172,6 +176,12 @@ public partial class Table : ObservableObject
 
     public void StartRound()
     {
+        if (deck.Cards.Count < Players.Count * 2 + 5)
+        {
+            deck = new Deck();
+            deck.Shuffle();
+        }
+
         BeforeBigBlind = true;
         Round++;
         SmallBlind = Round * 5;
@@ -308,6 +318,27 @@ public partial class Table : ObservableObject
         return Players.Count >= 2;
     }
 
+    async Task<bool> WaitForInterHandDelayAsync()
+    {
+        OnTimerStartRequest?.Invoke(this, EndDelay.Seconds - 1);
+        var remaining = EndDelay;
+        while (remaining > TimeSpan.Zero)
+        {
+            if (Players.Count < 2)
+            {
+                return false;
+            }
+
+            var wait = remaining > TimeSpan.FromMilliseconds(100)
+                ? TimeSpan.FromMilliseconds(100)
+                : remaining;
+            await Task.Delay(wait);
+            remaining -= wait;
+        }
+
+        return Players.Count >= 2;
+    }
+
     ///-------------------------------------------------------------
     /// 
     ///     Main Game loop logic
@@ -320,6 +351,9 @@ public partial class Table : ObservableObject
     [XmlIgnore]
     private bool BeforeBigBlind = false;
 
+    [XmlIgnore]
+    private bool _waitingForFirstHand = true;
+
     async Task Play()
     {
         while (true)
@@ -327,25 +361,43 @@ public partial class Table : ObservableObject
             try
             {
                 await WaitForEnoughPlayersAsync();
-                TableTextUpdate("Enough players joined Starting soon!");
 
-                if (!await WaitForStartDelayAsync())
+                if (_waitingForFirstHand)
                 {
-                    continue;
+                    TableTextUpdate("Enough players joined Starting soon!");
+                    if (!await WaitForStartDelayAsync())
+                    {
+                        continue;
+                    }
+
+                    _waitingForFirstHand = false;
                 }
 
                 if (Players.Count < 2)
                 {
+                    _waitingForFirstHand = true;
                     continue;
                 }
 
                 await PlaySingleHandAsync();
+
+                if (Players.Count < 2)
+                {
+                    _waitingForFirstHand = true;
+                    continue;
+                }
+
+                if (!await WaitForInterHandDelayAsync())
+                {
+                    _waitingForFirstHand = true;
+                }
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Play() crashed: {ex}");
                 OnTableLogicError?.Invoke($"Play() crashed: {ex}");
                 IsGameActive = false;
+                _waitingForFirstHand = true;
                 OnUpdateTableRequest?.Invoke(this);
             }
         }
@@ -355,6 +407,16 @@ public partial class Table : ObservableObject
     {
         if (Players.Count >= 2)
         {
+            lock (_playerJoinLock)
+            {
+                _enoughPlayersSignaled = false;
+            }
+
+            while (EnoughplayersJoined.CurrentCount > 0)
+            {
+                await EnoughplayersJoined.WaitAsync();
+            }
+
             return;
         }
 
@@ -368,39 +430,45 @@ public partial class Table : ObservableObject
 
     private async Task PlaySingleHandAsync()
     {
-        IsGameActive = true;
-        StartRound();
-
-        bool handOver = await PlayRound();
-
-        if (!handOver)
+        try
         {
-            DealToPlayers();
-            handOver = await PlayRound();
-        }
+            IsGameActive = true;
+            StartRound();
 
-        if (!handOver)
+            bool handOver = await PlayRound();
+
+            if (!handOver)
+            {
+                DealToPlayers();
+                handOver = await PlayRound();
+            }
+
+            if (!handOver)
+            {
+                Housecards.Add(deck.DrawCard());
+                Housecards.Add(deck.DrawCard());
+                Housecards.Add(deck.DrawCard());
+                handOver = await PlayRound();
+            }
+
+            if (!handOver)
+            {
+                Housecards.Add(deck.DrawCard());
+                handOver = await PlayRound();
+            }
+
+            if (!handOver)
+            {
+                Housecards.Add(deck.DrawCard());
+                await PlayRound();
+            }
+
+            EndGameLogic();
+        }
+        finally
         {
-            Housecards.Add(deck.DrawCard());
-            Housecards.Add(deck.DrawCard());
-            Housecards.Add(deck.DrawCard());
-            handOver = await PlayRound();
+            ResetHandState();
         }
-
-        if (!handOver)
-        {
-            Housecards.Add(deck.DrawCard());
-            handOver = await PlayRound();
-        }
-
-        if (!handOver)
-        {
-            Housecards.Add(deck.DrawCard());
-            await PlayRound();
-        }
-
-        EndGameLogic();
-        ResetHandState();
     }
 
     private void ResetHandState()
@@ -424,7 +492,6 @@ public partial class Table : ObservableObject
         }
 
         BeforeBigBlind = true;
-        TableTextUpdate("Hand complete. Next hand starting soon...");
         OnUpdateTableRequest?.Invoke(this);
     }
 
@@ -655,6 +722,7 @@ public partial class Table : ObservableObject
         if (remainingPlayers.Count == 1)
         {
             remainingPlayers[0].Win(potToAward);
+            AnnounceEndOfRound(remainingPlayers, potToAward);
             OnUpdateTableRequest?.Invoke(this);
             return;
         }
@@ -671,13 +739,9 @@ public partial class Table : ObservableObject
             return;
         }
 
-        var bestHand = eligiblePlayers
-            .Select(p => p.Hand)
-            .Max()!;
+        var bestHand = eligiblePlayers.Select(p => p.Hand).Max()!;
 
-        var winners = eligiblePlayers
-            .Where(p => p.Hand!.CompareTo(bestHand) == 0)
-            .ToList();
+        var winners = eligiblePlayers.Where(p => p.Hand!.CompareTo(bestHand) == 0).ToList();
 
         int share = potToAward / winners.Count;
         int remainder = potToAward % winners.Count;
@@ -686,6 +750,19 @@ public partial class Table : ObservableObject
             winners[i].Win(share + (i < remainder ? 1 : 0));
         }
 
+        AnnounceEndOfRound(winners, potToAward);
         OnUpdateTableRequest?.Invoke(this);
+    }
+
+    private void AnnounceEndOfRound(List<Player> players, int winnings)
+    {
+        var sb = new StringBuilder();
+        foreach (Player player in players)
+        {
+            sb.Append(player.Name);
+            sb.Append(", ");
+        }
+
+        TableTextUpdate($"Round over. {sb}won winnings: {winnings}. Next hand starting soon...");
     }
 }

@@ -175,6 +175,7 @@ public partial class InGamePageViewModel : ObservableObject
             IsplayerOnOwnTable = Visibility.Collapsed;
             IsJoinButtonVisible = Visibility.Visible;
             IsLeaveButtonVisible = Visibility.Collapsed;
+            IsRaiseButtonEnabled = false;
             PlayerActionButtonsEnabled = false;
         }
     }
