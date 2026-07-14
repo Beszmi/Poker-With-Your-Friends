@@ -117,6 +117,9 @@ public partial class Table : ObservableObject
     [XmlIgnore]
     public static Action<Table, int>? OnTimerStartRequest;
 
+    [XmlIgnore]
+    public static Action<String>? OnTableLogicError;
+
     [XmlAttribute("TableText")]
     [ObservableProperty]
     public partial String TableText { get; set; } = "Empty text";
@@ -176,6 +179,10 @@ public partial class Table : ObservableObject
         TableText = "Round started with players: //";
         Pot = 0;
         Housecards.Clear();
+        foreach(Player player in Players)
+        {
+            player.ClearCards();
+        }
         ZeroAllBets();
     }
 
@@ -207,7 +214,8 @@ public partial class Table : ObservableObject
             PlayerActionTcs = tcs;
             CurrentlyActivePlayer = player;
         }
-        TableText = $"In game, active player: {player.Name}";
+        int amountToCall = Math.Max(0, ToCall - player.RoundBet);
+        TableTextUpdate($"Table active, currently waiting for player: {player.Name}, they covered this round: {player.RoundBet}, needs to pay in: {amountToCall}");
         ActivePlayerName = player.Name;
         player.IsCurrentlyActivePlayer = true;
         OnUpdateTableRequest?.Invoke(this);
@@ -310,20 +318,15 @@ public partial class Table : ObservableObject
     private int PlayersNeedToCover = 0;
 
     [XmlIgnore]
-    private bool BeforeBigBlind = true;
+    private bool BeforeBigBlind = false;
 
     async Task Play()
     {
-        try
+        while (true)
         {
-            while (true)
+            try
             {
-                TableTextUpdate("Table Inactive, waiting for 2 players to join");
-                await EnoughplayersJoined.WaitAsync();
-                lock (_playerJoinLock)
-                {
-                    _enoughPlayersSignaled = false;
-                }
+                await WaitForEnoughPlayersAsync();
                 TableTextUpdate("Enough players joined Starting soon!");
 
                 if (!await WaitForStartDelayAsync())
@@ -331,39 +334,98 @@ public partial class Table : ObservableObject
                     continue;
                 }
 
-                break;
+                if (Players.Count < 2)
+                {
+                    continue;
+                }
+
+                await PlaySingleHandAsync();
             }
-
-            IsGameActive = true;
-            StartRound();
-
-            // 1st round without player cards
-            await PlayRound();
-
-            //2nd round without any housecards
-            DealToPlayers();
-            await PlayRound();
-
-            Housecards.Add(deck.DrawCard());
-            Housecards.Add(deck.DrawCard());
-            Housecards.Add(deck.DrawCard());
-            //Flop
-            await PlayRound();
-
-            //Turn
-            Housecards.Add(deck.DrawCard());
-            await PlayRound();
-
-            //River
-            Housecards.Add(deck.DrawCard());
-            await PlayRound();
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Play() crashed: {ex}");
+                OnTableLogicError?.Invoke($"Play() crashed: {ex}");
+                IsGameActive = false;
+                OnUpdateTableRequest?.Invoke(this);
+            }
         }
-        catch (Exception ex)
+    }
+
+    private async Task WaitForEnoughPlayersAsync()
+    {
+        if (Players.Count >= 2)
         {
-            System.Diagnostics.Debug.WriteLine($"Play() crashed: {ex}");
-            IsGameActive = false;
-            OnUpdateTableRequest?.Invoke(this);
+            return;
         }
+
+        TableTextUpdate("Table Inactive, waiting for 2 players to join");
+        await EnoughplayersJoined.WaitAsync();
+        lock (_playerJoinLock)
+        {
+            _enoughPlayersSignaled = false;
+        }
+    }
+
+    private async Task PlaySingleHandAsync()
+    {
+        IsGameActive = true;
+        StartRound();
+
+        bool handOver = await PlayRound();
+
+        if (!handOver)
+        {
+            DealToPlayers();
+            handOver = await PlayRound();
+        }
+
+        if (!handOver)
+        {
+            Housecards.Add(deck.DrawCard());
+            Housecards.Add(deck.DrawCard());
+            Housecards.Add(deck.DrawCard());
+            handOver = await PlayRound();
+        }
+
+        if (!handOver)
+        {
+            Housecards.Add(deck.DrawCard());
+            handOver = await PlayRound();
+        }
+
+        if (!handOver)
+        {
+            Housecards.Add(deck.DrawCard());
+            await PlayRound();
+        }
+
+        EndGameLogic();
+        ResetHandState();
+    }
+
+    private void ResetHandState()
+    {
+        IsGameActive = false;
+        ActivePlayerName = string.Empty;
+        CurrentlyActivePlayer = null;
+
+        lock (_actionLock)
+        {
+            PlayerActionTcs?.TrySetCanceled();
+            PlayerActionTcs = null;
+        }
+
+        foreach (var player in Players)
+        {
+            player.HasFolded = false;
+            player.IsAllIn = false;
+            player.IsCurrentlyActivePlayer = false;
+            player.Hand = null;
+        }
+
+        BeforeBigBlind = true;
+        TableTextUpdate("Hand complete. Next hand starting soon...");
+        OnUpdateTableRequest?.Invoke(this);
     }
 
     private int CountPlayersWhoCanAct()
@@ -376,15 +438,21 @@ public partial class Table : ObservableObject
         PlayersNeedToCover = CountPlayersWhoCanAct();
     }
 
-    private async Task PlayRound()
+    private bool IsHandOver() => Players.Count(p => !p.HasFolded) <= 1;
+
+    private async Task<bool> PlayRound()
     {
         ResetPlayersNeedToCover();
+        if (!BeforeBigBlind)
+        {
+            ToCall = 0;
+        }
 
         if (PlayersNeedToCover <= 1)
         {
             ZeroRoundBets();
             OnUpdateTableRequest?.Invoke(this);
-            return;
+            return IsHandOver();
         }
 
         while (PlayersNeedToCover > 0)
@@ -394,7 +462,7 @@ public partial class Table : ObservableObject
                 if (!Players.Contains(player)) continue;
                 if (player.HasFolded || player.IsAllIn) continue;
                 if (PlayersNeedToCover <= 0) break;
-
+                
                 await WaitForPlayerActionAsync(player);
 
                 if (BeforeBigBlind)
@@ -412,11 +480,13 @@ public partial class Table : ObservableObject
                     break;
                 }
             }
+            
             System.Diagnostics.Debug.WriteLine($"\nPlayersNeedToCover: {PlayersNeedToCover}\n");
         }
 
         ZeroRoundBets();
         OnUpdateTableRequest?.Invoke(this);
+        return IsHandOver();
     }
 
     public bool SubmitPlayerAction(Player player, PlayerAction action, int amount = 0)
@@ -569,5 +639,53 @@ public partial class Table : ObservableObject
             player.RoundBet = 0;
             player.PotBet = 0;
         }
+    }
+
+    private void EndGameLogic()
+    {
+        var remainingPlayers = Players.Where(p => !p.HasFolded).ToList();
+        if (remainingPlayers.Count == 0 || Pot <= 0)
+        {
+            return;
+        }
+
+        int potToAward = Pot;
+        Pot = 0;
+
+        if (remainingPlayers.Count == 1)
+        {
+            remainingPlayers[0].Win(potToAward);
+            OnUpdateTableRequest?.Invoke(this);
+            return;
+        }
+
+        foreach (var player in remainingPlayers)
+        {
+            var handCards = player.Cards.Concat(Housecards).ToArray();
+            player.Hand = handCards.Length >= 2 ? new Hand(handCards) : null;
+        }
+
+        var eligiblePlayers = remainingPlayers.Where(p => p.Hand != null).ToList();
+        if (eligiblePlayers.Count == 0)
+        {
+            return;
+        }
+
+        var bestHand = eligiblePlayers
+            .Select(p => p.Hand)
+            .Max()!;
+
+        var winners = eligiblePlayers
+            .Where(p => p.Hand!.CompareTo(bestHand) == 0)
+            .ToList();
+
+        int share = potToAward / winners.Count;
+        int remainder = potToAward % winners.Count;
+        for (int i = 0; i < winners.Count; i++)
+        {
+            winners[i].Win(share + (i < remainder ? 1 : 0));
+        }
+
+        OnUpdateTableRequest?.Invoke(this);
     }
 }

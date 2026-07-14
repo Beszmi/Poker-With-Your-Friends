@@ -153,6 +153,8 @@ public class Client
         string command = message.Substring(0, 2);
         string payload = message.Substring(2);
 
+        System.Diagnostics.Debug.WriteLine("Client got message" + message);
+
         switch (command)
         {
             case "00": UpdateGameState(message); break;
@@ -257,17 +259,38 @@ public class Client
     {
         if (string.IsNullOrEmpty(message))
         {
-            string[] parts = message.Split(',');
-
-            if (parts.Length < 3)
-            {
-                return;
-            }
-
-            int tableIndex = Int32.Parse(parts[1]);
-            game.Tables[tableIndex].TableText = parts[2];
+            return;
         }
 
+        int firstComma = message.IndexOf(',');
+        if (firstComma < 0)
+        {
+            return;
+        }
+
+        int secondComma = message.IndexOf(',', firstComma + 1);
+        if (secondComma < 0)
+        {
+            return;
+        }
+
+        int tableIndex = Int32.Parse(message.Substring(firstComma + 1, secondComma - firstComma - 1));
+        string text = message.Substring(secondComma + 1);
+
+        if (tableIndex < 0 || tableIndex >= game.Tables.Count)
+        {
+            return;
+        }
+
+        var dispatcher = App.MainDispatcher;
+        if (dispatcher != null && !dispatcher.HasThreadAccess)
+        {
+            dispatcher.TryEnqueue(() => game.Tables[tableIndex].TableText = text);
+        }
+        else
+        {
+            game.Tables[tableIndex].TableText = text;
+        }
     }
 
     public void Disconnect()

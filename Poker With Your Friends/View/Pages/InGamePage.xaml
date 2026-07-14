@@ -40,7 +40,7 @@
 
         <TextBlock Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="3" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" FontSize="24" Text="{x:Bind viewModel.Table.TableText, Mode=OneWay}"/>
 
-        <ListView Grid.Column="0" Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Center" ItemsSource="{x:Bind viewModel.Table.Housecards, Mode=OneWay}" Margin="10">
+        <ListView Grid.Column="0" Grid.Row="2" Grid.ColumnSpan="3" HorizontalAlignment="Center" VerticalAlignment="Center" ItemsSource="{x:Bind viewModel.Table.Housecards, Mode=OneWay}" Margin="10">
             <ListView.ItemsPanel>
                 <ItemsPanelTemplate>
                     <ItemsStackPanel Orientation="Horizontal" />
@@ -83,8 +83,12 @@
                 </ListView.ItemTemplate>
             </ListView>
             <StackPanel Orientation="Horizontal">
-                <Button Content="Call" IsEnabled="{x:Bind viewModel.PlayerActionButtonsEnabled, Mode=OneWay}" Click="viewModel.CallButton_Click"/>
-                <Button Content="Raise" IsEnabled="{x:Bind viewModel.PlayerActionButtonsEnabled, Mode=OneWay}" Click="viewModel.RaiseButton_Click"/>
+                <Button Content="{x:Bind viewModel.CallButtonText, Mode=OneWay}" IsEnabled="{x:Bind viewModel.PlayerActionButtonsEnabled, Mode=OneWay}" Click="viewModel.CallButton_Click"/>
+                <StackPanel Orientation="Vertical">
+                    <TextBlock HorizontalAlignment="Center" Text="{x:Bind viewModel.SelectedRaiseValue, Mode=OneWay}"/>
+                    <Slider Minimum="{x:Bind viewModel.RaiseMin, Mode=OneWay}" Maximum="{x:Bind viewModel.RaiseMax, Mode=OneWay}" Value="{x:Bind viewModel.SelectedRaiseValue, Mode=TwoWay}" IsEnabled="{x:Bind viewModel.IsRaiseButtonEnabled, Mode=OneWay}" />
+                    <Button Content="Raise" IsEnabled="{x:Bind viewModel.IsRaiseButtonEnabled, Mode=OneWay}" Click="viewModel.RaiseButton_Click"/>
+                </StackPanel>
                 <Button Content="Fold" IsEnabled="{x:Bind viewModel.PlayerActionButtonsEnabled, Mode=OneWay}" Click="viewModel.FoldButton_Click"/>
             </StackPanel>
         </StackPanel>

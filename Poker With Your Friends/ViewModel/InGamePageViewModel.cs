@@ -2,6 +2,7 @@
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Poker_With_Your_Friends.Model;
+using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
@@ -31,6 +32,21 @@ public partial class InGamePageViewModel : ObservableObject
 
     [ObservableProperty]
     public partial bool PlayerActionButtonsEnabled { get; set; } = false;
+
+    [ObservableProperty]
+    public partial bool IsRaiseButtonEnabled { get; set; } = false;
+
+    [ObservableProperty]
+    public partial int RaiseMin { get; set; } = 0;
+
+    [ObservableProperty]
+    public partial int RaiseMax { get; set; } = 0;
+
+    [ObservableProperty]
+    public partial int SelectedRaiseValue { get; set; } = 0;
+
+    [ObservableProperty]
+    public partial String CallButtonText { get; set; } = "Call";
 
     public ObservableCollection<Card>? MyCards => PlayerStore?.CurrentPlayer?.Cards;
 
@@ -138,6 +154,21 @@ public partial class InGamePageViewModel : ObservableObject
 
             PlayerActionButtonsEnabled = !string.IsNullOrEmpty(Table.ActivePlayerName)
                 && Table.ActivePlayerName == PlayerStore.CurrentPlayer.Name;
+            if (PlayerActionButtonsEnabled)
+            {
+                if (PlayerStore.CurrentPlayer.Chips > Table.ToCall * 2)
+                {
+                    RaiseMin = Table.ToCall * 2;
+                    RaiseMax = PlayerStore.CurrentPlayer.Chips;
+                    IsRaiseButtonEnabled = true;
+                } else
+                {
+                    IsRaiseButtonEnabled = false;
+                }
+                
+                if (Table.ToCall > PlayerStore.CurrentPlayer.Chips) CallButtonText = "All In";
+                if (Table.ToCall <= PlayerStore.CurrentPlayer.RoundBet) CallButtonText = "Check";
+            }
         }
         else
         {
@@ -154,7 +185,7 @@ public partial class InGamePageViewModel : ObservableObject
     }
     public void RaiseButton_Click(object sender, RoutedEventArgs e)
     {
-        SubmitPlayerAction(PlayerAction.Raise, 10);
+        SubmitPlayerAction(PlayerAction.Raise, SelectedRaiseValue);
     }
     public void FoldButton_Click(object sender, RoutedEventArgs e)
     {

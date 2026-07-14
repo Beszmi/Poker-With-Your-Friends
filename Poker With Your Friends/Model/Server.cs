@@ -37,6 +37,7 @@ public class Server
         Table.OnUpdateTableRequest += UpdateTable;
         Table.OnTimerStartRequest += SendTimer;
         Table.OnUpdateTextRequest += SendTableText;
+        Table.OnTableLogicError += TableErrorHandler;
     }
 
     private readonly ConcurrentDictionary<string, PipeWriter> _connectedClients = new();
@@ -145,6 +146,11 @@ public class Server
 
     public async Task BroadcastAsync(string SerializedXML)
     {
+        if (debugMessages)
+        {
+            OnServerLoggedEvent?.Invoke($"Sent Table joined to [Broadcast]: {SerializedXML}");
+        }
+
         byte[] bytes = Encoding.UTF8.GetBytes(SerializedXML + "\n");
 
         List<string> deadClients = new List<string>();
@@ -192,6 +198,11 @@ public class Server
         else
         {
             OnServerLoggedEvent?.Invoke($"Attempted to send message to {clientId}, but they are not connected.");
+        }
+
+        if (debugMessages)
+        {
+            OnServerLoggedEvent?.Invoke($"Sent message to <{clientId}>: {message}");
         }
     }
 
@@ -246,6 +257,11 @@ public class Server
         int TableIndex = game.Tables.IndexOf(t);
 
         await BroadcastTableText(TableIndex, t.TableText);
+    }
+
+    public void TableErrorHandler(String text)
+    {
+        OnServerLoggedEvent?.Invoke("🚨🚨🚨" + text + "🚨🚨🚨");
     }
 
     /* --------------------------------------------------------
@@ -439,10 +455,6 @@ public class Server
         string serializedGameState = GameStateSerializer();
         await SendMessageAsync(ClientId, serializedGameState);
         OnServerLoggedEvent?.Invoke("Game state broadcast sent.");
-        if (debugMessages)
-        {
-            OnServerLoggedEvent?.Invoke($"DEBUG: Sent to: [BROADCAST]:  {serializedGameState}");
-        }
     }
 
     //Broadcasts
@@ -503,28 +515,16 @@ public class Server
 
         await BroadcastAsync(sb.ToString());
         OnServerLoggedEvent?.Invoke($"New table broadcast {table.Name}");
-        if (debugMessages)
-        {
-            OnServerLoggedEvent?.Invoke($"DEBUG: Sent to: [BROADCAST]:  {sb.ToString()}");
-        }
     }
 
     public async Task BroadcastServerErrorBroadcast(string ErrorMessage)
     {
         await BroadcastAsync("99" + ErrorMessage);
-        if (debugMessages)
-        {
-            OnServerLoggedEvent?.Invoke($"DEBUG: Sent to: [BROADCAST]:  99{ErrorMessage}");
-        }
     }
 
     public async Task BroadcastServerErrorClient(String ClientId, string ErrorMessage)
     {
         await SendMessageAsync(ClientId, "99" + ErrorMessage);
-        if (debugMessages)
-        {
-            OnServerLoggedEvent?.Invoke($"DEBUG: Sent to: [{ClientId}]:  99{ErrorMessage}");
-        }
     }
 
     public async Task BroadcastTableUpdate(int indexOfTable, Table t)
@@ -544,10 +544,6 @@ public class Server
         }
 
         await BroadcastAsync(sb.ToString());
-        if (debugMessages)
-        {
-            OnServerLoggedEvent?.Invoke($"DEBUG: Sent to: [BROADCAST]: {sb.ToString()}");
-        }
     }
 
     public async Task BroadcastTableTimer(int indexOfTable, int seconds)
@@ -558,10 +554,6 @@ public class Server
         sb.Append(",");
         sb.Append(seconds);
         await BroadcastAsync(sb.ToString());
-        if (debugMessages)
-        {
-            OnServerLoggedEvent?.Invoke($"DEBUG: Sent to: [BROADCAST]: {sb.ToString()}");
-        }
     }
 
     public async Task BroadcastTableText(int indexOfTable, String text)
@@ -572,10 +564,6 @@ public class Server
         sb.Append(",");
         sb.Append(text);
         await BroadcastAsync(sb.ToString());
-        if (debugMessages)
-        {
-            OnServerLoggedEvent?.Invoke($"DEBUG: Sent to: [BROADCAST]: {sb.ToString()}");
-        }
     }
 
     public void Stop()

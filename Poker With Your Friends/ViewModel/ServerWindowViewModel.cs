@@ -25,6 +25,8 @@ internal partial class ServerWindowViewModel : ObservableObject
     private Server server;
     private readonly DispatcherQueue _dispatcherQueue;
 
+   //public Action<String>? OnPlayerEdit;
+
     public Game game = Game.ServerInstance;
 
     public ServerWindowViewModel(Server server, DispatcherQueue dispatcherQueue)
@@ -83,6 +85,8 @@ internal partial class ServerWindowViewModel : ObservableObject
         {
             OnPropertyChanged(nameof(SelectedPlayerChips));
         }
+
+        //OnPlayerEdit.Invoke()
     }
     
     public void StopServer()
