@@ -25,7 +25,8 @@ internal partial class ServerWindowViewModel : ObservableObject
     private Server server;
     private readonly DispatcherQueue _dispatcherQueue;
 
-   //public Action<String>? OnPlayerEdit;
+    public static Action<String,String?>? OnPlayerEdit;
+    public static Action<String>? OnPlayerDeletion;
 
     public Game game = Game.ServerInstance;
 
@@ -86,7 +87,8 @@ internal partial class ServerWindowViewModel : ObservableObject
             OnPropertyChanged(nameof(SelectedPlayerChips));
         }
 
-        //OnPlayerEdit.Invoke()
+        string? broadcastNewName = !string.IsNullOrEmpty(NewName) && NewName != name ? NewName : null;
+        OnPlayerEdit?.Invoke(name, broadcastNewName);
     }
     
     public void StopServer()

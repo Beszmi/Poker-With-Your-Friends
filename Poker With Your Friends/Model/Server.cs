@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Poker_With_Your_Friends.ViewModel;
+using System;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -38,6 +39,7 @@ public class Server
         Table.OnTimerStartRequest += SendTimer;
         Table.OnUpdateTextRequest += SendTableText;
         Table.OnTableLogicError += TableErrorHandler;
+        ServerWindowViewModel.OnPlayerEdit += PlayerEdit;
     }
 
     private readonly ConcurrentDictionary<string, PipeWriter> _connectedClients = new();
@@ -262,6 +264,37 @@ public class Server
     public void TableErrorHandler(String text)
     {
         OnServerLoggedEvent?.Invoke("🚨🚨🚨" + text + "🚨🚨🚨");
+    }
+
+    public async void PlayerEdit(String oldName, String? newName)
+    {
+        if (string.IsNullOrEmpty(oldName))
+        {
+            return;
+        }
+
+        bool nameChanged = !string.IsNullOrEmpty(newName)
+            && !string.Equals(newName, oldName, StringComparison.Ordinal);
+        string lookupName = nameChanged ? newName! : oldName;
+
+        Player player;
+        try
+        {
+            player = game.GetPlayerFromName(lookupName);
+        }
+        catch (ArgumentException)
+        {
+            return;
+        }
+
+        if (nameChanged)
+        {
+            await BroadcastPlayerNameEdit(oldName, newName!, player.Chips);
+        }
+        else
+        {
+            await BroadcastPlayerChipsEdit(oldName, player.Chips);
+        }
     }
 
     /* --------------------------------------------------------
@@ -563,6 +596,28 @@ public class Server
         sb.Append(indexOfTable);
         sb.Append(",");
         sb.Append(text);
+        await BroadcastAsync(sb.ToString());
+    }
+
+    public async Task BroadcastPlayerChipsEdit(String name, int chips)
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.Append("10");
+        sb.Append(name);
+        sb.Append(",");
+        sb.Append(chips);
+        await BroadcastAsync(sb.ToString());
+    }
+
+    public async Task BroadcastPlayerNameEdit(String oldName, String newName, int chips)
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.Append("11");
+        sb.Append(oldName);
+        sb.Append(",");
+        sb.Append(newName);
+        sb.Append(",");
+        sb.Append(chips);
         await BroadcastAsync(sb.ToString());
     }
 

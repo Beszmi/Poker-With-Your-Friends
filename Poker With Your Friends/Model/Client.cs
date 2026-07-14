@@ -167,8 +167,23 @@ public class Client
             case "07": OnTableLeft?.Invoke(); break;
             case "08": StartTableTimer(message); break;
             case "09": SetTableText(message); break;
+            case "10": UpdatePlayerChips(payload); break;
+            case "11": UpdatePlayerNameAndChips(payload); break;
 
             case "99": OnErrorReceived?.Invoke(payload); break;
+        }
+    }
+
+    private void RunOnUiThread(Action action)
+    {
+        var dispatcher = App.MainDispatcher;
+        if (dispatcher != null && !dispatcher.HasThreadAccess)
+        {
+            dispatcher.TryEnqueue(() => action());
+        }
+        else
+        {
+            action();
         }
     }
 
@@ -193,22 +208,12 @@ public class Client
         XmlSerializer serializer = new XmlSerializer(typeof(Table));
         if (serializer.Deserialize(new StringReader(tableData)) is Table deserializedTable)
         {
-            var dispatcher = App.MainDispatcher;
-            if (dispatcher != null && !dispatcher.HasThreadAccess)
-            {
-                dispatcher.TryEnqueue(() =>
-                {
-                    Table.HandleUpdateFromNetwork(tableIndex, deserializedTable);
-                    System.Diagnostics.Debug.WriteLine("Table state broadcast recieved succesfully.");
-                    OnTableUpdated?.Invoke();
-                });
-            }
-            else
+            RunOnUiThread(() =>
             {
                 Table.HandleUpdateFromNetwork(tableIndex, deserializedTable);
                 System.Diagnostics.Debug.WriteLine("Table state broadcast recieved succesfully.");
                 OnTableUpdated?.Invoke();
-            }
+            });
         }
     }
 
@@ -224,15 +229,7 @@ public class Client
         int tableIndex = Int32.Parse(parts[1]);
         int seconds = Int32.Parse(parts[2]);
 
-        var dispatcher = App.MainDispatcher;
-        if (dispatcher != null && !dispatcher.HasThreadAccess)
-        {
-            dispatcher.TryEnqueue(() => StartTableTimerOnUiThread(tableIndex, seconds));
-        }
-        else
-        {
-            StartTableTimerOnUiThread(tableIndex, seconds);
-        }
+        RunOnUiThread(() => StartTableTimerOnUiThread(tableIndex, seconds));
     }
 
     private void StartTableTimerOnUiThread(int tableIndex, int seconds)
@@ -257,40 +254,79 @@ public class Client
 
     private void SetTableText(String message)
     {
-        if (string.IsNullOrEmpty(message))
-        {
-            return;
-        }
+        if (string.IsNullOrEmpty(message)) return;
 
         int firstComma = message.IndexOf(',');
-        if (firstComma < 0)
-        {
-            return;
-        }
+        if (firstComma < 0) return;
 
         int secondComma = message.IndexOf(',', firstComma + 1);
-        if (secondComma < 0)
-        {
-            return;
-        }
+        if (secondComma < 0) return;
+
 
         int tableIndex = Int32.Parse(message.Substring(firstComma + 1, secondComma - firstComma - 1));
         string text = message.Substring(secondComma + 1);
 
-        if (tableIndex < 0 || tableIndex >= game.Tables.Count)
+        if (tableIndex < 0 || tableIndex >= game.Tables.Count) return;
+
+        RunOnUiThread(() => game.Tables[tableIndex].TableText = text);
+    }
+
+    private void UpdatePlayerChips(string payload)
+    {
+        string[] parts = payload.Split(',');
+        if (parts.Length < 2 || !Int32.TryParse(parts[1], out int chips))
         {
             return;
         }
 
-        var dispatcher = App.MainDispatcher;
-        if (dispatcher != null && !dispatcher.HasThreadAccess)
+        string playerName = parts[0];
+        RunOnUiThread(() =>
         {
-            dispatcher.TryEnqueue(() => game.Tables[tableIndex].TableText = text);
-        }
-        else
+            try
+            {
+                game.GetPlayerFromName(playerName).Chips = chips;
+            }
+            catch (ArgumentException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"UpdatePlayerChips failed: {ex.Message}");
+            }
+        });
+    }
+
+    private void UpdatePlayerNameAndChips(string payload)
+    {
+        string[] parts = payload.Split(',');
+        if (parts.Length < 3 || !Int32.TryParse(parts[2], out int chips))
         {
-            game.Tables[tableIndex].TableText = text;
+            return;
         }
+
+        string oldName = parts[0];
+        string newName = parts[1];
+
+        RunOnUiThread(() =>
+        {
+            try
+            {
+                Player player = game.GetPlayerFromName(oldName);
+                player.Chips = chips;
+
+                if (!string.Equals(player.Name, newName, StringComparison.Ordinal))
+                {
+                    player.Name = newName;
+                    game.RefreshPlayerNames();
+
+                    if (string.Equals(PlayerStore.CurrentPlayer?.Name, oldName, StringComparison.Ordinal))
+                    {
+                        PlayerStore.CurrentPlayer = player;
+                    }
+                }
+            }
+            catch (ArgumentException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"UpdatePlayerNameAndChips failed: {ex.Message}");
+            }
+        });
     }
 
     public void Disconnect()
