@@ -70,6 +70,7 @@
         </TextBlock>
 
         <StackPanel Grid.Column="0" Grid.Row="3" Grid.ColumnSpan="3" HorizontalAlignment="Center" VerticalAlignment="Bottom" Visibility="{x:Bind viewModel.IsplayerOnOwnTable, Mode=OneWay}">
+            <TextBlock HorizontalAlignment="Center" Text="{x:Bind viewModel.CurrentPlayerHandName, Mode=OneWay}"/>
             <ListView ItemsSource="{x:Bind viewModel.MyCards, Mode=OneWay}">
                 <ListView.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -101,13 +102,25 @@
             </ListView.ItemsPanel>
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="Model:Player">
-                    <Grid Background="LightGreen" Height="50" Width="200">
+                    <StackPanel Background="LightGreen" Height="250" Width="200">
+                        <ListView ItemsSource="{x:Bind Cards, Mode=OneWay}">
+                            <ListView.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <ItemsStackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ListView.ItemsPanel>
+                            <ListView.ItemTemplate>
+                                <DataTemplate x:DataType="Model:Card">
+                                    <ContentControl Content="{x:Bind}" ContentTemplate="{StaticResource CardTemplate}"/>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
                         <TextBlock Text="{x:Bind Name, Mode=OneWay}" VerticalAlignment="Top" HorizontalAlignment="Center" FontSize="24" Foreground="Red"/>
                         <TextBlock VerticalAlignment="Bottom" HorizontalAlignment="Left" FontSize="12">
-                    <Run Text="Chips: "/>
-                    <Run Text="{x:Bind Chips, Mode=OneWay}"/>
+                            <Run Text="Chips: "/>
+                            <Run Text="{x:Bind Chips, Mode=OneWay}"/>
                         </TextBlock>
-                    </Grid>
+                    </StackPanel>
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>

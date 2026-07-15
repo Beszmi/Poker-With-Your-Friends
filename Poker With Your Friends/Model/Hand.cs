@@ -65,6 +65,23 @@ public partial class Hand : ObservableObject, IComparable<Hand>
         return Kickers.Length.CompareTo(other.Kickers.Length);
     }
 
+    public override String ToString()
+    {
+        switch (Rank)
+        {
+            case HandRank.HighCard: return "HighCard";
+            case HandRank.Pair: return "Pair";
+            case HandRank.Twopair: return "TwoPair";
+            case HandRank.ThreeOfAKind: return "ThreeOfKind";
+            case HandRank.Straight: return "Straight";
+            case HandRank.Flush: return "Flush";
+            case HandRank.FullHouse: return "Fullhouse";
+            case HandRank.FourOfAKind: return "FourOfKind";
+            case HandRank.StraightFlush: return "StraightFlush";
+            case HandRank.RoyalFlush: return "RoyalFlush";
+            default: throw new Exception("Not a valid Rank");
+        }
+    }
     private static (HandRank Rank, int[] Kickers) FindBestHand(Card[] cards)
     {
         var best = EvaluateFiveCards(cards.AsSpan(0, 5).ToArray());

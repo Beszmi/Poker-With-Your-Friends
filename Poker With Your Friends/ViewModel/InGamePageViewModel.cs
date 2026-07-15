@@ -48,6 +48,9 @@ public partial class InGamePageViewModel : ObservableObject
     [ObservableProperty]
     public partial String CallButtonText { get; set; } = "Call";
 
+    [ObservableProperty]
+    public partial String CurrentPlayerHandName { get; set; } = "No hand";
+
     public ObservableCollection<Card>? MyCards => PlayerStore?.CurrentPlayer?.Cards;
 
     private DispatcherQueue _dispatcherQueue;
@@ -165,9 +168,14 @@ public partial class InGamePageViewModel : ObservableObject
                 {
                     IsRaiseButtonEnabled = false;
                 }
-                
+
                 if (Table.ToCall > PlayerStore.CurrentPlayer.Chips) CallButtonText = "All In";
-                if (Table.ToCall <= PlayerStore.CurrentPlayer.RoundBet) CallButtonText = "Check";
+                else if (Table.ToCall <= PlayerStore.CurrentPlayer.RoundBet) CallButtonText = "Check";
+                else CallButtonText = $"Call ({Table.ToCall - PlayerStore.CurrentPlayer.RoundBet}$)";
+            }
+            if (PlayerStore.CurrentPlayer.Cards.Count == 2)
+            {
+                CurrentPlayerHandName = PlayerStore.CurrentPlayer.Hand.ToString();
             }
         }
         else

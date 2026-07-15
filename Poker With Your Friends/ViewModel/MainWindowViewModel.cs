@@ -20,22 +20,22 @@ public partial class MainWindowViewModel : ObservableObject
     public int NewServerPort { get; set; } = 5000;
 
     [ObservableProperty]
-    public Visibility playerPickerVisible = Visibility.Collapsed;
+    public partial Visibility PlayerPickerVisible { get; set; } = Visibility.Collapsed;
 
     [ObservableProperty]
-    public Visibility serverPickerVisible = Visibility.Visible;
+    public partial Visibility ServerPickerVisible { get; set; } = Visibility.Visible;
 
     [ObservableProperty]
-    public String serverHostName = "localhost";
+    public partial String ServerHostName { get; set; } = "localhost";
 
     [ObservableProperty]
-    public int serverPort = 5000;
+    public partial int ServerPort { get; set; } = 5000;
 
     [ObservableProperty]
-    public bool isConnectButtonEnabled = true;
+    public partial bool IsConnectButtonEnabled { get; set; } = true;
 
     [ObservableProperty]
-    public bool isRegisterButtonEnabled = true;
+    public partial bool IsRegisterButtonEnabled { get; set; } = true;
 
     public Client? client;
     public IPlayerStore PlayerStore { get; } = new PlayerStore();
