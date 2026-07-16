@@ -102,9 +102,7 @@ public class Client
                 }
             }
         }
-        catch (OperationCanceledException) when (token.IsCancellationRequested)
-        {
-        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) {}
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Connection lost: {ex.Message}");
@@ -124,9 +122,7 @@ public class Client
         {
             await outbound.Completion;
         }
-        catch (OperationCanceledException)
-        {
-        }
+        catch (OperationCanceledException) {}
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Send failed: {ex.Message}");
@@ -221,10 +217,7 @@ public class Client
         int tableId = liveTable != null ? game.Tables.IndexOf(liveTable) : -1;
         string? playerName = PlayerStore.CurrentPlayer?.Name;
 
-        if (tableId < 0 || string.IsNullOrEmpty(playerName))
-        {
-            return;
-        }
+        if (tableId < 0 || string.IsNullOrEmpty(playerName)) return;
 
         SendMessage("53" + tableId + playerName);
         PlayerStore.CurrentTable = null;
@@ -254,10 +247,7 @@ public class Client
             case "01": PlayerLogin(payload); break;
             case "02": game.RemovePlayer(game.GetPlayerFromName(payload)); break;
             case "03": game.AddTable(payload, false); break;
-            case "04":
-                System.Diagnostics.Debug.WriteLine(
-                    "Ignored unsupported table-removal message (04).");
-                break;
+            case "04": throw new NotImplementedException(); break;
             case "05": UpdateTableState(payload); break;
             case "06": OnTableJoined?.Invoke(); break;
             case "07": OnTableLeft?.Invoke(); break;
@@ -324,10 +314,7 @@ public class Client
     {
         // Message format: "08,{tableIndex},{seconds}"
         string[] parts = message.Split(',');
-        if (parts.Length < 3)
-        {
-            return;
-        }
+        if (parts.Length < 3) return;
 
         int tableIndex = Int32.Parse(parts[1]);
         int seconds = Int32.Parse(parts[2]);
@@ -337,10 +324,7 @@ public class Client
 
     private void StartTableTimerOnUiThread(int tableIndex, int seconds)
     {
-        if (tableIndex < 0 || tableIndex >= game.Tables.Count)
-        {
-            return;
-        }
+        if (tableIndex < 0 || tableIndex >= game.Tables.Count) return;
 
         TimerService.GetOrCreateTimer(game.Tables[tableIndex]).StartTimer(seconds);
     }
@@ -377,10 +361,7 @@ public class Client
     private void UpdatePlayerChips(string payload)
     {
         string[] parts = payload.Split(',');
-        if (parts.Length < 2 || !Int32.TryParse(parts[1], out int chips))
-        {
-            return;
-        }
+        if (parts.Length < 2 || !Int32.TryParse(parts[1], out int chips)) return;
 
         string playerName = parts[0];
         RunOnUiThread(() =>
@@ -434,10 +415,7 @@ public class Client
 
     public void Disconnect()
     {
-        if (Interlocked.Exchange(ref _disconnected, 1) != 0)
-        {
-            return;
-        }
+        if (Interlocked.Exchange(ref _disconnected, 1) != 0) return;
 
         InGamePage.OnJoinGameClick -= PlayerJoiningTable;
         InGamePage.OnLeaveGameClick -= PlayerLeavingTable;

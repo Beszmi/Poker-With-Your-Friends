@@ -2,7 +2,6 @@
 using System;
 using System.Buffers;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipelines;
 using System.Net;
@@ -252,8 +251,7 @@ public class Server
 
     private async Task HandlePlayerDisconnectAsync(string clientId)
     {
-        if (_clientToPlayerName.TryRemove(clientId, out string? playerName)
-            && !string.IsNullOrEmpty(playerName))
+        if (_clientToPlayerName.TryRemove(clientId, out string? playerName) && !string.IsNullOrEmpty(playerName))
         {
             OnServerLoggedEvent?.Invoke($"Handling disconnect for: {playerName}");
 
@@ -516,8 +514,7 @@ public class Server
         {
             if (!string.Equals(registeredName, playerName, StringComparison.Ordinal))
             {
-                OnServerLoggedEvent?.Invoke(
-                    $"Client {clientId} sent action for '{playerName}' but is registered as '{registeredName}'.");
+                OnServerLoggedEvent?.Invoke($"Client {clientId} sent action for '{playerName}' but is registered as '{registeredName}'.");
                 return;
             }
         }

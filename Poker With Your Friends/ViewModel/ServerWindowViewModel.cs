@@ -1,6 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Dispatching;
-using Microsoft.UI.Xaml;
 using Poker_With_Your_Friends.Model;
 using System;
 using System.Collections.ObjectModel;
@@ -26,7 +25,6 @@ internal partial class ServerWindowViewModel : ObservableObject
     private readonly DispatcherQueue _dispatcherQueue;
 
     public static Action<String,String?>? OnPlayerEdit;
-    public static Action<String>? OnPlayerDeletion;
 
     public Game game = Game.ServerInstance;
 

@@ -52,10 +52,7 @@ internal sealed class OutboundMessageQueue : IAsyncDisposable
 
     public bool TryEnqueue(ReadOnlyMemory<byte> frame)
     {
-        if (frame.IsEmpty || Volatile.Read(ref _stopping) != 0)
-        {
-            return false;
-        }
+        if (frame.IsEmpty || Volatile.Read(ref _stopping) != 0) return false;
 
         return _messages.Writer.TryWrite(frame);
     }
@@ -95,15 +92,9 @@ internal sealed class OutboundMessageQueue : IAsyncDisposable
         {
             await _writeLoop.ConfigureAwait(false);
         }
-        catch (OperationCanceledException) when (_cts.IsCancellationRequested)
-        {
-        }
-        catch (IOException)
-        {
-        }
-        catch (SocketException)
-        {
-        }
+        catch (OperationCanceledException) when (_cts.IsCancellationRequested) {}
+        catch (IOException) {}
+        catch (SocketException) {}
         finally
         {
             _cts.Dispose();
