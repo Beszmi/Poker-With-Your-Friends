@@ -17,6 +17,13 @@
     <Nullable>enable</Nullable>
 	<PublishTrimmed>false</PublishTrimmed>
 	<EnableTrimAnalyzer>false</EnableTrimAnalyzer>
+    <!-- Drop unused localization satellite assemblies from publish output. -->
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <AccelerateBuildsInVisualStudio>true</AccelerateBuildsInVisualStudio>
+    <CreateHardLinksForCopyFilesToOutputDirectoryIfPossible>true</CreateHardLinksForCopyFilesToOutputDirectoryIfPossible>
+    <CreateHardLinksForCopyLocalIfPossible>true</CreateHardLinksForCopyLocalIfPossible>
+    <CreateHardLinksForPublishFilesIfPossible>true</CreateHardLinksForPublishFilesIfPossible>
+    <CreateHardLinksForAdditionalFilesIfPossible>true</CreateHardLinksForAdditionalFilesIfPossible>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="GameMenuPage.xaml" />
@@ -34,6 +41,12 @@
     <Content Include="Assets\Square44x44Logo.targetsize-24_altform-unplated.png" />
     <Content Include="Assets\StoreLogo.png" />
     <Content Include="Assets\Wide310x150Logo.scale-200.png" />
+    <Content Include="Assets\cardEmpty.png" />
+    <!-- Asset copy -->
+    <Content Update="Assets\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
@@ -52,7 +65,8 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.9" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2270" />
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.2.0" />
+    <!-- WinUI-only package -->
+    <PackageReference Include="Microsoft.WindowsAppSDK.WinUI" Version="2.2.1" />
   </ItemGroup>
   <ItemGroup>
     <Page Update="GameMenuPage.xaml">
@@ -100,4 +114,35 @@
     <PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
     <StartupObject></StartupObject>
   </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+  </PropertyGroup>
+
+  <!-- Skip staging WinAppSDK culture folders (not covered by SatelliteResourceLanguages). -->
+  <Target Name="FilterPublishCultureBloat" AfterTargets="ComputeFilesToPublish">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
+        Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('%(RelativePath)', '^(af-ZA|am-ET|ar-SA|as-IN|az-Latn-AZ|bg-BG|bn-IN|bs-Latn-BA|ca-ES|ca-Es-VALENCIA|cs-CZ|cy-GB|da-DK|de-DE|el-GR|es-ES|es-MX|et-EE|eu-ES|fa-IR|fi-FI|fil-PH|fr-CA|fr-FR|ga-IE|gd-gb|gl-ES|gu-IN|he-IL|hi-IN|hr-HR|hu-HU|hy-AM|id-ID|is-IS|it-IT|ja-JP|ka-GE|kk-KZ|km-KH|kn-IN|ko-KR|kok-IN|lb-LU|lo-LA|lt-LT|lv-LV|mi-NZ|mk-MK|ml-IN|mr-IN|ms-MY|mt-MT|nb-NO|ne-NP|nl-NL|nn-NO|or-IN|pa-IN|pl-PL|pt-BR|pt-PT|quz-PE|ro-RO|ru-RU|sk-SK|sl-SI|sq-AL|sr-Cyrl-BA|sr-Cyrl-RS|sr-Latn-RS|sv-SE|ta-IN|te-IN|th-TH|tr-TR|tt-RU|ug-CN|uk-UA|ur-PK|uz-Latn-UZ|vi-VN|zh-CN|zh-TW|en-GB)[\\/]'))" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="TrimPublishBloat" AfterTargets="Publish">
+    <ItemGroup>
+      <_BloatFiles Include="$(PublishDir)onnxruntime.dll" Condition="Exists('$(PublishDir)onnxruntime.dll')" />
+      <_BloatFiles Include="$(PublishDir)DirectML.dll" Condition="Exists('$(PublishDir)DirectML.dll')" />
+      <_BloatFiles Include="$(PublishDir)Microsoft.Windows.AI.MachineLearning.dll" Condition="Exists('$(PublishDir)Microsoft.Windows.AI.MachineLearning.dll')" />
+      <_BloatFiles Include="$(PublishDir)*.pdb" />
+      <_BloatFiles Include="$(PublishDir)Microsoft.DiaSymReader.Native.*.dll" />
+      <_CultureDir Include="$([System.IO.Directory]::GetDirectories($(PublishDir.TrimEnd(`\`))))"
+                   Condition="Exists($(PublishDir.TrimEnd(`\`)))" />
+      <_CultureDirToRemove Include="@(_CultureDir)"
+                           Condition="$([System.Text.RegularExpressions.Regex]::IsMatch($([System.IO.Path]::GetFileName('%(Identity)')), '^(af-ZA|am-ET|ar-SA|as-IN|az-Latn-AZ|bg-BG|bn-IN|bs-Latn-BA|ca-ES|ca-Es-VALENCIA|cs-CZ|cy-GB|da-DK|de-DE|el-GR|es-ES|es-MX|et-EE|eu-ES|fa-IR|fi-FI|fil-PH|fr-CA|fr-FR|ga-IE|gd-gb|gl-ES|gu-IN|he-IL|hi-IN|hr-HR|hu-HU|hy-AM|id-ID|is-IS|it-IT|ja-JP|ka-GE|kk-KZ|km-KH|kn-IN|ko-KR|kok-IN|lb-LU|lo-LA|lt-LT|lv-LV|mi-NZ|mk-MK|ml-IN|mr-IN|ms-MY|mt-MT|nb-NO|ne-NP|nl-NL|nn-NO|or-IN|pa-IN|pl-PL|pt-BR|pt-PT|quz-PE|ro-RO|ru-RU|sk-SK|sl-SI|sq-AL|sr-Cyrl-BA|sr-Cyrl-RS|sr-Latn-RS|sv-SE|ta-IN|te-IN|th-TH|tr-TR|tt-RU|ug-CN|uk-UA|ur-PK|uz-Latn-UZ|vi-VN|zh-CN|zh-TW|en-GB)$'))" />
+    </ItemGroup>
+    <Delete Files="@(_BloatFiles)" Condition="'@(_BloatFiles)' != ''" TreatErrorsAsWarnings="true" />
+    <RemoveDir Directories="@(_CultureDirToRemove)" Condition="'@(_CultureDirToRemove)' != ''" />
+  </Target>
 </Project>

@@ -147,8 +147,8 @@
                 <DataTemplate x:DataType="Model:Player">
                     <StackPanel Background="#9900FF00" Height="Auto" Width="Auto">
                         <StackPanel Orientation="Horizontal" Visibility="{Binding viewModel.CardsDealt, ElementName=RootPage}">
-                            <Image Source="/Assets/cardEmpty.jpg" Width="100" Height="140"/>
-                            <Image Source="/Assets/cardEmpty.jpg" Width="100" Height="140"/>
+                            <Image Source="/Assets/cardEmpty.png" Width="100" Height="140"/>
+                            <Image Source="/Assets/cardEmpty.png" Width="100" Height="140"/>
                         </StackPanel>
                         <TextBlock Text="{x:Bind Name, Mode=OneWay}" VerticalAlignment="Top" HorizontalAlignment="Center" FontSize="24" Foreground="Red"/>
                         <TextBlock VerticalAlignment="Bottom" HorizontalAlignment="Left" FontSize="12">
