@@ -139,7 +139,20 @@ public class Game //Singleton
             {
                 if (serializer.Deserialize(new StringReader(message)) is Table deserializedTable)
                 {
-                    Tables.Add(deserializedTable);
+                    var dispatcher = App.MainDispatcher;
+                    if (dispatcher != null && !dispatcher.HasThreadAccess)
+                    {
+                        dispatcher.TryEnqueue(() =>
+                        {
+                            Tables.Add(deserializedTable);
+                            OnTableAdded?.Invoke(deserializedTable);
+                        });
+                    }
+                    else
+                    {
+                        Tables.Add(deserializedTable);
+                        OnTableAdded?.Invoke(deserializedTable);
+                    }
                 }
             }
             return;
