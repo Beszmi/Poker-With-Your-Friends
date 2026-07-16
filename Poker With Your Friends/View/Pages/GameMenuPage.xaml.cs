@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Navigation;
 using Poker_With_Your_Friends.Model;
 using Poker_With_Your_Friends.ViewModel;
+using System;
 
 namespace Poker_With_Your_Friends;
 
@@ -24,9 +25,18 @@ public sealed partial class GameMenuPage : Page
         };
     }
 
+    protected override void OnNavigatedFrom(NavigationEventArgs e)
+    {
+        base.OnNavigatedFrom(e);
+        GameMenuPageViewModel.GameMenuError -= DisplayErrorDialog;
+    }
+
     protected override void OnNavigatedTo(NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);
+
+        GameMenuPageViewModel.GameMenuError -= DisplayErrorDialog;
+        GameMenuPageViewModel.GameMenuError += DisplayErrorDialog;
 
         if (e.Parameter is Client c)
         {
@@ -44,5 +54,18 @@ public sealed partial class GameMenuPage : Page
     private void NewGameButton_Click(object sender, RoutedEventArgs e)
     {
         _ =viewModel.CreateNewTableAsync();
+    }
+
+    private async void DisplayErrorDialog(string message)
+    {
+        ContentDialog myDialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = "Local Error",
+            Content = message,
+            PrimaryButtonText = "Ok"
+        };
+
+        await myDialog.ShowAsync();
     }
 }

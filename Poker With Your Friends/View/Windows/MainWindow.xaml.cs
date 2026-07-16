@@ -9,6 +9,8 @@ namespace Poker_With_Your_Friends;
 public sealed partial class MainWindow : Window
 {
     private MainWindowViewModel viewModel = new MainWindowViewModel();
+    private Action<string>? _serverErrorHandler;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -18,15 +20,16 @@ public sealed partial class MainWindow : Window
         viewModel.OnServerConnected += (Client c) =>
         {
             SetUpServerErrorHandler(c);
-            LocalErrorHandler();
         };
+
+        viewModel.OnGameWindowOpening += DetachClientErrorHandlers;
 
         viewModel.OnClientError += (String msg) =>
         {
             DisplayErrorDialog(msg);
         };
-        GameMenuPageViewModel.GameMenuError += DisplayErrorDialog;
     }
+
     public async void DisplayErrorDialog(String message)
     {
         ContentDialog myDialog = new ContentDialog();
@@ -55,26 +58,31 @@ public sealed partial class MainWindow : Window
 
     public void SetUpServerErrorHandler(Client c)
     {
-        if (c != null)
-        {
-            c.OnErrorReceived += (errorMessage) =>
-            {
-                App.MainDispatcher.TryEnqueue(() =>
-                {
-                    DisplayServerErrorDialog(errorMessage);
-                });
-            };
-        }
-    }
+        DetachClientErrorHandlers();
 
-    public void LocalErrorHandler()
-    {
-        viewModel.client.OnLocalError += (errorMessage) =>
+        if (c == null)
         {
-            App.MainDispatcher.TryEnqueue(() =>
+            return;
+        }
+
+        _serverErrorHandler = (errorMessage) =>
+        {
+            DispatcherQueue.TryEnqueue(() =>
             {
                 DisplayServerErrorDialog(errorMessage);
             });
         };
+
+        c.OnErrorReceived += _serverErrorHandler;
+    }
+
+    private void DetachClientErrorHandlers()
+    {
+        if (viewModel.client != null && _serverErrorHandler != null)
+        {
+            viewModel.client.OnErrorReceived -= _serverErrorHandler;
+        }
+
+        _serverErrorHandler = null;
     }
 }

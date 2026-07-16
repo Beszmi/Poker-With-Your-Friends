@@ -11,6 +11,7 @@ public partial class MainWindowViewModel : ObservableObject
 {
     public event Action<String>? OnClientError;
     public event Action<Client>? OnServerConnected;
+    public event Action? OnGameWindowOpening;
 
     public Game game = Game.ClientInstance;
     public String NewPlayerName { get; set; }
@@ -51,6 +52,7 @@ public partial class MainWindowViewModel : ObservableObject
         client?.RegisterNewPlayer(playerName);
 
         // 2. Pass the client to the GameWindow!
+        OnGameWindowOpening?.Invoke();
         GameWindow newWindow = new GameWindow(client);
         newWindow.Activate();
     }
@@ -107,6 +109,7 @@ public partial class MainWindowViewModel : ObservableObject
 
                 PlayerStore.CurrentPlayer = newlyRegisteredPlayer;
 
+                OnGameWindowOpening?.Invoke();
                 GameWindow newWindow = new GameWindow(client);
                 newWindow.Activate();
             }

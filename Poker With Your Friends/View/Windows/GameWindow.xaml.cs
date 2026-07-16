@@ -11,8 +11,15 @@ public sealed partial class GameWindow : Window
 {
     private void Window_Closed(object sender, WindowEventArgs args)
     {
+        if (client != null)
+        {
+            client.OnErrorReceived -= OnServerErrorReceived;
+            client.OnLocalError -= OnLocalErrorReceived;
+        }
+
         client?.Disconnect();
     }
+
     private Client? client;
 
     private GameWindowViewModel viewModel = new GameWindowViewModel();
@@ -24,7 +31,46 @@ public sealed partial class GameWindow : Window
 
         this.client = client;
 
+        client.OnErrorReceived += OnServerErrorReceived;
+        client.OnLocalError += OnLocalErrorReceived;
+
         RootFrame.Navigate(typeof(GameMenuPage), this.client);
+    }
+
+    private void OnServerErrorReceived(string errorMessage)
+    {
+        DispatcherQueue.TryEnqueue(() => DisplayServerErrorDialog(errorMessage));
+    }
+
+    private void OnLocalErrorReceived(string errorMessage)
+    {
+        DispatcherQueue.TryEnqueue(() => DisplayErrorDialog(errorMessage));
+    }
+
+    public async void DisplayErrorDialog(string message)
+    {
+        ContentDialog myDialog = new ContentDialog
+        {
+            XamlRoot = Content.XamlRoot,
+            Title = "Local Error",
+            Content = message,
+            PrimaryButtonText = "Ok"
+        };
+
+        await myDialog.ShowAsync();
+    }
+
+    public async void DisplayServerErrorDialog(string message)
+    {
+        ContentDialog myDialog = new ContentDialog
+        {
+            XamlRoot = Content.XamlRoot,
+            Title = "Error Recieved from server",
+            Content = message,
+            PrimaryButtonText = "Ok"
+        };
+
+        await myDialog.ShowAsync();
     }
 
     public void OnNavigationFailed(object sender, NavigationFailedEventArgs e)
