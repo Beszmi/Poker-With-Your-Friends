@@ -105,6 +105,10 @@ public partial class Table : ObservableObject
     [ObservableProperty]
     public partial bool IsGameActive { get; set; } = false;
 
+    [XmlAttribute("HandOver")]
+    [ObservableProperty]
+    public partial bool HandOver { get; set; } = false;
+
     [XmlIgnore]
     public TaskCompletionSource<PlayerDecision>? PlayerActionTcs { get; private set; }
 
@@ -183,6 +187,7 @@ public partial class Table : ObservableObject
         }
 
         BeforeBigBlind = true;
+        HandOver = false;
         Round++;
         SmallBlind = Round * 5;
         ToCall = SmallBlind;
@@ -192,6 +197,8 @@ public partial class Table : ObservableObject
         foreach(Player player in Players)
         {
             player.ClearCards();
+            player.Hand = null;
+            player.WonLast = false;
         }
         ZeroAllBets();
     }
@@ -435,34 +442,42 @@ public partial class Table : ObservableObject
             IsGameActive = true;
             StartRound();
 
-            bool handOver = await PlayRound();
+            //No cards round
+            HandOver = await PlayRound();
 
-            if (!handOver)
+
+            //Cards round
+            if (!HandOver)
             {
                 DealToPlayers();
-                handOver = await PlayRound();
+                HandOver = await PlayRound();
             }
 
-            if (!handOver)
+            //Flop
+            if (!HandOver)
             {
                 Housecards.Add(deck.DrawCard());
                 Housecards.Add(deck.DrawCard());
                 Housecards.Add(deck.DrawCard());
-                handOver = await PlayRound();
+                HandOver = await PlayRound();
             }
 
-            if (!handOver)
+            //Turn
+            if (!HandOver)
             {
                 Housecards.Add(deck.DrawCard());
-                handOver = await PlayRound();
+                HandOver = await PlayRound();
             }
 
-            if (!handOver)
+            //River
+            if (!HandOver)
             {
                 Housecards.Add(deck.DrawCard());
-                await PlayRound();
+                HandOver = await PlayRound();
             }
 
+            // Award pot / set WonLast before broadcasting so clients get a consistent end-of-hand UI.
+            HandOver = true;
             EndGameLogic();
         }
         finally
@@ -488,7 +503,8 @@ public partial class Table : ObservableObject
             player.HasFolded = false;
             player.IsAllIn = false;
             player.IsCurrentlyActivePlayer = false;
-            player.Hand = null;
+            // Keep Cards / Hand / WonLast until StartRound so the winner showcase stays visible
+            // during the inter-hand delay.
         }
 
         BeforeBigBlind = true;
@@ -639,6 +655,7 @@ public partial class Table : ObservableObject
         localTable.SmallBlind = networkTable.SmallBlind;
         localTable.Pot = networkTable.Pot;
         localTable.IsGameActive = networkTable.IsGameActive;
+        localTable.HandOver = networkTable.HandOver;
         localTable.TableText = networkTable.TableText;
         localTable.Antee = networkTable.Antee;
         localTable.ToCall = networkTable.ToCall;
@@ -713,6 +730,7 @@ public partial class Table : ObservableObject
         var remainingPlayers = Players.Where(p => !p.HasFolded).ToList();
         if (remainingPlayers.Count == 0 || Pot <= 0)
         {
+            OnUpdateTableRequest?.Invoke(this);
             return;
         }
 
@@ -736,6 +754,7 @@ public partial class Table : ObservableObject
         var eligiblePlayers = remainingPlayers.Where(p => p.Hand != null).ToList();
         if (eligiblePlayers.Count == 0)
         {
+            OnUpdateTableRequest?.Invoke(this);
             return;
         }
 

@@ -275,6 +275,7 @@ public class Game //Singleton
             player.PotBet = 0;
             player.RoundBet = 0;
             player.IsAllIn = false;
+            player.WonLast = false;
         }
 
         try

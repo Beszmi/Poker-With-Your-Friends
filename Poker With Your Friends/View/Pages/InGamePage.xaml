@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Page
     x:Class="Poker_With_Your_Friends.InGamePage"
+    x:Name="RootPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Poker_With_Your_Friends"
@@ -69,7 +70,8 @@
             <Run Text="$"/>
         </TextBlock>
 
-        <StackPanel Grid.Column="0" Grid.Row="3" Grid.ColumnSpan="3" HorizontalAlignment="Center" VerticalAlignment="Bottom" Visibility="{x:Bind viewModel.IsplayerOnOwnTable, Mode=OneWay}">
+        <StackPanel Grid.Column="0" Grid.Row="3" Grid.ColumnSpan="3" HorizontalAlignment="Center" VerticalAlignment="Bottom" Visibility="{x:Bind viewModel.IsplayerOnOwnTable, Mode=OneWay}" Background="{x:Bind viewModel.PlayerStore.CurrentPlayer.BgColor, Mode=OneWay}">
+            <TextBlock HorizontalAlignment="Center" Text="You won! 🥳🥳🥳" Visibility="{x:Bind viewModel.IsCurrentPlayerWinner, Mode=OneWay}"/>
             <TextBlock HorizontalAlignment="Center" Text="{x:Bind viewModel.CurrentPlayerHandName, Mode=OneWay}"/>
             <ListView ItemsSource="{x:Bind viewModel.MyCards, Mode=OneWay}">
                 <ListView.ItemsPanel>
@@ -83,6 +85,13 @@
                     </DataTemplate>
                 </ListView.ItemTemplate>
             </ListView>
+            <StackPanel Orientation="Horizontal" Margin="5" Spacing="5">
+                <TextBlock Text="{x:Bind viewModel.PlayerStore.CurrentPlayer.Name, Mode=OneWay}" VerticalAlignment="Top" HorizontalAlignment="Center" FontSize="24" Foreground="Red"/>
+                <TextBlock VerticalAlignment="Bottom" HorizontalAlignment="Left" FontSize="12">
+                    <Run Text="Chips: "/>
+                    <Run Text="{x:Bind viewModel.PlayerStore.CurrentPlayer.Chips, Mode=OneWay}"/>
+                </TextBlock>
+            </StackPanel>
             <StackPanel Orientation="Horizontal">
                 <Button Content="{x:Bind viewModel.CallButtonText, Mode=OneWay}" IsEnabled="{x:Bind viewModel.PlayerActionButtonsEnabled, Mode=OneWay}" Click="viewModel.CallButton_Click"/>
                 <StackPanel Orientation="Vertical">
@@ -94,7 +103,8 @@
             </StackPanel>
         </StackPanel>
 
-        <ListView Grid.Column="1" Grid.Row="4" HorizontalAlignment="Center" VerticalAlignment="Bottom" ItemsSource="{x:Bind viewModel.Table.Players, Mode=OneWay}" Margin="10">
+        <!-- Opponent cards shown -->
+        <ListView Grid.Column="1" Grid.Row="4" HorizontalAlignment="Center" VerticalAlignment="Bottom" ItemsSource="{x:Bind viewModel.OpponentPlayers, Mode=OneWay}" Margin="10" Visibility="{x:Bind viewModel.OpponentCardsRevealed, Mode=OneWay}">
             <ListView.ItemsPanel>
                 <ItemsPanelTemplate>
                     <ItemsStackPanel Orientation="Horizontal" />
@@ -102,7 +112,8 @@
             </ListView.ItemsPanel>
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="Model:Player">
-                    <StackPanel Background="LightGreen" Height="250" Width="200">
+                    <StackPanel Background="{x:Bind BgColor, Mode=OneWay}" Height="Auto" Width="Auto">
+                        <TextBlock HorizontalAlignment="Center" Text="{x:Bind HandName, Mode=OneWay}"/>
                         <ListView ItemsSource="{x:Bind Cards, Mode=OneWay}">
                             <ListView.ItemsPanel>
                                 <ItemsPanelTemplate>
@@ -115,6 +126,30 @@
                                 </DataTemplate>
                             </ListView.ItemTemplate>
                         </ListView>
+                        <TextBlock HorizontalAlignment="Center" Text="{x:Bind Name, Mode=OneWay}" FontSize="24" Foreground="Red"/>
+                        <TextBlock HorizontalAlignment="Left" FontSize="12">
+                            <Run Text="Chips: "/>
+                            <Run Text="{x:Bind Chips, Mode=OneWay}"/>
+                        </TextBlock>
+                    </StackPanel>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+
+        <!-- Opponent cards NOT shown -->
+        <ListView Grid.Column="1" Grid.Row="4" HorizontalAlignment="Center" VerticalAlignment="Bottom" ItemsSource="{x:Bind viewModel.OpponentPlayers, Mode=OneWay}" Margin="10" Visibility="{x:Bind viewModel.OpponentCardsNotRevealed, Mode=OneWay}">
+            <ListView.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <ItemsStackPanel Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+            </ListView.ItemsPanel>
+            <ListView.ItemTemplate>
+                <DataTemplate x:DataType="Model:Player">
+                    <StackPanel Background="#9900FF00" Height="Auto" Width="Auto">
+                        <StackPanel Orientation="Horizontal" Visibility="{Binding viewModel.CardsDealt, ElementName=RootPage}">
+                            <Image Source="/Assets/cardEmpty.jpg" Width="100" Height="140"/>
+                            <Image Source="/Assets/cardEmpty.jpg" Width="100" Height="140"/>
+                        </StackPanel>
                         <TextBlock Text="{x:Bind Name, Mode=OneWay}" VerticalAlignment="Top" HorizontalAlignment="Center" FontSize="24" Foreground="Red"/>
                         <TextBlock VerticalAlignment="Bottom" HorizontalAlignment="Left" FontSize="12">
                             <Run Text="Chips: "/>

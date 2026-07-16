@@ -80,9 +80,28 @@ public partial class Player : ObservableObject
     [ObservableProperty]
     public partial bool IsAllIn { get; set; } = false;
 
+    [XmlAttribute("Wonlast")]
+    [ObservableProperty]
+    public partial bool WonLast { get; set; } = false;
+
     [XmlIgnore]
     [ObservableProperty]
-    public partial Hand Hand { get; set; }
+    public partial Hand? Hand { get; set; }
+
+    // WinUI hex brushes are #AARRGGBB (CSS-style #RRGGBBAA reads as the wrong color).
+    public string BgColor => WonLast ? "#99FFFF00" : "#9900FF00";
+
+    public string HandName => Hand?.ToString() ?? string.Empty;
+
+    partial void OnWonLastChanged(bool value)
+    {
+        OnPropertyChanged(nameof(BgColor));
+    }
+
+    partial void OnHandChanged(Hand? value)
+    {
+        OnPropertyChanged(nameof(HandName));
+    }
 
     public void Fold() { HasFolded = true; }
 
@@ -104,6 +123,7 @@ public partial class Player : ObservableObject
     public void Win(int amount)
     {
         Chips += amount;
+        WonLast = true;
     }
 
     public void UpdateProperties(Player NewPlayer)
@@ -115,6 +135,7 @@ public partial class Player : ObservableObject
         PotBet = NewPlayer.PotBet;
         IsCurrentlyActivePlayer = NewPlayer.IsCurrentlyActivePlayer;
         IsAllIn = NewPlayer.IsAllIn;
+        WonLast = NewPlayer.WonLast;
 
         Cards.Clear();
         foreach (var card in NewPlayer.Cards)

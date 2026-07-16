@@ -51,6 +51,20 @@ public partial class InGamePageViewModel : ObservableObject
     [ObservableProperty]
     public partial String CurrentPlayerHandName { get; set; } = "No hand";
 
+    public ObservableCollection<Player> OpponentPlayers { get; } = new ObservableCollection<Player>();
+
+    [ObservableProperty]
+    public partial Visibility OpponentCardsRevealed { get; set; } = Visibility.Collapsed;
+
+    [ObservableProperty]
+    public partial Visibility OpponentCardsNotRevealed { get; set; } = Visibility.Visible;
+
+    [ObservableProperty]
+    public partial Visibility CardsDealt { get; set; } = Visibility.Collapsed;
+
+    [ObservableProperty]
+    public partial Visibility IsCurrentPlayerWinner { get; set; } = Visibility.Collapsed;
+
     public ObservableCollection<Card>? MyCards => PlayerStore?.CurrentPlayer?.Cards;
 
     private DispatcherQueue _dispatcherQueue;
@@ -149,11 +163,32 @@ public partial class InGamePageViewModel : ObservableObject
 
         bool isAtThisTable = Table.Players.Any(p => p.Name == PlayerStore.CurrentPlayer.Name);
 
+        CardsDealt = Table.Players.Any(p => p.Cards.Count > 0)
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+
+        RebuildOpponentPlayers(isAtThisTable);
+
         if (isAtThisTable)
         {
             IsplayerOnOwnTable = Visibility.Visible;
             IsJoinButtonVisible = Visibility.Collapsed;
             IsLeaveButtonVisible = Visibility.Visible;
+
+            if (Table.HandOver)
+            {
+                OpponentCardsRevealed = Visibility.Visible;
+                OpponentCardsNotRevealed = Visibility.Collapsed;
+                IsCurrentPlayerWinner = PlayerStore.CurrentPlayer.WonLast
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
+            }
+            else
+            {
+                OpponentCardsRevealed = Visibility.Collapsed;
+                OpponentCardsNotRevealed = Visibility.Visible;
+                IsCurrentPlayerWinner = Visibility.Collapsed;
+            }
 
             PlayerActionButtonsEnabled = !string.IsNullOrEmpty(Table.ActivePlayerName)
                 && Table.ActivePlayerName == PlayerStore.CurrentPlayer.Name;
@@ -175,7 +210,11 @@ public partial class InGamePageViewModel : ObservableObject
             }
             if (PlayerStore.CurrentPlayer.Cards.Count == 2)
             {
-                CurrentPlayerHandName = PlayerStore.CurrentPlayer.Hand.ToString();
+                CurrentPlayerHandName = PlayerStore.CurrentPlayer.HandName;
+            }
+            else
+            {
+                CurrentPlayerHandName = "No hand";
             }
         }
         else
@@ -185,6 +224,25 @@ public partial class InGamePageViewModel : ObservableObject
             IsLeaveButtonVisible = Visibility.Collapsed;
             IsRaiseButtonEnabled = false;
             PlayerActionButtonsEnabled = false;
+
+            OpponentCardsRevealed = Visibility.Visible;
+            OpponentCardsNotRevealed = Visibility.Collapsed;
+            IsCurrentPlayerWinner = Visibility.Collapsed;
+        }
+    }
+
+    private void RebuildOpponentPlayers(bool isAtThisTable)
+    {
+        OpponentPlayers.Clear();
+
+        foreach (Player player in Table.Players)
+        {
+            if (isAtThisTable && player.Name == PlayerStore!.CurrentPlayer!.Name)
+            {
+                continue;
+            }
+
+            OpponentPlayers.Add(player);
         }
     }
 
