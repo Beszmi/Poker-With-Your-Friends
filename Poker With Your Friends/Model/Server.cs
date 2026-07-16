@@ -325,23 +325,46 @@ public class Server
             case "52": AddPlayerToTable(clientId, payload); break;
             case "53": RemovePlayerFromTable(clientId, payload); break;
             case "54": HandlePlayerAction(clientId, payload); break;
+            case "55": LoginPlayer(clientId, payload); break;
         }
     }
 
     private void RegisterNewPlayer(string clientId, string playerName)
     {
-        if (game.DoesPlayerAlreadyExist(playerName) && IsPlayerLoggedIn(playerName))
+        if (game.DoesPlayerAlreadyExist(playerName))
+        {
+            BroadcastServerErrorClient(clientId, $"Someone already Registered as {playerName}");
+            return;
+        }
+
+        if (IsPlayerLoggedIn(playerName))
         {
             BroadcastServerErrorClient(clientId, $"Someone already logged in as {playerName}");
             return;
         }
-        _clientToPlayerName[clientId] = playerName;
 
+        _clientToPlayerName[clientId] = playerName;
+        game.AddPlayer(new Player(playerName), true);
+        BroadcastNewPlayer(playerName);
+    }
+
+    private void LoginPlayer(string clientId, string playerName)
+    {
         if (!game.DoesPlayerAlreadyExist(playerName))
         {
-            game.AddPlayer(new Player(playerName), true);
-            BroadcastNewPlayer(playerName);
+            BroadcastServerErrorClient(clientId, $"Player {playerName} is not registered");
+            return;
         }
+
+        if (IsPlayerLoggedIn(playerName))
+        {
+            BroadcastServerErrorClient(clientId, $"Someone already logged in as {playerName}");
+            return;
+        }
+
+        _clientToPlayerName[clientId] = playerName;
+        // Other clients may have removed this player on disconnect; announce them again.
+        BroadcastNewPlayer(playerName);
     }
 
     private void CreateNewTable(string message)

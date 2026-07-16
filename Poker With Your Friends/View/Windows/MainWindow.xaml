@@ -23,7 +23,10 @@
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
-        <TextBlock Text="Poker With Your Friends" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="3" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,20" FontSize="24" FontWeight="Bold" />
+        <StackPanel Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="3" Margin="0,0,0,20">
+            <TextBlock Text="Poker With Your Friends" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,10" FontSize="24" FontWeight="Bold" />
+            <TextBlock Text="{x:Bind viewModel.ServerText, Mode=OneWay}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="18" />
+        </StackPanel>
 
         <StackPanel Grid.Column="0" Grid.Row="1" Spacing="15" Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{x:Bind viewModel.ServerPickerVisible, Mode=OneWay}">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
@@ -36,14 +39,18 @@
                 <NumberBox Width="200" Text="{x:Bind viewModel.ServerPort, Mode=TwoWay}" Minimum="1023" Maximum="49151" SpinButtonPlacementMode="Inline" SmallChange="1" LargeChange="10" />
             </StackPanel>
 
-            <Button Click="viewModel.ConnectToServer_Click" HorizontalAlignment="Center" IsEnabled="{x:Bind viewModel.IsConnectButtonEnabled, Mode=OneWay}">Connect to server</Button>
+            <Button Click="viewModel.ConnectToServer_Click" HorizontalAlignment="Center" IsEnabled="{x:Bind viewModel.IsConnectButtonEnabled, Mode=OneWay}" Content="Connect to server" />
         </StackPanel>
 
-        <Grid Grid.Column="0" Grid.Row="1" Grid.RowSpan="2" Visibility="{x:Bind viewModel.PlayerPickerVisible, Mode=OneWay}">
+        <Grid Grid.Column="0" Grid.Row="1" Grid.RowSpan="2" Visibility="{x:Bind viewModel.PlayerPickerVisible, Mode=OneWay}" VerticalAlignment="Center">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
 
             <StackPanel Grid.Column="0" Grid.Row="0" Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,20,0,0" Spacing="10">
                 <ComboBox Width="200" ItemsSource="{x:Bind viewModel.game.PlayerNames}" SelectedItem="{x:Bind viewModel.SelectedPlayerName, Mode=TwoWay}" PlaceholderText="Select a player" PlaceholderForeground="Red" />
@@ -57,7 +64,8 @@
                 </StackPanel>
                 <Button Click="viewModel.RegisterNewPlayerClick" HorizontalAlignment="Center" IsEnabled="{x:Bind viewModel.IsRegisterButtonEnabled, Mode=OneWay}">Register new player and Start</Button>
             </StackPanel>
-
+            
+            <Button Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2" Click="LeaveServer_Click" HorizontalAlignment="Center" IsEnabled="{x:Bind viewModel.IsConnectButtonEnabled, Mode=OneWay}" Content="Leave server" />
         </Grid>
 
         <StackPanel Grid.Column="2" Grid.Row="1" Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,20,0,0" Spacing="10">

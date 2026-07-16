@@ -85,4 +85,9 @@ public sealed partial class MainWindow : Window
 
         _serverErrorHandler = null;
     }
+
+    private void LeaveServer_Click(object sender, RoutedEventArgs e)
+    {
+        viewModel.LeaveServer();
+    }
 }

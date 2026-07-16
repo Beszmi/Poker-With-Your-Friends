@@ -317,4 +317,11 @@ public class Game //Singleton
         }
         return false;
     }
+
+    public void Clear ()
+    {
+        Players.Clear();
+        Tables.Clear();
+        RefreshPlayerNames();
+    }
 }

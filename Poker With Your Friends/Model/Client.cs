@@ -115,6 +115,11 @@ public class Client
     {
         SendMessage("50" + name);
     }
+
+    public void LoginPlayer(String name)
+    {
+        SendMessage("55" + name);
+    }
     public void CreateNewTable(String tableName)
     {
         SendMessage("51" + tableName);
@@ -139,7 +144,17 @@ public class Client
 
     public void PlayerLeavingTable(Table table)
     {
-        SendMessage("53" + game.Tables.IndexOf(PlayerStore.CurrentTable) + PlayerStore.CurrentPlayer.Name);
+        var liveTable = game.Tables.FirstOrDefault(t => t.Name == table.Name)
+            ?? PlayerStore.CurrentTable;
+        int tableId = liveTable != null ? game.Tables.IndexOf(liveTable) : -1;
+        string? playerName = PlayerStore.CurrentPlayer?.Name;
+
+        if (tableId < 0 || string.IsNullOrEmpty(playerName))
+        {
+            return;
+        }
+
+        SendMessage("53" + tableId + playerName);
         PlayerStore.CurrentTable = null;
     }
 
@@ -158,7 +173,7 @@ public class Client
         switch (command)
         {
             case "00": UpdateGameState(message); break;
-            case "01": game.AddPlayer(new Player(payload), false); break;
+            case "01": PlayerLogin(message); break;
             case "02": game.RemovePlayer(game.GetPlayerFromName(payload)); break;
             case "03": game.AddTable(payload, false); break;
             case "04": throw new NotImplementedException(); break;
@@ -197,6 +212,13 @@ public class Client
                 game.GameStateUpdate(deserializedGame);
             }
         }
+    }
+
+    private void PlayerLogin(String message)
+    {
+        if (!game.DoesPlayerAlreadyExist(message))
+            RunOnUiThread(() =>
+            { game.AddPlayer(new Player(message), false); });
     }
 
     private void UpdateTableState(String message)
@@ -331,9 +353,16 @@ public class Client
 
     public void Disconnect()
     {
+        InGamePage.OnJoinGameClick -= PlayerJoiningTable;
+        InGamePage.OnLeaveGameClick -= PlayerLeavingTable;
+
         _cts.Cancel();
         _writer?.Complete();
+        _writer = null;
         _tcpClient?.Close();
+        game.Clear();
+        PlayerStore.CurrentPlayer = null;
+        PlayerStore.CurrentTable = null;
         System.Diagnostics.Debug.WriteLine("Disconnected manually.");
     }
 }

@@ -16,8 +16,6 @@ public sealed partial class GameWindow : Window
             client.OnErrorReceived -= OnServerErrorReceived;
             client.OnLocalError -= OnLocalErrorReceived;
         }
-
-        client?.Disconnect();
     }
 
     private Client? client;

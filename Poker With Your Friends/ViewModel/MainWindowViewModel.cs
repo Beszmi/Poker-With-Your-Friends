@@ -38,6 +38,9 @@ public partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     public partial bool IsRegisterButtonEnabled { get; set; } = true;
 
+    [ObservableProperty]
+    public partial String ServerText { get; set; } = "You are currently not connected to a server";
+
     public Client? client;
     public IPlayerStore PlayerStore { get; } = new PlayerStore();
 
@@ -49,7 +52,7 @@ public partial class MainWindowViewModel : ObservableObject
         if (string.IsNullOrEmpty(playerName)) return;
 
         PlayerStore.CurrentPlayer = game.GetPlayerFromName(playerName);
-        client?.RegisterNewPlayer(playerName);
+        client?.LoginPlayer(playerName);
 
         // 2. Pass the client to the GameWindow!
         OnGameWindowOpening?.Invoke();
@@ -80,24 +83,36 @@ public partial class MainWindowViewModel : ObservableObject
             }
             IsRegisterButtonEnabled = false;
 
-            var tcs = new TaskCompletionSource<Player>();
+            var playerTcs = new TaskCompletionSource<Player>();
+            var errorTcs = new TaskCompletionSource<string>();
 
             void CheckNewPlayer(Player p)
             {
                 if (p.Name == NewPlayerName)
                 {
-                    tcs.TrySetResult(p);
+                    playerTcs.TrySetResult(p);
                 }
             }
 
+            void OnRegistrationError(string errorMessage)
+            {
+                errorTcs.TrySetResult(errorMessage);
+            }
+
             game.OnPlayerAdded += CheckNewPlayer;
+            client?.OnErrorReceived += OnRegistrationError;
 
             client?.RegisterNewPlayer(NewPlayerName);
 
             try
             {
                 var timeoutTask = Task.Delay(TimeSpan.FromSeconds(10));
-                var completedTask = await Task.WhenAny(tcs.Task, timeoutTask);
+                var completedTask = await Task.WhenAny(playerTcs.Task, timeoutTask, errorTcs.Task);
+
+                if (completedTask == errorTcs.Task)
+                {
+                    return;
+                }
 
                 if (completedTask == timeoutTask)
                 {
@@ -105,7 +120,7 @@ public partial class MainWindowViewModel : ObservableObject
                     return;
                 }
 
-                Player newlyRegisteredPlayer = await tcs.Task;
+                Player newlyRegisteredPlayer = await playerTcs.Task;
 
                 PlayerStore.CurrentPlayer = newlyRegisteredPlayer;
 
@@ -116,6 +131,7 @@ public partial class MainWindowViewModel : ObservableObject
             finally
             {
                 game.OnPlayerAdded -= CheckNewPlayer;
+                client?.OnErrorReceived -= OnRegistrationError;
                 IsRegisterButtonEnabled = true;
             }
         }
@@ -123,6 +139,7 @@ public partial class MainWindowViewModel : ObservableObject
 
     public async void ConnectToServer_Click(object sender, RoutedEventArgs e)
     {
+        client?.Disconnect();
         client = new Client(ServerHostName, ServerPort, PlayerStore);
 
         IsConnectButtonEnabled = false;
@@ -133,6 +150,7 @@ public partial class MainWindowViewModel : ObservableObject
 
             ServerPickerVisible = Visibility.Collapsed;
             PlayerPickerVisible = Visibility.Visible;
+            ServerText = $"You are currently connected to Server {client.Host} at Port: {client.Port}";
         }
         catch (Exception ex)
         {
@@ -143,5 +161,13 @@ public partial class MainWindowViewModel : ObservableObject
             OnServerConnected?.Invoke(client);
             IsConnectButtonEnabled = true;
         }
+    }
+
+    public void LeaveServer()
+    {
+        client?.Disconnect();
+        ServerPickerVisible = Visibility.Visible;
+        PlayerPickerVisible = Visibility.Collapsed;
+        ServerText = "You are currently not connected to Server";
     }
 }

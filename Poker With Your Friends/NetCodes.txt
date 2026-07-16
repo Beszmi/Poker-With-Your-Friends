@@ -9,12 +9,13 @@
 08: Start table timer Server -> Client
 09: Send table text Server -> Client (temporary)
 10: Update Player chips Server -> Client
-10: Update Player name and chips Server -> Client
+11: Update Player name and chips Server -> Client
 
 50: RegisterNewPlayer Client -> Server
 51: Adding new Table Client -> Server
 52: Player joining a table Client -> Server
 53: Player leaving table Client -> Server
 54: Player action Client -> Server
+55: Login Player Client -> Server
 
 99: error message Server -> Client
