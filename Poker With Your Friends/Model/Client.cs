@@ -13,6 +13,8 @@ namespace Poker_With_Your_Friends.Model;
 
 public class Client
 {
+    private const long MaxFrameBytes = 8 * 1024 * 1024;
+
     public IPlayerStore PlayerStore { get; }
 
     public TimerService TimerService { get; } = new TimerService();
@@ -25,9 +27,12 @@ public class Client
     public String Host { get; set; }
     public int Port { get; set; }
 
-    private PipeWriter? _writer;
+    private OutboundMessageQueue? _outbound;
     private TcpClient? _tcpClient;
     private CancellationTokenSource _cts = new();
+    private Task? _receiveTask;
+    private Task? _outboundMonitorTask;
+    private int _disconnected;
 
     private Game game = Game.ClientInstance;
 
@@ -44,15 +49,24 @@ public class Client
     public async Task ConnectAndRunAsync()
     {
         _tcpClient = new TcpClient();
-        await _tcpClient.ConnectAsync(Host, Port);
-        System.Diagnostics.Debug.WriteLine("Connected to server!");
+        try
+        {
+            await _tcpClient.ConnectAsync(Host, Port, _cts.Token);
+            _tcpClient.NoDelay = true;
+            System.Diagnostics.Debug.WriteLine("Connected to server!");
 
-        var stream = _tcpClient.GetStream();
-        var reader = PipeReader.Create(stream);
-        _writer = PipeWriter.Create(stream);
+            var stream = _tcpClient.GetStream();
+            var reader = PipeReader.Create(stream);
+            _outbound = new OutboundMessageQueue(stream, _cts.Token);
 
-        // Run the receive loop in the background indefinitely
-        _ = ReceiveLoopAsync(reader, _cts.Token);
+            _receiveTask = ReceiveLoopAsync(reader, _cts.Token);
+            _outboundMonitorTask = MonitorOutboundAsync(_outbound);
+        }
+        catch
+        {
+            _tcpClient.Close();
+            throw;
+        }
     }
 
     private async Task ReceiveLoopAsync(PipeReader reader, CancellationToken token)
@@ -64,36 +78,80 @@ public class Client
                 ReadResult result = await reader.ReadAsync(token);
                 ReadOnlySequence<byte> buffer = result.Buffer;
 
-                while (TryReadMessage(ref buffer, out string? response))
+                while (TryReadMessage(ref buffer, out string response))
                 {
                     InterpretMessage(response);
 
                     System.Diagnostics.Debug.WriteLine($"[Game Update]: {response}");
                 }
 
+                if (buffer.Length > MaxFrameBytes)
+                {
+                    throw new InvalidDataException(
+                        $"Received a frame larger than {MaxFrameBytes} bytes.");
+                }
+
                 reader.AdvanceTo(buffer.Start, buffer.End);
-                if (result.IsCompleted) break;
+                if (result.IsCompleted)
+                {
+                    if (!token.IsCancellationRequested)
+                    {
+                        OnLocalError?.Invoke("The server closed the connection.");
+                    }
+                    break;
+                }
             }
         }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) {}
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Connection lost: {ex.Message}");
+            OnLocalError?.Invoke($"Connection lost: {ex.Message}");
         }
         finally
         {
+            _outbound?.Abort();
+            _tcpClient?.Close();
             await reader.CompleteAsync();
         }
     }
 
-    private bool TryReadMessage(ref ReadOnlySequence<byte> buffer, out string? message)
+    private async Task MonitorOutboundAsync(OutboundMessageQueue outbound)
+    {
+        try
+        {
+            await outbound.Completion;
+        }
+        catch (OperationCanceledException) {}
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Send failed: {ex.Message}");
+            if (!_cts.IsCancellationRequested)
+            {
+                OnLocalError?.Invoke($"Failed to send to server: {ex.Message}");
+            }
+        }
+        finally
+        {
+            _tcpClient?.Close();
+        }
+    }
+
+    private bool TryReadMessage(ref ReadOnlySequence<byte> buffer, out string message)
     {
         SequencePosition? position = buffer.PositionOf((byte)'\n');
         if (position == null)
         {
-            message = null;
+            message = string.Empty;
             return false;
         }
-        message = Encoding.UTF8.GetString(buffer.Slice(0, position.Value));
+        ReadOnlySequence<byte> lineSlice = buffer.Slice(0, position.Value);
+        if (lineSlice.Length > MaxFrameBytes)
+        {
+            throw new InvalidDataException(
+                $"Received a frame larger than {MaxFrameBytes} bytes.");
+        }
+        message = Encoding.UTF8.GetString(lineSlice);
         buffer = buffer.Slice(buffer.GetPosition(1, position.Value));
         return true;
     }
@@ -105,10 +163,20 @@ public class Client
      -------------------------------------------------------*/
     private void SendMessage(string message)
     {
-        if (_writer == null) return;
-        byte[] messageBytes = Encoding.UTF8.GetBytes(message + "\n");
-        _writer.WriteAsync(messageBytes);
-        _writer.FlushAsync();
+        OutboundMessageQueue? outbound = _outbound;
+        if (outbound == null)
+        {
+            OnLocalError?.Invoke("Cannot send because the client is not connected.");
+            return;
+        }
+
+        byte[] messageBytes = OutboundMessageQueue.EncodeFrame(message);
+        if (!outbound.TryEnqueue(messageBytes))
+        {
+            OnLocalError?.Invoke(
+                "The connection cannot keep up with outgoing messages and was closed.");
+            _tcpClient?.Close();
+        }
     }
 
     public void RegisterNewPlayer(String name)
@@ -134,7 +202,7 @@ public class Client
             int tableId = game.Tables.IndexOf(liveTable);
 
             PlayerStore.CurrentTable = liveTable;
-            SendMessage("52" + tableId + PlayerStore.CurrentPlayer.Name);
+            SendMessage("52" + tableId + PlayerStore.CurrentPlayer?.Name);
         }
         else
         {
@@ -165,6 +233,12 @@ public class Client
      -------------------------------------------------------*/
     private void InterpretMessage(String message)
     {
+        if (string.IsNullOrWhiteSpace(message) || message.Length < 2)
+        {
+            System.Diagnostics.Debug.WriteLine("Ignored malformed server message.");
+            return;
+        }
+
         string command = message.Substring(0, 2);
         string payload = message.Substring(2);
 
@@ -256,10 +330,7 @@ public class Client
 
     private void StartTableTimerOnUiThread(int tableIndex, int seconds)
     {
-        if (tableIndex < 0 || tableIndex >= game.Tables.Count)
-        {
-            return;
-        }
+        if (tableIndex < 0 || tableIndex >= game.Tables.Count) return;
 
         TimerService.GetOrCreateTimer(game.Tables[tableIndex]).StartTimer(seconds);
     }
@@ -296,10 +367,7 @@ public class Client
     private void UpdatePlayerChips(string payload)
     {
         string[] parts = payload.Split(',');
-        if (parts.Length < 2 || !Int32.TryParse(parts[1], out int chips))
-        {
-            return;
-        }
+        if (parts.Length < 2 || !Int32.TryParse(parts[1], out int chips)) return;
 
         string playerName = parts[0];
         RunOnUiThread(() =>
@@ -318,10 +386,7 @@ public class Client
     private void UpdatePlayerNameAndChips(string payload)
     {
         string[] parts = payload.Split(',');
-        if (parts.Length < 3 || !Int32.TryParse(parts[2], out int chips))
-        {
-            return;
-        }
+        if (parts.Length < 3 || !Int32.TryParse(parts[2], out int chips)) return;
 
         string oldName = parts[0];
         string newName = parts[1];
@@ -353,13 +418,27 @@ public class Client
 
     public void Disconnect()
     {
+        if (Interlocked.Exchange(ref _disconnected, 1) != 0) return;
+
         InGamePage.OnJoinGameClick -= PlayerJoiningTable;
         InGamePage.OnLeaveGameClick -= PlayerLeavingTable;
 
         _cts.Cancel();
-        _writer?.Complete();
-        _writer = null;
         _tcpClient?.Close();
+        _outbound?.Abort();
+
+        try
+        {
+            _outbound?.DisposeAsync().AsTask().GetAwaiter().GetResult();
+            _receiveTask?.GetAwaiter().GetResult();
+            _outboundMonitorTask?.GetAwaiter().GetResult();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Disconnect cleanup failed: {ex.Message}");
+        }
+
+        _outbound = null;
         game.Clear();
         PlayerStore.CurrentPlayer = null;
         PlayerStore.CurrentTable = null;

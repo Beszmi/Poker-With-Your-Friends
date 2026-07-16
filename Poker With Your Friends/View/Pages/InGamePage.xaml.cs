@@ -118,8 +118,8 @@ public sealed partial class InGamePage : Page
     {
         DispatcherQueue.TryEnqueue(() =>
         {
-            viewModel.PlayerStore.CurrentTable?.RemovePlayer(viewModel.PlayerStore.CurrentPlayer);
-            viewModel.PlayerStore.CurrentTable = null;
+            viewModel.PlayerStore?.CurrentTable?.RemovePlayer(viewModel.PlayerStore.CurrentPlayer);
+            viewModel.PlayerStore?.CurrentTable = null;
 
             viewModel.IsplayerOnOwnTable = Visibility.Collapsed;
             viewModel.IsJoinButtonVisible = Visibility.Visible;

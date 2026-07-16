@@ -2,7 +2,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
+using System.IO;
 using System.IO.Pipelines;
 using System.Net;
 using System.Net.Sockets;
@@ -16,8 +16,11 @@ namespace Poker_With_Your_Friends.Model;
 
 public class Server
 {
+    private const long MaxFrameBytes = 8 * 1024 * 1024;
+
     private readonly TcpListener _listener;
     private readonly CancellationTokenSource _cts = new();
+    private int _stopped;
 
     private Game game = Game.ServerInstance;
 
@@ -42,8 +45,30 @@ public class Server
         ServerWindowViewModel.OnPlayerEdit += PlayerEdit;
     }
 
-    private readonly ConcurrentDictionary<string, PipeWriter> _connectedClients = new();
+    private readonly ConcurrentDictionary<string, ClientConnection> _connectedClients = new();
     private readonly ConcurrentDictionary<string, string> _clientToPlayerName = new();
+
+    private sealed class ClientConnection
+    {
+        private int _closed;
+
+        public ClientConnection(TcpClient client, OutboundMessageQueue outbound)
+        {
+            Client = client;
+            Outbound = outbound;
+        }
+
+        public TcpClient Client { get; }
+        public OutboundMessageQueue Outbound { get; }
+
+        public void Close()
+        {
+            if (Interlocked.Exchange(ref _closed, 1) == 0)
+            {
+                Client.Close();
+            }
+        }
+    }
 
     public bool debugMessages = false;
 
@@ -62,6 +87,7 @@ public class Server
             try
             {
                 var tcpClient = await _listener.AcceptTcpClientAsync(_cts.Token);
+                tcpClient.NoDelay = true;
                 _ = HandleClientAsync(tcpClient);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
@@ -78,123 +104,134 @@ public class Server
         {
             OnServerLoggedEvent?.Invoke("Client connected!");
             var reader = PipeReader.Create(stream);
-            var writer = PipeWriter.Create(stream);
-
             string clientId = Guid.NewGuid().ToString();
-
-            _connectedClients.TryAdd(clientId, writer);
+            var outbound = new OutboundMessageQueue(stream, _cts.Token);
+            var connection = new ClientConnection(client, outbound);
+            _connectedClients.TryAdd(clientId, connection);
+            Task outboundMonitor = MonitorOutboundAsync(clientId, connection);
 
             try
             {
                 await SendGameStateAsync(clientId);
-            }
-            catch (Exception e)
-            {
-                OnServerLoggedEvent?.Invoke($"Error: {e.Message}");
-                OnServerLoggedEvent?.Invoke($"Inner: {e.InnerException?.Message}");
-                OnServerLoggedEvent?.Invoke($"Inner-Inner: {e.InnerException?.InnerException?.Message}");
-            }
 
-            try
-            {
-                while (true)
+                while (!_cts.IsCancellationRequested)
                 {
-                    ReadResult result = await reader.ReadAsync();
+                    ReadResult result = await reader.ReadAsync(_cts.Token);
                     ReadOnlySequence<byte> buffer = result.Buffer;
 
-                    while (TryReadMessage(ref buffer, out string? message))
+                    while (TryReadMessage(ref buffer, out string message))
                     {
-                        InterpretMessage(clientId, message);
+                        await InterpretMessageAsync(clientId, message);
+                    }
+
+                    if (buffer.Length > MaxFrameBytes)
+                    {
+                        throw new InvalidDataException(
+                            $"Client {clientId} sent a frame larger than {MaxFrameBytes} bytes.");
                     }
 
                     reader.AdvanceTo(buffer.Start, buffer.End);
                     if (result.IsCompleted) break;
                 }
             }
+            catch (OperationCanceledException) when (_cts.IsCancellationRequested) {}
             catch (Exception ex)
             {
                 OnServerLoggedEvent?.Invoke($"Client {clientId} disconnected with error: {ex.Message}");
             }
             finally
             {
-                if (_connectedClients.TryRemove(clientId, out _))
+                if (_connectedClients.TryRemove(clientId, out ClientConnection? removed))
                 {
                     OnServerLoggedEvent?.Invoke($"Player {clientId} socket closed normally.");
+                    removed.Close();
                 }
-                _ = HandlePlayerDisconnectAsync(clientId);
 
                 await reader.CompleteAsync();
-                await writer.CompleteAsync();
+                await outbound.DisposeAsync();
+                await outboundMonitor;
+                await HandlePlayerDisconnectAsync(clientId);
             }
         }
     }
 
-    private bool TryReadMessage(ref ReadOnlySequence<byte> buffer, out string? message)
+    private async Task MonitorOutboundAsync(string clientId, ClientConnection connection)
+    {
+        try
+        {
+            await connection.Outbound.Completion;
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            OnServerLoggedEvent?.Invoke(
+                $"Outbound connection for {clientId} failed: {ex.Message}");
+        }
+        finally
+        {
+            connection.Close();
+        }
+    }
+
+    private bool TryReadMessage(ref ReadOnlySequence<byte> buffer, out string message)
     {
         SequencePosition? position = buffer.PositionOf((byte)'\n');
 
         if (position == null)
         {
-            message = null;
+            message = string.Empty;
             return false;
         }
 
         ReadOnlySequence<byte> lineSlice = buffer.Slice(0, position.Value);
+        if (lineSlice.Length > MaxFrameBytes)
+        {
+            throw new InvalidDataException(
+                $"Received a frame larger than {MaxFrameBytes} bytes.");
+        }
         message = Encoding.UTF8.GetString(lineSlice);
 
         buffer = buffer.Slice(buffer.GetPosition(1, position.Value));
         return true;
     }
 
-    public async Task BroadcastAsync(string SerializedXML)
+    public Task BroadcastAsync(string SerializedXML)
     {
         if (debugMessages)
         {
             OnServerLoggedEvent?.Invoke($"Sent Table joined to [Broadcast]: {SerializedXML}");
         }
 
-        byte[] bytes = Encoding.UTF8.GetBytes(SerializedXML + "\n");
-
-        List<string> deadClients = new List<string>();
+        byte[] bytes = OutboundMessageQueue.EncodeFrame(SerializedXML);
 
         foreach (var kvp in _connectedClients)
         {
             string clientId = kvp.Key;
-            PipeWriter writer = kvp.Value;
+            ClientConnection connection = kvp.Value;
 
-            try
+            if (!connection.Outbound.TryEnqueue(bytes))
             {
-                await writer.WriteAsync(bytes);
-            }
-            catch (Exception ex)
-            {
-                OnServerLoggedEvent?.Invoke($"Broadcast failed for {clientId}. Error: {ex.Message}");
-                deadClients.Add(clientId);
+                OnServerLoggedEvent?.Invoke(
+                    $"Disconnecting slow client {clientId}: outbound queue is full.");
+                connection.Close();
             }
         }
 
-        foreach (string deadClient in deadClients)
-        {
-            if (_connectedClients.TryRemove(deadClient, out _))
-            {
-                OnServerLoggedEvent?.Invoke($"Player {deadClient} aggressively disconnected.");
-                _ = HandlePlayerDisconnectAsync(deadClient);
-            }
-        }
+        return Task.CompletedTask;
     }
 
-    private async Task SendMessageAsync(string clientId, string message)
+    private Task SendMessageAsync(string clientId, string message)
     {
-        if (_connectedClients.TryGetValue(clientId, out PipeWriter? writer))
+        if (_connectedClients.TryGetValue(clientId, out ClientConnection? connection))
         {
-            byte[] bytes = Encoding.UTF8.GetBytes(message + "\n");
-            try
+            byte[] bytes = OutboundMessageQueue.EncodeFrame(message);
+            if (!connection.Outbound.TryEnqueue(bytes))
             {
-                await writer.WriteAsync(bytes);
-            }
-            catch (Exception ex)
-            {
-                OnServerLoggedEvent?.Invoke($"Failed to send direct message to {clientId}: {ex.Message}");
+                OnServerLoggedEvent?.Invoke(
+                    $"Failed to queue direct message for {clientId}; closing the connection.");
+                connection.Close();
             }
         }
         else
@@ -206,11 +243,13 @@ public class Server
         {
             OnServerLoggedEvent?.Invoke($"Sent message to <{clientId}>: {message}");
         }
+
+        return Task.CompletedTask;
     }
 
     private async Task HandlePlayerDisconnectAsync(string clientId)
     {
-        if (_clientToPlayerName.TryRemove(clientId, out string playerName))
+        if (_clientToPlayerName.TryRemove(clientId, out string? playerName) && !string.IsNullOrEmpty(playerName))
         {
             OnServerLoggedEvent?.Invoke($"Handling disconnect for: {playerName}");
 
@@ -240,25 +279,22 @@ public class Server
      *
      -------------------------------------------------------*/
 
-    public async void UpdateTable(Table t)
+    public void UpdateTable(Table t)
     {
         int TableIndex = game.Tables.IndexOf(t);
-
-        await BroadcastTableUpdate(TableIndex, t);
+        ObserveNetworkTask(BroadcastTableUpdate(TableIndex, t), "table update");
     }
 
-    public async void SendTimer(Table t, int s)
+    public void SendTimer(Table t, int s)
     {
         int TableIndex = game.Tables.IndexOf(t);
-
-        await BroadcastTableTimer(TableIndex, s);
+        ObserveNetworkTask(BroadcastTableTimer(TableIndex, s), "table timer");
     }
 
-    public async void SendTableText(Table t)
+    public void SendTableText(Table t)
     {
         int TableIndex = game.Tables.IndexOf(t);
-
-        await BroadcastTableText(TableIndex, t.TableText);
+        ObserveNetworkTask(BroadcastTableText(TableIndex, t.TableText), "table text");
     }
 
     public void TableErrorHandler(String text)
@@ -266,7 +302,7 @@ public class Server
         OnServerLoggedEvent?.Invoke("🚨🚨🚨" + text + "🚨🚨🚨");
     }
 
-    public async void PlayerEdit(String oldName, String? newName)
+    public void PlayerEdit(String oldName, String? newName)
     {
         if (string.IsNullOrEmpty(oldName))
         {
@@ -289,11 +325,28 @@ public class Server
 
         if (nameChanged)
         {
-            await BroadcastPlayerNameEdit(oldName, newName!, player.Chips);
+            ObserveNetworkTask(
+                BroadcastPlayerNameEdit(oldName, newName!, player.Chips),
+                "player name edit");
         }
         else
         {
-            await BroadcastPlayerChipsEdit(oldName, player.Chips);
+            ObserveNetworkTask(
+                BroadcastPlayerChipsEdit(oldName, player.Chips),
+                "player chip edit");
+        }
+    }
+
+    private async void ObserveNetworkTask(Task operation, string operationName)
+    {
+        try
+        {
+            await operation;
+        }
+        catch (Exception ex)
+        {
+            OnServerLoggedEvent?.Invoke(
+                $"Failed to send {operationName}: {ex.Message}");
         }
     }
 
@@ -302,7 +355,7 @@ public class Server
      *
      -------------------------------------------------------*/
 
-    private void InterpretMessage(string clientId, string message)
+    private async Task InterpretMessageAsync(string clientId, string message)
     {
         if (string.IsNullOrWhiteSpace(message) || message.Length < 2)
         {
@@ -320,67 +373,67 @@ public class Server
 
         switch (command)
         {
-            case "50": RegisterNewPlayer(clientId, payload); break;
-            case "51": CreateNewTable(payload); break;
-            case "52": AddPlayerToTable(clientId, payload); break;
-            case "53": RemovePlayerFromTable(clientId, payload); break;
+            case "50": await RegisterNewPlayerAsync(clientId, payload); break;
+            case "51": await CreateNewTableAsync(payload); break;
+            case "52": await AddPlayerToTableAsync(clientId, payload); break;
+            case "53": await RemovePlayerFromTableAsync(clientId, payload); break;
             case "54": HandlePlayerAction(clientId, payload); break;
-            case "55": LoginPlayer(clientId, payload); break;
+            case "55": await LoginPlayerAsync(clientId, payload); break;
         }
     }
 
-    private void RegisterNewPlayer(string clientId, string playerName)
+    private async Task RegisterNewPlayerAsync(string clientId, string playerName)
     {
         if (game.DoesPlayerAlreadyExist(playerName))
         {
-            BroadcastServerErrorClient(clientId, $"Someone already Registered as {playerName}");
+            await BroadcastServerErrorClient(clientId, $"Someone already Registered as {playerName}");
             return;
         }
 
         if (IsPlayerLoggedIn(playerName))
         {
-            BroadcastServerErrorClient(clientId, $"Someone already logged in as {playerName}");
+            await BroadcastServerErrorClient(clientId, $"Someone already logged in as {playerName}");
             return;
         }
 
         _clientToPlayerName[clientId] = playerName;
         game.AddPlayer(new Player(playerName), true);
-        BroadcastNewPlayer(playerName);
+        await BroadcastNewPlayer(playerName);
     }
 
-    private void LoginPlayer(string clientId, string playerName)
+    private async Task LoginPlayerAsync(string clientId, string playerName)
     {
         if (!game.DoesPlayerAlreadyExist(playerName))
         {
-            BroadcastServerErrorClient(clientId, $"Player {playerName} is not registered");
+            await BroadcastServerErrorClient(clientId, $"Player {playerName} is not registered");
             return;
         }
 
         if (IsPlayerLoggedIn(playerName))
         {
-            BroadcastServerErrorClient(clientId, $"Someone already logged in as {playerName}");
+            await BroadcastServerErrorClient(clientId, $"Someone already logged in as {playerName}");
             return;
         }
 
         _clientToPlayerName[clientId] = playerName;
         // Other clients may have removed this player on disconnect; announce them again.
-        BroadcastNewPlayer(playerName);
+        await BroadcastNewPlayer(playerName);
     }
 
-    private void CreateNewTable(string message)
+    private async Task CreateNewTableAsync(string message)
     {
         Table t = new Table(message);
         game.AddTable(t);
-        BroadcastNewTable(t);
+        await BroadcastNewTable(t);
     }
     
-    private async void AddPlayerToTable(string ClientId, string message)
+    private async Task AddPlayerToTableAsync(string ClientId, string message)
     {
         int FirstOpeningChar = Utils.GetFirstNonNumberIndex(message);
         int TableIndex = Int32.Parse(message.Substring(0, FirstOpeningChar));
         if (game.GetPlayerFromName(message[FirstOpeningChar..]).Chips < game.Tables[TableIndex].SmallBlind+10)
         {
-            BroadcastServerErrorClient(ClientId, $"You don't have enough chips to join this table's big blind ({game.Tables[TableIndex].SmallBlind+10}$)");
+            await BroadcastServerErrorClient(ClientId, $"You don't have enough chips to join this table's big blind ({game.Tables[TableIndex].SmallBlind+10}$)");
             return;
         }
         try
@@ -394,10 +447,10 @@ public class Server
         }
 
         await BroadcastTableUpdate(TableIndex, game.Tables[TableIndex]);
-        SendJoinedTable(ClientId);
+        await SendJoinedTable(ClientId);
     }
 
-    private async void RemovePlayerFromTable(string ClientId, String message)
+    private async Task RemovePlayerFromTableAsync(string ClientId, String message)
     {
         int FirstOpeningChar = Utils.GetFirstNonNumberIndex(message);
         int TableIndex = Int32.Parse(message.Substring(0, FirstOpeningChar));
@@ -412,7 +465,7 @@ public class Server
         }
 
         await BroadcastTableUpdate(TableIndex, game.Tables[TableIndex]);
-        SendLeftTable(ClientId);
+        await SendLeftTable(ClientId);
     }
 
     private void HandlePlayerAction(string clientId, string actionData)
@@ -646,8 +699,25 @@ public class Server
 
     public void Stop()
     {
+        if (Interlocked.Exchange(ref _stopped, 1) != 0)
+        {
+            return;
+        }
+
         _cts.Cancel();
         _listener.Stop();
+
+        foreach (ClientConnection connection in _connectedClients.Values)
+        {
+            connection.Close();
+        }
+
+        Table.OnUpdateTableRequest -= UpdateTable;
+        Table.OnTimerStartRequest -= SendTimer;
+        Table.OnUpdateTextRequest -= SendTableText;
+        Table.OnTableLogicError -= TableErrorHandler;
+        ServerWindowViewModel.OnPlayerEdit -= PlayerEdit;
+
         OnServerLoggedEvent?.Invoke("Server stopped.");
     }
 

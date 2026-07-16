@@ -3,7 +3,6 @@ using Microsoft.UI.Xaml;
 using Poker_With_Your_Friends.Model;
 using System;
 using System.Threading.Tasks;
-using Windows.Media.Protection.PlayReady;
 
 namespace Poker_With_Your_Friends.ViewModel;
 
