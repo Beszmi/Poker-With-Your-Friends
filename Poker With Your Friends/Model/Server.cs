@@ -2,6 +2,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipelines;
 using System.Net;
@@ -134,7 +135,9 @@ public class Server
                     if (result.IsCompleted) break;
                 }
             }
-            catch (OperationCanceledException) when (_cts.IsCancellationRequested) {}
+            catch (OperationCanceledException) when (_cts.IsCancellationRequested)
+            {
+            }
             catch (Exception ex)
             {
                 OnServerLoggedEvent?.Invoke($"Client {clientId} disconnected with error: {ex.Message}");
@@ -249,7 +252,8 @@ public class Server
 
     private async Task HandlePlayerDisconnectAsync(string clientId)
     {
-        if (_clientToPlayerName.TryRemove(clientId, out string? playerName) && !string.IsNullOrEmpty(playerName))
+        if (_clientToPlayerName.TryRemove(clientId, out string? playerName)
+            && !string.IsNullOrEmpty(playerName))
         {
             OnServerLoggedEvent?.Invoke($"Handling disconnect for: {playerName}");
 

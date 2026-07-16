@@ -95,10 +95,19 @@ internal sealed class OutboundMessageQueue : IAsyncDisposable
         {
             await _writeLoop.ConfigureAwait(false);
         }
-        catch (OperationCanceledException) when (_cts.IsCancellationRequested) {}
-        catch (IOException) {}
-        catch (SocketException) {}
-        finally { _cts.Dispose(); }
+        catch (OperationCanceledException) when (_cts.IsCancellationRequested)
+        {
+        }
+        catch (IOException)
+        {
+        }
+        catch (SocketException)
+        {
+        }
+        finally
+        {
+            _cts.Dispose();
+        }
     }
 
     private async Task WriteLoopAsync()

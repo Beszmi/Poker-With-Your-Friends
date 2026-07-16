@@ -102,7 +102,9 @@ public class Client
                 }
             }
         }
-        catch (OperationCanceledException) when (token.IsCancellationRequested) {}
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+        }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Connection lost: {ex.Message}");
@@ -122,7 +124,9 @@ public class Client
         {
             await outbound.Completion;
         }
-        catch (OperationCanceledException) {}
+        catch (OperationCanceledException)
+        {
+        }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Send failed: {ex.Message}");
@@ -250,7 +254,10 @@ public class Client
             case "01": PlayerLogin(payload); break;
             case "02": game.RemovePlayer(game.GetPlayerFromName(payload)); break;
             case "03": game.AddTable(payload, false); break;
-            case "04": throw new NotImplementedException(); break;
+            case "04":
+                System.Diagnostics.Debug.WriteLine(
+                    "Ignored unsupported table-removal message (04).");
+                break;
             case "05": UpdateTableState(payload); break;
             case "06": OnTableJoined?.Invoke(); break;
             case "07": OnTableLeft?.Invoke(); break;
@@ -330,7 +337,10 @@ public class Client
 
     private void StartTableTimerOnUiThread(int tableIndex, int seconds)
     {
-        if (tableIndex < 0 || tableIndex >= game.Tables.Count) return;
+        if (tableIndex < 0 || tableIndex >= game.Tables.Count)
+        {
+            return;
+        }
 
         TimerService.GetOrCreateTimer(game.Tables[tableIndex]).StartTimer(seconds);
     }
@@ -367,7 +377,10 @@ public class Client
     private void UpdatePlayerChips(string payload)
     {
         string[] parts = payload.Split(',');
-        if (parts.Length < 2 || !Int32.TryParse(parts[1], out int chips)) return;
+        if (parts.Length < 2 || !Int32.TryParse(parts[1], out int chips))
+        {
+            return;
+        }
 
         string playerName = parts[0];
         RunOnUiThread(() =>
@@ -386,7 +399,10 @@ public class Client
     private void UpdatePlayerNameAndChips(string payload)
     {
         string[] parts = payload.Split(',');
-        if (parts.Length < 3 || !Int32.TryParse(parts[2], out int chips)) return;
+        if (parts.Length < 3 || !Int32.TryParse(parts[2], out int chips))
+        {
+            return;
+        }
 
         string oldName = parts[0];
         string newName = parts[1];
@@ -418,7 +434,10 @@ public class Client
 
     public void Disconnect()
     {
-        if (Interlocked.Exchange(ref _disconnected, 1) != 0) return;
+        if (Interlocked.Exchange(ref _disconnected, 1) != 0)
+        {
+            return;
+        }
 
         InGamePage.OnJoinGameClick -= PlayerJoiningTable;
         InGamePage.OnLeaveGameClick -= PlayerLeavingTable;
