@@ -173,7 +173,7 @@ public class Client
         switch (command)
         {
             case "00": UpdateGameState(message); break;
-            case "01": PlayerLogin(message); break;
+            case "01": PlayerLogin(payload); break;
             case "02": game.RemovePlayer(game.GetPlayerFromName(payload)); break;
             case "03": game.AddTable(payload, false); break;
             case "04": throw new NotImplementedException(); break;
