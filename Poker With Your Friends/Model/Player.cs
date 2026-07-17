@@ -6,6 +6,13 @@ using System.Xml.Serialization;
 
 namespace Poker_With_Your_Friends.Model;
 
+public enum BlindEnum
+{
+    SmallBlind,
+    BigBlind,
+    NotBlind
+}
+
 [XmlType("Player")]
 public partial class Player : ObservableObject
 {
@@ -88,6 +95,10 @@ public partial class Player : ObservableObject
     [ObservableProperty]
     public partial Hand? Hand { get; set; }
 
+    [XmlAttribute("Blind")]
+    [ObservableProperty]
+    public partial BlindEnum Blind { get; set; } = BlindEnum.NotBlind;
+
     // WinUI hex brushes are #AARRGGBB (CSS-style #RRGGBBAA reads as the wrong color).
     public string BgColor => WonLast ? "#99FFFF00" : "#9900FF00";
 
@@ -136,6 +147,7 @@ public partial class Player : ObservableObject
         IsCurrentlyActivePlayer = NewPlayer.IsCurrentlyActivePlayer;
         IsAllIn = NewPlayer.IsAllIn;
         WonLast = NewPlayer.WonLast;
+        Blind = NewPlayer.Blind;
 
         Cards.Clear();
         foreach (var card in NewPlayer.Cards)

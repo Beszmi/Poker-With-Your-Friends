@@ -233,16 +233,20 @@ public partial class InGamePageViewModel : ObservableObject
 
     private void RebuildOpponentPlayers(bool isAtThisTable)
     {
-        OpponentPlayers.Clear();
+        var shouldShow = Table.Players
+            .Where(p => !isAtThisTable || p.Name != PlayerStore!.CurrentPlayer!.Name)
+            .ToList();
 
-        foreach (Player player in Table.Players)
+        for (int i = OpponentPlayers.Count - 1; i >= 0; i--)
         {
-            if (isAtThisTable && player.Name == PlayerStore!.CurrentPlayer!.Name)
-            {
-                continue;
-            }
+            if (!shouldShow.Contains(OpponentPlayers[i]))
+                OpponentPlayers.RemoveAt(i);
+        }
 
-            OpponentPlayers.Add(player);
+        foreach (var player in shouldShow)
+        {
+            if (!OpponentPlayers.Contains(player))
+                OpponentPlayers.Add(player);
         }
     }
 
@@ -269,5 +273,16 @@ public partial class InGamePageViewModel : ObservableObject
         client.SendPlayerAction(action, amount);
         Timer?.StopTimer();
         PlayerActionButtonsEnabled = false;
+    }
+
+    public static String ConvertBlind(BlindEnum blind)
+    {
+        switch (blind)
+        {
+            case BlindEnum.BigBlind: return "BigBlind";
+            case BlindEnum.SmallBlind: return "SmallBlind";
+            case BlindEnum.NotBlind: return "";
+            default: throw new ArgumentException();
+        }
     }
 }

@@ -6,6 +6,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Poker_With_Your_Friends"
     xmlns:Model="using:Poker_With_Your_Friends.Model"
+    xmlns:vm="using:Poker_With_Your_Friends.ViewModel"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
@@ -100,6 +101,7 @@
                     <Button Content="Raise" IsEnabled="{x:Bind viewModel.IsRaiseButtonEnabled, Mode=OneWay}" Click="viewModel.RaiseButton_Click"/>
                 </StackPanel>
                 <Button Content="Fold" IsEnabled="{x:Bind viewModel.PlayerActionButtonsEnabled, Mode=OneWay}" Click="viewModel.FoldButton_Click"/>
+                <TextBlock Text="{x:Bind vm:InGamePageViewModel.ConvertBlind(viewModel.PlayerStore.CurrentPlayer.Blind), Mode=OneWay}"/>
             </StackPanel>
         </StackPanel>
 
@@ -131,6 +133,7 @@
                             <Run Text="Chips: "/>
                             <Run Text="{x:Bind Chips, Mode=OneWay}"/>
                         </TextBlock>
+                        <TextBlock Text="{x:Bind vm:InGamePageViewModel.ConvertBlind(Blind), Mode=OneWay}"/>
                     </StackPanel>
                 </DataTemplate>
             </ListView.ItemTemplate>
@@ -155,6 +158,7 @@
                             <Run Text="Chips: "/>
                             <Run Text="{x:Bind Chips, Mode=OneWay}"/>
                         </TextBlock>
+                        <TextBlock Text="{x:Bind vm:InGamePageViewModel.ConvertBlind(Blind), Mode=OneWay}"/>
                     </StackPanel>
                 </DataTemplate>
             </ListView.ItemTemplate>

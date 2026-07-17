@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -78,6 +79,10 @@ public partial class Table : ObservableObject
     [XmlAttribute("SmallBlind")]
     [ObservableProperty]
     public partial int SmallBlind { get; set; } = 5;
+
+    [XmlAttribute("SmallBlindIndex")]
+    [ObservableProperty]
+    public partial int SmallBlindPlayerIndex { get; set; } = 0;
 
     [XmlAttribute("ToCall")]
     [ObservableProperty]
@@ -201,6 +206,9 @@ public partial class Table : ObservableObject
             player.WonLast = false;
         }
         ZeroAllBets();
+
+        Players[SmallBlindPlayerIndex].Blind = BlindEnum.SmallBlind;
+        Players[(SmallBlindPlayerIndex + 1) % Players.Count].Blind = BlindEnum.BigBlind;
     }
 
     public void DealToPlayers()
@@ -398,6 +406,8 @@ public partial class Table : ObservableObject
                 {
                     _waitingForFirstHand = true;
                 }
+
+                SmallBlindPlayerIndex = (SmallBlindPlayerIndex + 1) % Players.Count;
             }
             catch (Exception ex)
             {
@@ -540,8 +550,10 @@ public partial class Table : ObservableObject
 
         while (PlayersNeedToCover > 0)
         {
-            foreach (var player in Players.ToList())
+            for (int i = 0; i < Players.Count; i++)
             {
+                var player = Players.ToList()[(SmallBlindPlayerIndex + i) % Players.Count]; //Wrap around for small blinds
+
                 if (!Players.Contains(player)) continue;
                 if (player.HasFolded || player.IsAllIn) continue;
                 if (PlayersNeedToCover <= 0) break;
@@ -683,6 +695,7 @@ public partial class Table : ObservableObject
             localTable.Players.Add(localPlayer);
             localPlayer.UpdateProperties(networkPlayer);
             localPlayer.IsAtTable = true;
+            localPlayer.Blind = networkPlayer.Blind;
             if (localPlayer.Cards.Count == 2)
             {
                 List<Card> handcards = new List<Card>();

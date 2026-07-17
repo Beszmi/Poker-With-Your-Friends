@@ -1,4 +1,6 @@
-﻿namespace Poker_With_Your_Friends.Model;
+﻿using Microsoft.UI.Xaml;
+
+namespace Poker_With_Your_Friends.Model;
 public class Utils
 {
     public static int GetFirstNonNumberIndex(string input)
@@ -13,5 +15,10 @@ public class Utils
             }
         }
         return -1;
+    }
+
+    public static Visibility BoolToVis(bool value)
+    {
+        return value ? Visibility.Visible : Visibility.Collapsed;
     }
 }
