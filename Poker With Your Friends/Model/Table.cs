@@ -133,6 +133,9 @@ public partial class Table : ObservableObject
     [XmlIgnore]
     public static Action<String>? OnTableLogicError;
 
+    [XmlIgnore]
+    public static Action<String,bool>? OnCardRevealChanged;
+
     [XmlAttribute("TableText")]
     [ObservableProperty]
     public partial String TableText { get; set; } = "Empty text";
@@ -204,11 +207,17 @@ public partial class Table : ObservableObject
             player.ClearCards();
             player.Hand = null;
             player.WonLast = false;
+            if (player.CardsRevealed)
+            {
+                player.CardsRevealed = false;
+                OnCardRevealChanged?.Invoke(player.Name, player.CardsRevealed);
+            }
         }
         ZeroAllBets();
 
         Players[SmallBlindPlayerIndex].Blind = BlindEnum.SmallBlind;
         Players[(SmallBlindPlayerIndex + 1) % Players.Count].Blind = BlindEnum.BigBlind;
+
     }
 
     public void DealToPlayers()

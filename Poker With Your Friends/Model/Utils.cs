@@ -21,4 +21,9 @@ public class Utils
     {
         return value ? Visibility.Visible : Visibility.Collapsed;
     }
+
+    public static Visibility AntiBoolToVis(bool value)
+    {
+        return value ? Visibility.Collapsed : Visibility.Visible;
+    }
 }

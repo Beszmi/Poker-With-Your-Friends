@@ -289,6 +289,7 @@ public class Game //Singleton
             player.RoundBet = 0;
             player.IsAllIn = false;
             player.WonLast = false;
+            player.CardsRevealed = false;
         }
 
         try

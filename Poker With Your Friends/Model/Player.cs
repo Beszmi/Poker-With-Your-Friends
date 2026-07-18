@@ -99,7 +99,11 @@ public partial class Player : ObservableObject
     [ObservableProperty]
     public partial BlindEnum Blind { get; set; } = BlindEnum.NotBlind;
 
-    // WinUI hex brushes are #AARRGGBB (CSS-style #RRGGBBAA reads as the wrong color).
+    [XmlAttribute("CardsRevealed")]
+    [ObservableProperty]
+    public partial bool CardsRevealed { get; set; } = false;
+
+    // #AARRGGBB
     public string BgColor => WonLast ? "#99FFFF00" : "#9900FF00";
 
     public string HandName => Hand?.ToString() ?? string.Empty;
@@ -148,6 +152,7 @@ public partial class Player : ObservableObject
         IsAllIn = NewPlayer.IsAllIn;
         WonLast = NewPlayer.WonLast;
         Blind = NewPlayer.Blind;
+        CardsRevealed = NewPlayer.CardsRevealed;
 
         Cards.Clear();
         foreach (var card in NewPlayer.Cards)

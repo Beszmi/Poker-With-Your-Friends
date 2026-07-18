@@ -43,6 +43,7 @@ public class Server
         Table.OnUpdateTextRequest += SendTableText;
         Table.OnTableLogicError += TableErrorHandler;
         ServerWindowViewModel.OnPlayerEdit += PlayerEdit;
+        Table.OnCardRevealChanged += PlayerCardRevealedEdit;
     }
 
     private readonly ConcurrentDictionary<string, ClientConnection> _connectedClients = new();
@@ -352,6 +353,11 @@ public class Server
         }
     }
 
+    private async void PlayerCardRevealedEdit(String Name, bool NewValue)
+    {
+        await BroadcastPlayerCardRevealedEdit(Name, NewValue);
+    }
+
     /* --------------------------------------------------------
      * Recieiving network data 
      *
@@ -381,6 +387,7 @@ public class Server
             case "53": await RemovePlayerFromTableAsync(clientId, payload); break;
             case "54": HandlePlayerAction(clientId, payload); break;
             case "55": await LoginPlayerAsync(clientId, payload); break;
+            case "56": await HandlePlayerCardsRevealedChanged(payload); break;
         }
     }
 
@@ -541,6 +548,18 @@ public class Server
         }
     }
 
+    private async Task HandlePlayerCardsRevealedChanged(String Message)
+    {
+        string[] parts = Message.Split(',');
+        if (parts.Length < 2 || !Boolean.TryParse(parts[0], out bool Revealed)) return;
+
+        string playerName = parts[1];
+
+        game.GetPlayerFromName(playerName).CardsRevealed = Revealed;
+
+        await BroadcastPlayerCardRevealedEdit(playerName, Revealed);
+    }
+
     /* --------------------------------------------------------
      * Sending network data
      *
@@ -596,19 +615,19 @@ public class Server
         }
     }*/
 
-    public async Task BroadcastNewPlayer(string playerName)
+    private async Task BroadcastNewPlayer(string playerName)
     {
         await BroadcastAsync("01" + playerName);
         OnServerLoggedEvent?.Invoke($"New player broadcast {playerName} (01)");
     }
 
-    public async Task BroadcastDeletedPlayer(string playerName)
+    private async Task BroadcastDeletedPlayer(string playerName)
     {
         await BroadcastAsync("02" + playerName);
         OnServerLoggedEvent?.Invoke($"Player deleted broadcast {playerName} (02)");
     }
 
-    public async Task BroadcastNewTable(Table table)
+    private async Task BroadcastNewTable(Table table)
     {
         XmlSerializer serializer = new XmlSerializer(typeof(Table));
         StringBuilder sb = new StringBuilder();
@@ -637,7 +656,7 @@ public class Server
         await SendMessageAsync(ClientId, "99" + ErrorMessage);
     }
 
-    public async Task BroadcastTableUpdate(int indexOfTable, Table t)
+    private async Task BroadcastTableUpdate(int indexOfTable, Table t)
     {
         XmlSerializer serializer = new XmlSerializer(typeof(Table));
         StringBuilder sb = new StringBuilder();
@@ -656,7 +675,7 @@ public class Server
         await BroadcastAsync(sb.ToString());
     }
 
-    public async Task BroadcastTableTimer(int indexOfTable, int seconds)
+    private async Task BroadcastTableTimer(int indexOfTable, int seconds)
     {
         StringBuilder sb = new StringBuilder();
         sb.Append("08,");
@@ -666,7 +685,7 @@ public class Server
         await BroadcastAsync(sb.ToString());
     }
 
-    public async Task BroadcastTableText(int indexOfTable, String text)
+    private async Task BroadcastTableText(int indexOfTable, String text)
     {
         StringBuilder sb = new StringBuilder();
         sb.Append("09,");
@@ -676,7 +695,7 @@ public class Server
         await BroadcastAsync(sb.ToString());
     }
 
-    public async Task BroadcastPlayerChipsEdit(String name, int chips)
+    private async Task BroadcastPlayerChipsEdit(String name, int chips)
     {
         StringBuilder sb = new StringBuilder();
         sb.Append("10");
@@ -686,7 +705,7 @@ public class Server
         await BroadcastAsync(sb.ToString());
     }
 
-    public async Task BroadcastPlayerNameEdit(String oldName, String newName, int chips)
+    private async Task BroadcastPlayerNameEdit(String oldName, String newName, int chips)
     {
         StringBuilder sb = new StringBuilder();
         sb.Append("11");
@@ -695,6 +714,16 @@ public class Server
         sb.Append(newName);
         sb.Append(",");
         sb.Append(chips);
+        await BroadcastAsync(sb.ToString());
+    }
+
+    private async Task BroadcastPlayerCardRevealedEdit(String name, bool Revealed)
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.Append("12");
+        sb.Append(Revealed);
+        sb.Append(",");
+        sb.Append(name);
         await BroadcastAsync(sb.ToString());
     }
 

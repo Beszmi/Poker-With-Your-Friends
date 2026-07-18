@@ -68,6 +68,9 @@ public partial class InGamePageViewModel : ObservableObject
     public partial Visibility IsCurrentPlayerWinner { get; set; } = Visibility.Collapsed;
 
     [ObservableProperty]
+    public partial Visibility RevealCardsButtonVisible { get; set; } = Visibility.Collapsed;
+
+    [ObservableProperty]
     public partial bool CallButtonEnabled { get; set; } = false;
 
     [ObservableProperty]
@@ -194,12 +197,14 @@ public partial class InGamePageViewModel : ObservableObject
                     ? Visibility.Visible
                     : Visibility.Collapsed;
                 DisableActionButtons();
+                RevealCardsButtonVisible = Visibility.Visible;
             }
             else
             {
                 OpponentCardsRevealed = Visibility.Collapsed;
                 OpponentCardsNotRevealed = Visibility.Visible;
                 IsCurrentPlayerWinner = Visibility.Collapsed;
+                RevealCardsButtonVisible = Visibility.Collapsed;
             }
 
             PlayerActionButtonsEnabled = !Table.HandOver
@@ -250,6 +255,7 @@ public partial class InGamePageViewModel : ObservableObject
             IsplayerOnOwnTable = Visibility.Collapsed;
             IsJoinButtonVisible = Visibility.Visible;
             IsLeaveButtonVisible = Visibility.Collapsed;
+            RevealCardsButtonVisible = Visibility.Collapsed;
             DisableActionButtons();
 
             OpponentCardsRevealed = Visibility.Visible;
@@ -303,6 +309,12 @@ public partial class InGamePageViewModel : ObservableObject
     public void AllInButton_Click(object sender, RoutedEventArgs e)
     {
         SubmitPlayerAction(PlayerAction.AllIn, 0);
+    }
+
+    public void RevealCards_Click(object sender, RoutedEventArgs e)
+    {
+        client?.SendPlayerRevealCards(PlayerStore.CurrentPlayer.Name);
+        RevealCardsButtonVisible = Visibility.Collapsed;
     }
 
     private void SubmitPlayerAction(PlayerAction action, int amount)

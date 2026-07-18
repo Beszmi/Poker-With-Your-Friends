@@ -103,10 +103,11 @@
                 <Button Content="Fold" IsEnabled="{x:Bind viewModel.PlayerActionButtonsEnabled, Mode=OneWay}" Click="viewModel.FoldButton_Click"/>
                 <Button Content="AllIn" IsEnabled="{x:Bind viewModel.AllInButtonEnabled, Mode=OneWay}" Click="viewModel.AllInButton_Click"/>
                 <TextBlock Text="{x:Bind vm:InGamePageViewModel.ConvertBlind(viewModel.PlayerStore.CurrentPlayer.Blind), Mode=OneWay}"/>
+                <Button Content="Reveal Cards" Click="viewModel.RevealCards_Click" Visibility="{x:Bind viewModel.RevealCardsButtonVisible, Mode=OneWay}"/>
             </StackPanel>
         </StackPanel>
 
-        <!-- Opponent cards shown -->
+        <!-- End of round -->
         <ListView Grid.Column="1" Grid.Row="4" HorizontalAlignment="Center" VerticalAlignment="Bottom" ItemsSource="{x:Bind viewModel.OpponentPlayers, Mode=OneWay}" Margin="10" Visibility="{x:Bind viewModel.OpponentCardsRevealed, Mode=OneWay}">
             <ListView.ItemsPanel>
                 <ItemsPanelTemplate>
@@ -117,7 +118,7 @@
                 <DataTemplate x:DataType="Model:Player">
                     <StackPanel Background="{x:Bind BgColor, Mode=OneWay}" Height="Auto" Width="Auto">
                         <TextBlock HorizontalAlignment="Center" Text="{x:Bind HandName, Mode=OneWay}"/>
-                        <ListView ItemsSource="{x:Bind Cards, Mode=OneWay}">
+                        <ListView ItemsSource="{x:Bind Cards, Mode=OneWay}" Visibility="{x:Bind Model:Utils.BoolToVis(CardsRevealed), Mode=OneWay}">
                             <ListView.ItemsPanel>
                                 <ItemsPanelTemplate>
                                     <ItemsStackPanel Orientation="Horizontal" />
@@ -129,6 +130,10 @@
                                 </DataTemplate>
                             </ListView.ItemTemplate>
                         </ListView>
+                        <StackPanel Orientation="Horizontal" Visibility="{x:Bind Model:Utils.AntiBoolToVis(CardsRevealed), Mode=OneWay}">
+                            <Image Source="/Assets/cardEmpty.png" Width="100" Height="140"/>
+                            <Image Source="/Assets/cardEmpty.png" Width="100" Height="140"/>
+                        </StackPanel>
                         <TextBlock HorizontalAlignment="Center" Text="{x:Bind Name, Mode=OneWay}" FontSize="24" Foreground="Red"/>
                         <TextBlock HorizontalAlignment="Left" FontSize="12">
                             <Run Text="Chips: "/>
@@ -140,7 +145,7 @@
             </ListView.ItemTemplate>
         </ListView>
 
-        <!-- Opponent cards NOT shown -->
+        <!-- Before end of round -->
         <ListView Grid.Column="1" Grid.Row="4" HorizontalAlignment="Center" VerticalAlignment="Bottom" ItemsSource="{x:Bind viewModel.OpponentPlayers, Mode=OneWay}" Margin="10" Visibility="{x:Bind viewModel.OpponentCardsNotRevealed, Mode=OneWay}">
             <ListView.ItemsPanel>
                 <ItemsPanelTemplate>

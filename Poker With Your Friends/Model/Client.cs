@@ -255,6 +255,7 @@ public class Client
             case "09": SetTableText(message); break;
             case "10": UpdatePlayerChips(payload); break;
             case "11": UpdatePlayerNameAndChips(payload); break;
+            case "12": UpdatePlayerCardsRevealed(payload); break;
 
             case "99": OnErrorReceived?.Invoke(payload); break;
         }
@@ -339,6 +340,11 @@ public class Client
         }
     }
 
+    public void SendPlayerRevealCards(String PlayerName)
+    {
+        SendMessage($"56True,{PlayerName}");
+    }
+
     private void SetTableText(String message)
     {
         if (string.IsNullOrEmpty(message)) return;
@@ -409,6 +415,25 @@ public class Client
             catch (ArgumentException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"UpdatePlayerNameAndChips failed: {ex.Message}");
+            }
+        });
+    }
+
+    private void UpdatePlayerCardsRevealed(string payload)
+    {
+        string[] parts = payload.Split(',');
+        if (parts.Length < 2 || !Boolean.TryParse(parts[0], out bool Revealed)) return;
+
+        string playerName = parts[1];
+        RunOnUiThread(() =>
+        {
+            try
+            {
+                game.GetPlayerFromName(playerName).CardsRevealed = Revealed;
+            }
+            catch (ArgumentException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"UpdateCardsRevealed failed: {ex.Message}");
             }
         });
     }

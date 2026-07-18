@@ -10,6 +10,7 @@
 09: Send table text Server -> Client (temporary)
 10: Update Player chips Server -> Client
 11: Update Player name and chips Server -> Client
+12: Update Player Reveal Cards Server -> Client
 
 50: RegisterNewPlayer Client -> Server
 51: Adding new Table Client -> Server
@@ -17,5 +18,6 @@
 53: Player leaving table Client -> Server
 54: Player action Client -> Server
 55: Login Player Client -> Server
+56: Player Reveal Cards Client -> Server
 
 99: error message Server -> Client
