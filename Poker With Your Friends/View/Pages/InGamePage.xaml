@@ -94,13 +94,14 @@
                 </TextBlock>
             </StackPanel>
             <StackPanel Orientation="Horizontal">
-                <Button Content="{x:Bind viewModel.CallButtonText, Mode=OneWay}" IsEnabled="{x:Bind viewModel.PlayerActionButtonsEnabled, Mode=OneWay}" Click="viewModel.CallButton_Click"/>
+                <Button Content="{x:Bind viewModel.CallButtonText, Mode=OneWay}" IsEnabled="{x:Bind viewModel.CallButtonEnabled, Mode=OneWay}" Click="viewModel.CallButton_Click"/>
                 <StackPanel Orientation="Vertical">
                     <TextBlock HorizontalAlignment="Center" Text="{x:Bind viewModel.SelectedRaiseValue, Mode=OneWay}"/>
                     <Slider Minimum="{x:Bind viewModel.RaiseMin, Mode=OneWay}" Maximum="{x:Bind viewModel.RaiseMax, Mode=OneWay}" Value="{x:Bind viewModel.SelectedRaiseValue, Mode=TwoWay}" IsEnabled="{x:Bind viewModel.IsRaiseButtonEnabled, Mode=OneWay}" />
                     <Button Content="Raise" IsEnabled="{x:Bind viewModel.IsRaiseButtonEnabled, Mode=OneWay}" Click="viewModel.RaiseButton_Click"/>
                 </StackPanel>
                 <Button Content="Fold" IsEnabled="{x:Bind viewModel.PlayerActionButtonsEnabled, Mode=OneWay}" Click="viewModel.FoldButton_Click"/>
+                <Button Content="AllIn" IsEnabled="{x:Bind viewModel.AllInButtonEnabled, Mode=OneWay}" Click="viewModel.AllInButton_Click"/>
                 <TextBlock Text="{x:Bind vm:InGamePageViewModel.ConvertBlind(viewModel.PlayerStore.CurrentPlayer.Blind), Mode=OneWay}"/>
             </StackPanel>
         </StackPanel>

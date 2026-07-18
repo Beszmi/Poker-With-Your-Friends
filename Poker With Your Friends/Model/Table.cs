@@ -264,27 +264,43 @@ public partial class Table : ObservableObject
         switch (decision.Action)
         {
             case PlayerAction.Call:
-                int callAmount = ToCall - player.RoundBet;
+                int callAmount = Math.Max(0, ToCall - player.RoundBet);
                 if (callAmount > 0)
                 {
-                    player.Spend(callAmount);
-                    Pot += callAmount;
+                    // Short stack: calling for everything left is an all-in.
+                    if (callAmount >= player.Chips)
+                    {
+                        int allInCall = player.Chips;
+                        player.Spend(allInCall);
+                        Pot += allInCall;
+                        player.IsAllIn = true;
+                    }
+                    else
+                    {
+                        player.Spend(callAmount);
+                        Pot += callAmount;
+                    }
                 }
                 break;
             case PlayerAction.Raise:
                 player.Spend(decision.Amount);
                 Pot += decision.Amount;
                 ToCall = player.RoundBet;
+                // Reset before marking all-in so the raiser is included
                 ResetPlayersNeedToCover();
+                if (player.Chips == 0)
+                {
+                    player.IsAllIn = true;
+                }
                 break;
             case PlayerAction.Fold:
                 player.Fold();
                 break;
             case PlayerAction.AllIn:
-                int allInAmount = Math.Min(decision.Amount, player.Chips);
-                if (allInAmount <= 0 && player.Chips > 0)
+                int allInAmount = player.Chips;
+                if (allInAmount <= 0)
                 {
-                    allInAmount = player.Chips;
+                    break;
                 }
                 player.Spend(allInAmount);
                 Pot += allInAmount;
@@ -569,7 +585,7 @@ public partial class Table : ObservableObject
                 PlayersNeedToCover--;
                 OnUpdateTableRequest?.Invoke(this);
 
-                if (CountPlayersWhoCanAct() <= 1)
+                if (CountPlayersWhoCanAct() == 0)
                 {
                     PlayersNeedToCover = 0;
                     break;
