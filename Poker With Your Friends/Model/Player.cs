@@ -1,7 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using Microsoft.UI.Xaml.Controls;
 using System;
 using System.Collections.ObjectModel;
-using System.Linq;
 using System.Xml.Serialization;
 
 namespace Poker_With_Your_Friends.Model;
@@ -103,6 +103,10 @@ public partial class Player : ObservableObject
     [ObservableProperty]
     public partial bool CardsRevealed { get; set; } = false;
 
+    [XmlAttribute("ProfilePicture")]
+    [ObservableProperty]
+    public partial Image ProfilePicture { get; set; }
+
     // #AARRGGBB
     public string BgColor => WonLast ? "#99FFFF00" : "#9900FF00";
 
@@ -131,14 +135,16 @@ public partial class Player : ObservableObject
         RoundBet += amount;
     }
 
-    public void Lose()
-    {
-        // TODO: see if its needed
-    }
     public void Win(int amount)
     {
         Chips += amount;
         WonLast = true;
+    }
+
+    public void AddProfilePicture(String Dir)
+    {
+        ProfilePicture.CanDrag = false;
+        ProfilePicture.From
     }
 
     public void UpdateProperties(Player NewPlayer)
@@ -153,6 +159,7 @@ public partial class Player : ObservableObject
         WonLast = NewPlayer.WonLast;
         Blind = NewPlayer.Blind;
         CardsRevealed = NewPlayer.CardsRevealed;
+        ProfilePicture = NewPlayer.ProfilePicture;
 
         Cards.Clear();
         foreach (var card in NewPlayer.Cards)
