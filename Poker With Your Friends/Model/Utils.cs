@@ -11,7 +11,7 @@ public class Utils
     {
         if (string.IsNullOrEmpty(path))
         {
-            path = "/Assets/Emptypfp.jpg";
+            path = "/Assets/pfp/Emptypfp.jpg";
         }
         string relativePath = path.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
         string fullPath = Path.Combine(AppContext.BaseDirectory, relativePath);

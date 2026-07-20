@@ -112,8 +112,8 @@ public class Game //Singleton
 
     public static string GetProfilePicturePath(string playerName)
     {
-        string customPicturePath = Path.Combine(AppContext.BaseDirectory, "Assets", $"{playerName}pfp.jpg");
-        return File.Exists(customPicturePath) ? $"/Assets/{playerName}pfp.jpg" : "/Assets/Emptypfp.jpg";
+        string customPicturePath = Path.Combine(AppContext.BaseDirectory, "Assets/pfp", $"{playerName}pfp.jpg");
+        return File.Exists(customPicturePath) ? $"/Assets/pfp/{playerName}pfp.jpg" : "/Assets/pfp/Emptypfp.jpg";
     }
 
     private void RefreshNamesInternal()
