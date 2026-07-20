@@ -1,5 +1,4 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-using Microsoft.UI.Xaml.Controls;
 using System;
 using System.Collections.ObjectModel;
 using System.Xml.Serialization;
@@ -105,7 +104,7 @@ public partial class Player : ObservableObject
 
     [XmlAttribute("ProfilePicture")]
     [ObservableProperty]
-    public partial Image ProfilePicture { get; set; }
+    public partial String ProfilePictureDir { get; set; } = "/Assets/Emptypfp.jpg";
 
     // #AARRGGBB
     public string BgColor => WonLast ? "#99FFFF00" : "#9900FF00";
@@ -143,8 +142,7 @@ public partial class Player : ObservableObject
 
     public void AddProfilePicture(String Dir)
     {
-        ProfilePicture.CanDrag = false;
-        ProfilePicture.From
+        ProfilePictureDir = Dir;
     }
 
     public void UpdateProperties(Player NewPlayer)
@@ -159,7 +157,7 @@ public partial class Player : ObservableObject
         WonLast = NewPlayer.WonLast;
         Blind = NewPlayer.Blind;
         CardsRevealed = NewPlayer.CardsRevealed;
-        ProfilePicture = NewPlayer.ProfilePicture;
+        ProfilePictureDir = Game.GetProfilePicturePath(Name);
 
         Cards.Clear();
         foreach (var card in NewPlayer.Cards)

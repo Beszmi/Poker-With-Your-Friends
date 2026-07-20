@@ -110,12 +110,19 @@ public class Game //Singleton
         }
     }
 
+    public static string GetProfilePicturePath(string playerName)
+    {
+        string customPicturePath = Path.Combine(AppContext.BaseDirectory, "Assets", $"{playerName}pfp.jpg");
+        return File.Exists(customPicturePath) ? $"/Assets/{playerName}pfp.jpg" : "/Assets/Emptypfp.jpg";
+    }
+
     private void RefreshNamesInternal()
     {
         PlayerNames.Clear();
         foreach (var player in Players)
         {
             PlayerNames.Add(player.Name);
+            player.AddProfilePicture(GetProfilePicturePath(player.Name));
         }
     }
 

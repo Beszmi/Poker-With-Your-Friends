@@ -72,6 +72,7 @@
         </TextBlock>
 
         <StackPanel Grid.Column="0" Grid.Row="3" Grid.ColumnSpan="3" HorizontalAlignment="Center" VerticalAlignment="Bottom" Visibility="{x:Bind viewModel.IsplayerOnOwnTable, Mode=OneWay}" Background="{x:Bind viewModel.PlayerStore.CurrentPlayer.BgColor, Mode=OneWay}">
+            <Image Width="100" Height="100" Source="{x:Bind Model:Utils.PathToImage(viewModel.PlayerStore.CurrentPlayer.ProfilePictureDir), Mode=OneWay}" Stretch="UniformToFill"/>
             <TextBlock HorizontalAlignment="Center" Text="You won! 🥳🥳🥳" Visibility="{x:Bind viewModel.IsCurrentPlayerWinner, Mode=OneWay}"/>
             <TextBlock HorizontalAlignment="Center" Text="{x:Bind viewModel.CurrentPlayerHandName, Mode=OneWay}"/>
             <ListView ItemsSource="{x:Bind viewModel.MyCards, Mode=OneWay}">
@@ -117,6 +118,7 @@
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="Model:Player">
                     <StackPanel Background="{x:Bind BgColor, Mode=OneWay}" Height="Auto" Width="Auto">
+                        <Image Width="100" Height="100" Source="{x:Bind Model:Utils.PathToImage(ProfilePictureDir), Mode=OneWay}" Stretch="UniformToFill"/>
                         <TextBlock HorizontalAlignment="Center" Text="{x:Bind HandName, Mode=OneWay}"/>
                         <ListView ItemsSource="{x:Bind Cards, Mode=OneWay}" Visibility="{x:Bind Model:Utils.BoolToVis(CardsRevealed), Mode=OneWay}">
                             <ListView.ItemsPanel>
@@ -155,6 +157,7 @@
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="Model:Player">
                     <StackPanel Background="#9900FF00" Height="Auto" Width="Auto">
+                        <Image Width="100" Height="100" Source="{x:Bind Model:Utils.PathToImage(ProfilePictureDir), Mode=OneWay}" Stretch="UniformToFill"/>
                         <StackPanel Orientation="Horizontal" Visibility="{Binding viewModel.CardsDealt, ElementName=RootPage}">
                             <Image Source="/Assets/cardEmpty.png" Width="100" Height="140"/>
                             <Image Source="/Assets/cardEmpty.png" Width="100" Height="140"/>
