@@ -447,6 +447,15 @@ public class Server
             byte[] pfpFileData = await File.ReadAllBytesAsync(customPath);
             await SendPFPAsync(clientId, player.Name, pfpFileData);
         }
+
+        //Default (Empty) profile picture sending
+        String EmptyPFPDir = Path.Combine(Game.PFPfilePath, "Emptypfp.jpg");
+        if (File.Exists(EmptyPFPDir))
+        {
+            byte[] pfpFileData = await File.ReadAllBytesAsync(EmptyPFPDir);
+            await SendPFPAsync(clientId, "Empty", pfpFileData);
+        }
+
     }
 
     /* --------------------------------------------------------
