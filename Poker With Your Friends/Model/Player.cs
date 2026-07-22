@@ -103,7 +103,7 @@ public partial class Player : ObservableObject
     [ObservableProperty]
     public partial bool CardsRevealed { get; set; } = false;
 
-    [XmlAttribute("ProfilePicture")]
+    [XmlAttribute("ProfilePictureDir")]
     [ObservableProperty]
     public partial String ProfilePictureDir { get; set; } = Path.Combine(Game.PFPfilePath, "Emptypfp.jpg"); 
 
@@ -139,11 +139,6 @@ public partial class Player : ObservableObject
     {
         Chips += amount;
         WonLast = true;
-    }
-
-    public void AddProfilePicture(String Dir)
-    {
-        ProfilePictureDir = Dir;
     }
 
     public void UpdateProperties(Player NewPlayer)

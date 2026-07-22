@@ -84,7 +84,7 @@ public class Client
                     string opcode = Encoding.ASCII.GetString(payload.Slice(0,2));
                     if (opcode == "13")
                     {
-                        HandlepfpRequest(payload);
+                        HandlepfpRecieved(payload);
                     }
                     else
                     {
@@ -465,9 +465,46 @@ public class Client
         });
     }
 
-    private void HandlepfpRequest(ReadOnlySequence<byte> payload)
+    private void HandlepfpRecieved(ReadOnlySequence<byte> transmission)
     {
-        System.Diagnostics.Debug.WriteLine($"Got pfp update: {payload}");
+        // Wire format from SendPFPAsync: "13" + UInt16 LE nameLen + UTF-8 name + jpeg
+        const int opcodeSize = 2;
+        const int nameLenSize = sizeof(ushort);
+        const int headerSize = opcodeSize + nameLenSize;
+
+        if (transmission.Length < headerSize)
+        {
+            System.Diagnostics.Debug.WriteLine("Ignored truncated pfp frame.");
+            return;
+        }
+
+        ushort nameLength = BitConverter.ToUInt16(transmission.Slice(opcodeSize, nameLenSize).ToArray());
+        long imageOffset = headerSize + nameLength;
+        if (nameLength == 0 || transmission.Length < imageOffset)
+        {
+            System.Diagnostics.Debug.WriteLine("Ignored malformed pfp frame (bad name length).");
+            return;
+        }
+
+        string name = Encoding.UTF8.GetString(transmission.Slice(headerSize, nameLength));
+        byte[] imageBytes = transmission.Slice(imageOffset).ToArray();
+
+        if (!Directory.Exists(Game.PFPfilePath))
+        {
+            Directory.CreateDirectory(Game.PFPfilePath);
+        }
+        string pathToPfp = Path.Combine(Game.PFPfilePath, $"{name}pfp.jpg");
+
+        File.WriteAllBytes(pathToPfp, imageBytes);
+
+        RunOnUiThread(() =>
+        {
+            Player? player = game.Players.FirstOrDefault(p => p.Name == name);
+            if (player != null)
+            {
+                player.ProfilePictureDir = pathToPfp;
+            }
+        });
     }
 
     public void Disconnect()

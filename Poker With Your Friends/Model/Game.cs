@@ -132,7 +132,7 @@ public class Game //Singleton
         foreach (var player in Players)
         {
             PlayerNames.Add(player.Name);
-            player.AddProfilePicture(GetProfilePicturePath(player.Name));
+            player.ProfilePictureDir = GetProfilePicturePath(player.Name);
         }
     }
 
