@@ -19,6 +19,9 @@ public class Game //Singleton
     public static string PlayerfilePath = Path.Combine(PlayerfolderPath, "players.xml");
 
     [XmlIgnore]
+    public static string PFPfilePath = Path.Combine(PlayerfolderPath, "pfp");
+
+    [XmlIgnore]
     private static Game Clientinstance;
     [XmlIgnore]
     private static Game Serverinstance;

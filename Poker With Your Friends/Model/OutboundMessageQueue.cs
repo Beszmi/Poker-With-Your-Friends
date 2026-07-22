@@ -44,10 +44,20 @@ internal sealed class OutboundMessageQueue : IAsyncDisposable
 
     public Task Completion => _writeLoop;
 
+    // Text messages (XML / opcodes) — same length-prefixed framing as binary.
     public static byte[] EncodeFrame(string message)
     {
         ArgumentNullException.ThrowIfNull(message);
-        return Encoding.UTF8.GetBytes(message + "\n");
+        return EncodeFrame(Encoding.UTF8.GetBytes(message));
+    }
+
+    // Length-prefixed frame: [4-byte LE length][payload]
+    public static byte[] EncodeFrame(ReadOnlySpan<byte> payload)
+    {
+        byte[] frame = new byte[sizeof(int) + payload.Length];
+        BitConverter.TryWriteBytes(frame.AsSpan(0, sizeof(int)), payload.Length);
+        payload.CopyTo(frame.AsSpan(sizeof(int)));
+        return frame;
     }
 
     public bool TryEnqueue(ReadOnlyMemory<byte> frame)

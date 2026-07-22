@@ -11,6 +11,7 @@
 10: Update Player chips Server -> Client
 11: Update Player name and chips Server -> Client
 12: Update Player Reveal Cards Server -> Client
+13: Update Profile pictures Server -> Client
 
 50: RegisterNewPlayer Client -> Server
 51: Adding new Table Client -> Server
@@ -19,5 +20,6 @@
 54: Player action Client -> Server
 55: Login Player Client -> Server
 56: Player Reveal Cards Client -> Server
+57: Request Profile Picture update Client -> Server
 
 99: error message Server -> Client

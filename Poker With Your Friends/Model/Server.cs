@@ -2,6 +2,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipelines;
 using System.Net;
@@ -180,23 +181,31 @@ public class Server
 
     private bool TryReadMessage(ref ReadOnlySequence<byte> buffer, out string message)
     {
-        SequencePosition? position = buffer.PositionOf((byte)'\n');
+        const int headerSize = sizeof(int);
 
-        if (position == null)
+        if (buffer.Length < headerSize)
         {
             message = string.Empty;
             return false;
         }
 
-        ReadOnlySequence<byte> lineSlice = buffer.Slice(0, position.Value);
-        if (lineSlice.Length > MaxFrameBytes)
+        int length = BitConverter.ToInt32(buffer.Slice(0, headerSize).ToArray());
+        if (length <= 0 || length > MaxFrameBytes)
         {
             throw new InvalidDataException(
                 $"Received a frame larger than {MaxFrameBytes} bytes.");
         }
-        message = Encoding.UTF8.GetString(lineSlice);
 
-        buffer = buffer.Slice(buffer.GetPosition(1, position.Value));
+        long frameSize = headerSize + (long)length;
+        if (buffer.Length < frameSize)
+        {
+            message = string.Empty;
+            return false;
+        }
+
+        ReadOnlySequence<byte> payload = buffer.Slice(headerSize, length);
+        message = Encoding.UTF8.GetString(payload);
+        buffer = buffer.Slice(frameSize);
         return true;
     }
 
@@ -358,6 +367,11 @@ public class Server
         await BroadcastPlayerCardRevealedEdit(Name, NewValue);
     }
 
+    private async Task HandlepfpRequest(string? clientId)
+    {
+        List<FileStream> PFPfiles = new List<FileStream>();
+    }
+
     /* --------------------------------------------------------
      * Recieiving network data 
      *
@@ -388,6 +402,7 @@ public class Server
             case "54": HandlePlayerAction(clientId, payload); break;
             case "55": await LoginPlayerAsync(clientId, payload); break;
             case "56": await HandlePlayerCardsRevealedChanged(payload); break;
+            case "57": await HandlepfpRequest(clientId); break;
         }
     }
 

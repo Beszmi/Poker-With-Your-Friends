@@ -139,20 +139,31 @@ public class Client
 
     private bool TryReadMessage(ref ReadOnlySequence<byte> buffer, out string message)
     {
-        SequencePosition? position = buffer.PositionOf((byte)'\n');
-        if (position == null)
+        const int headerSize = sizeof(int);
+
+        if (buffer.Length < headerSize)
         {
             message = string.Empty;
             return false;
         }
-        ReadOnlySequence<byte> lineSlice = buffer.Slice(0, position.Value);
-        if (lineSlice.Length > MaxFrameBytes)
+
+        int length = BitConverter.ToInt32(buffer.Slice(0, headerSize).ToArray());
+        if (length <= 0 || length > MaxFrameBytes)
         {
             throw new InvalidDataException(
                 $"Received a frame larger than {MaxFrameBytes} bytes.");
         }
-        message = Encoding.UTF8.GetString(lineSlice);
-        buffer = buffer.Slice(buffer.GetPosition(1, position.Value));
+
+        long frameSize = headerSize + (long)length;
+        if (buffer.Length < frameSize)
+        {
+            message = string.Empty;
+            return false;
+        }
+
+        ReadOnlySequence<byte> payload = buffer.Slice(headerSize, length);
+        message = Encoding.UTF8.GetString(payload);
+        buffer = buffer.Slice(frameSize);
         return true;
     }
 
