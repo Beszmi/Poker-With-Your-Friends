@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Buffers;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
@@ -78,11 +79,19 @@ public class Client
                 ReadResult result = await reader.ReadAsync(token);
                 ReadOnlySequence<byte> buffer = result.Buffer;
 
-                while (TryReadMessage(ref buffer, out string response))
+                while (TryReadMessage(ref buffer, out ReadOnlySequence<byte> payload))
                 {
-                    InterpretMessage(response);
+                    string opcode = Encoding.ASCII.GetString(payload.Slice(0,2));
+                    if (opcode == "13")
+                    {
+                        HandlepfpRequest(payload);
+                    }
+                    else
+                    {
+                        InterpretMessage(Encoding.UTF8.GetString(payload));
+                    }
 
-                    System.Diagnostics.Debug.WriteLine($"[Game Update]: {response}");
+                    System.Diagnostics.Debug.WriteLine($"[Game Update]: {payload.ToString}");
                 }
 
                 if (buffer.Length > MaxFrameBytes)
@@ -137,13 +146,13 @@ public class Client
         }
     }
 
-    private bool TryReadMessage(ref ReadOnlySequence<byte> buffer, out string message)
+    private bool TryReadMessage(ref ReadOnlySequence<byte> buffer, out ReadOnlySequence<byte> payload)
     {
         const int headerSize = sizeof(int);
 
         if (buffer.Length < headerSize)
         {
-            message = string.Empty;
+            payload = ReadOnlySequence<byte>.Empty;
             return false;
         }
 
@@ -157,12 +166,12 @@ public class Client
         long frameSize = headerSize + (long)length;
         if (buffer.Length < frameSize)
         {
-            message = string.Empty;
+            payload = ReadOnlySequence<byte>.Empty;
             return false;
         }
 
-        ReadOnlySequence<byte> payload = buffer.Slice(headerSize, length);
-        message = Encoding.UTF8.GetString(payload);
+        ReadOnlySequence<byte> output = buffer.Slice(headerSize, length);
+        payload = output;
         buffer = buffer.Slice(frameSize);
         return true;
     }
@@ -234,6 +243,11 @@ public class Client
         PlayerStore.CurrentTable = null;
     }
 
+    private void SendRequestPFP()
+    {
+        SendMessage("57");
+    }
+
     /* --------------------------------------------------------
      * 
      * Recieiving network data 
@@ -295,6 +309,8 @@ public class Client
                 game.GameStateUpdate(deserializedGame);
             }
         }
+
+        SendRequestPFP();
     }
 
     private void PlayerLogin(String message)
@@ -447,6 +463,11 @@ public class Client
                 System.Diagnostics.Debug.WriteLine($"UpdateCardsRevealed failed: {ex.Message}");
             }
         });
+    }
+
+    private void HandlepfpRequest(ReadOnlySequence<byte> payload)
+    {
+        System.Diagnostics.Debug.WriteLine($"Got pfp update: {payload}");
     }
 
     public void Disconnect()

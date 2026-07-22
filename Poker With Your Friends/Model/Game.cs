@@ -19,7 +19,7 @@ public class Game //Singleton
     public static string PlayerfilePath = Path.Combine(PlayerfolderPath, "players.xml");
 
     [XmlIgnore]
-    public static string PFPfilePath = Path.Combine(PlayerfolderPath, "pfp");
+    public static string PFPfilePath = Path.Combine(PlayerfolderPath, "Assets");
 
     [XmlIgnore]
     private static Game Clientinstance;
@@ -115,8 +115,15 @@ public class Game //Singleton
 
     public static string GetProfilePicturePath(string playerName)
     {
-        string customPicturePath = Path.Combine(AppContext.BaseDirectory, "Assets/pfp", $"{playerName}pfp.jpg");
-        return File.Exists(customPicturePath) ? $"/Assets/pfp/{playerName}pfp.jpg" : "/Assets/pfp/Emptypfp.jpg";
+        if (!Directory.Exists(PFPfilePath))
+        {
+            Directory.CreateDirectory(PFPfilePath);
+        }
+
+        string customPicturePath = Path.Combine(PFPfilePath, $"{playerName}pfp.jpg");
+        return File.Exists(customPicturePath)
+            ? customPicturePath
+            : Path.Combine(PFPfilePath, "Emptypfp.jpg");
     }
 
     private void RefreshNamesInternal()

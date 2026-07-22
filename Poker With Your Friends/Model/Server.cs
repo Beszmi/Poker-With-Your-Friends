@@ -3,6 +3,7 @@ using System;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.IO.Pipelines;
 using System.Net;
@@ -121,9 +122,17 @@ public class Server
                     ReadResult result = await reader.ReadAsync(_cts.Token);
                     ReadOnlySequence<byte> buffer = result.Buffer;
 
-                    while (TryReadMessage(ref buffer, out string message))
+                    while (TryReadMessage(ref buffer, out ReadOnlySequence<byte> payload))
                     {
-                        await InterpretMessageAsync(clientId, message);
+                        string opcode = Encoding.ASCII.GetString(payload.Slice(0, 2));
+                        if (opcode == "57")
+                        {
+                            await HandlepfpRequest(clientId, payload);
+                        }
+                        else
+                        {
+                            await InterpretMessageAsync(clientId, Encoding.UTF8.GetString(payload));
+                        }
                     }
 
                     if (buffer.Length > MaxFrameBytes)
@@ -179,13 +188,13 @@ public class Server
         }
     }
 
-    private bool TryReadMessage(ref ReadOnlySequence<byte> buffer, out string message)
+    private bool TryReadMessage(ref ReadOnlySequence<byte> buffer, out ReadOnlySequence<byte> payload)
     {
         const int headerSize = sizeof(int);
 
         if (buffer.Length < headerSize)
         {
-            message = string.Empty;
+            payload = ReadOnlySequence<byte>.Empty;
             return false;
         }
 
@@ -199,12 +208,12 @@ public class Server
         long frameSize = headerSize + (long)length;
         if (buffer.Length < frameSize)
         {
-            message = string.Empty;
+            payload = ReadOnlySequence<byte>.Empty;
             return false;
         }
 
-        ReadOnlySequence<byte> payload = buffer.Slice(headerSize, length);
-        message = Encoding.UTF8.GetString(payload);
+        ReadOnlySequence<byte> output = buffer.Slice(headerSize, length);
+        payload = output;
         buffer = buffer.Slice(frameSize);
         return true;
     }
@@ -213,10 +222,35 @@ public class Server
     {
         if (debugMessages)
         {
-            OnServerLoggedEvent?.Invoke($"Sent Table joined to [Broadcast]: {SerializedXML}");
+            OnServerLoggedEvent?.Invoke($"Sent XML to [Broadcast]: {SerializedXML}");
         }
 
         byte[] bytes = OutboundMessageQueue.EncodeFrame(SerializedXML);
+
+        foreach (var kvp in _connectedClients)
+        {
+            string clientId = kvp.Key;
+            ClientConnection connection = kvp.Value;
+
+            if (!connection.Outbound.TryEnqueue(bytes))
+            {
+                OnServerLoggedEvent?.Invoke(
+                    $"Disconnecting slow client {clientId}: outbound queue is full.");
+                connection.Close();
+            }
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task BroadcastBytesAsync(ReadOnlySpan<byte> payload)
+    {
+        if (debugMessages)
+        {
+            OnServerLoggedEvent?.Invoke($"Sent binary payload to [Broadcast] (Bytes): {payload.ToString()}");
+        }
+
+        byte[] bytes = OutboundMessageQueue.EncodeFrame(payload);
 
         foreach (var kvp in _connectedClients)
         {
@@ -254,6 +288,31 @@ public class Server
         if (debugMessages)
         {
             OnServerLoggedEvent?.Invoke($"Sent message to <{clientId}>: {message}");
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private Task SendBytesAsync(string clientId, ReadOnlySpan<byte> payload)
+    {
+        if (_connectedClients.TryGetValue(clientId, out ClientConnection? connection))
+        {
+            byte[] bytes = OutboundMessageQueue.EncodeFrame(payload);
+            if (!connection.Outbound.TryEnqueue(bytes))
+            {
+                OnServerLoggedEvent?.Invoke(
+                    $"Failed to queue direct message for {clientId}; closing the connection.");
+                connection.Close();
+            }
+        }
+        else
+        {
+            OnServerLoggedEvent?.Invoke($"Attempted to send message to {clientId}, but they are not connected.");
+        }
+
+        if (debugMessages)
+        {
+            OnServerLoggedEvent?.Invoke($"Sent message to <{clientId}> (Bytes): {payload.ToString()}");
         }
 
         return Task.CompletedTask;
@@ -367,9 +426,27 @@ public class Server
         await BroadcastPlayerCardRevealedEdit(Name, NewValue);
     }
 
-    private async Task HandlepfpRequest(string? clientId)
+    private async Task HandlepfpRequest(string? clientId, ReadOnlySequence<byte> transmission) //receives payload with opcode still in payload
     {
-        List<FileStream> PFPfiles = new List<FileStream>();
+        if (string.IsNullOrEmpty(clientId)) return;
+
+        // Optional filter: "57" = all, "57Alice" = one player
+        string requestedName = Encoding.UTF8.GetString(transmission.Slice(2));
+
+        foreach (Player player in game.Players)
+        {
+            if (!string.IsNullOrEmpty(requestedName) &&
+                !string.Equals(player.Name, requestedName, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            string customPath = Path.Combine(Game.PFPfilePath, $"{player.Name}pfp.jpg");
+            if (!File.Exists(customPath)) continue;
+
+            byte[] pfpFileData = await File.ReadAllBytesAsync(customPath);
+            await SendPFPAsync(clientId, player.Name, pfpFileData);
+        }
     }
 
     /* --------------------------------------------------------
@@ -402,7 +479,6 @@ public class Server
             case "54": HandlePlayerAction(clientId, payload); break;
             case "55": await LoginPlayerAsync(clientId, payload); break;
             case "56": await HandlePlayerCardsRevealedChanged(payload); break;
-            case "57": await HandlepfpRequest(clientId); break;
         }
     }
 
@@ -619,16 +695,6 @@ public class Server
         
         return sb.ToString();
     }
-    /*public async Task BroadcastGameStateAsync() // Dont use unless necessary
-    {
-        string serializedGameState = GameStateSerializer();
-        await BroadcastAsync(serializedGameState);
-        OnServerLoggedEvent?.Invoke("Game state broadcast sent.");
-        if (debugMessages)
-        {
-            OnServerLoggedEvent?.Invoke($"DEBUG: Sent to: [BROADCAST]:  {serializedGameState}");
-        }
-    }*/
 
     private async Task BroadcastNewPlayer(string playerName)
     {
@@ -740,6 +806,25 @@ public class Server
         sb.Append(",");
         sb.Append(name);
         await BroadcastAsync(sb.ToString());
+    }
+
+    private async Task SendPFPAsync(string clientId, string name, ReadOnlyMemory<byte> imageBytes)
+    {
+        // Payload: "13" + UInt16 LE nameLen + UTF-8 name + jpeg bytes
+        byte[] nameBytes = Encoding.UTF8.GetBytes(name);
+        if (nameBytes.Length > ushort.MaxValue)
+        {
+            throw new InvalidDataException($"Player name is too long to send as a pfp frame: {name}");
+        }
+
+        byte[] preparedBytes = new byte[2 + sizeof(ushort) + nameBytes.Length + imageBytes.Length];
+        preparedBytes[0] = (byte)'1';
+        preparedBytes[1] = (byte)'3';
+        BitConverter.TryWriteBytes(preparedBytes.AsSpan(2, sizeof(ushort)), (ushort)nameBytes.Length);
+        nameBytes.CopyTo(preparedBytes.AsSpan(4));
+        imageBytes.Span.CopyTo(preparedBytes.AsSpan(4 + nameBytes.Length));
+
+        await SendBytesAsync(clientId, preparedBytes);
     }
 
     public void Stop()

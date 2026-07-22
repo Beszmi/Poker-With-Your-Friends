@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Xml.Serialization;
 
 namespace Poker_With_Your_Friends.Model;
@@ -104,7 +105,7 @@ public partial class Player : ObservableObject
 
     [XmlAttribute("ProfilePicture")]
     [ObservableProperty]
-    public partial String ProfilePictureDir { get; set; } = "/Assets/pfp/Emptypfp.jpg";
+    public partial String ProfilePictureDir { get; set; } = Path.Combine(Game.PFPfilePath, "Emptypfp.jpg"); 
 
     // #AARRGGBB
     public string BgColor => WonLast ? "#99FFFF00" : "#9900FF00";

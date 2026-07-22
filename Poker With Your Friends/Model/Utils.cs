@@ -9,12 +9,26 @@ public class Utils
 {
     public static ImageSource PathToImage(string path)
     {
+        string fullPath;
         if (string.IsNullOrEmpty(path))
         {
-            path = "/Assets/pfp/Emptypfp.jpg";
+            fullPath = Path.Combine(Game.PFPfilePath, "Emptypfp.jpg");
         }
-        string relativePath = path.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
-        string fullPath = Path.Combine(AppContext.BaseDirectory, relativePath);
+        else if (Path.IsPathRooted(path))
+        {
+            fullPath = path;
+        }
+        else
+        {
+            string relativePath = path.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+            fullPath = Path.Combine(AppContext.BaseDirectory, relativePath);
+        }
+
+        if (!File.Exists(fullPath))
+        {
+            fullPath = Path.Combine(Game.PFPfilePath, "Emptypfp.jpg");
+        }
+
         return new BitmapImage(new Uri(fullPath, UriKind.Absolute));
     }
 
