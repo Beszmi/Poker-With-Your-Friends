@@ -11,6 +11,7 @@ namespace Poker_With_Your_Friends
         private Window? _window;
 
         public static MainWindow MainWindowInstance { get; private set; }
+        public static GameWindow? GameWindowInstance { get; set; }
         public static Microsoft.UI.Dispatching.DispatcherQueue MainDispatcher { get; set; } = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
 
         public new static App Current => (App)Application.Current;

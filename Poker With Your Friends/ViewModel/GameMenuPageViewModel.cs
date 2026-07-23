@@ -5,6 +5,9 @@ using System;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using Windows.Storage;
+using Windows.Storage.Pickers;
+using WinRT.Interop;
 
 namespace Poker_With_Your_Friends.ViewModel;
 
@@ -21,7 +24,13 @@ internal partial class GameMenuPageViewModel : ObservableObject
     public String? NewTableName { get; set; }
 
     [ObservableProperty]
-    public bool isNewTableButtonEnabled = true;
+    public partial bool IsNewTableButtonEnabled { get; set; } = true;
+
+    [ObservableProperty]
+    public partial String FileLocation { get; set; } = "";
+
+    [ObservableProperty]
+    public partial bool SuccessfullyPickedFile { get; set; } = false;
 
     public GameMenuPageViewModel()
     {
@@ -94,5 +103,61 @@ internal partial class GameMenuPageViewModel : ObservableObject
     public void ViewTable(Table table)
     {
         NavigationRequested?.Invoke(typeof(InGamePage), new object[] { client, table });
+    }
+
+    public async Task SelectFileAsync()
+    {
+        var picker = new FileOpenPicker();
+
+        var gameWindow = App.GameWindowInstance
+            ?? throw new InvalidOperationException("GameWindow is not open.");
+
+        var hwnd = WindowNative.GetWindowHandle(gameWindow);
+        InitializeWithWindow.Initialize(picker, hwnd);
+
+        picker.ViewMode = PickerViewMode.List;
+        picker.SuggestedStartLocation = PickerLocationId.DocumentsLibrary;
+        picker.FileTypeFilter.Add(".jpg");
+
+        StorageFile? file = await picker.PickSingleFileAsync();
+
+        SuccessfullyPickedFile = false;
+
+        if (file is null)
+        {
+            FileLocation = "No file picked";
+            return;
+        }
+
+        if (!string.Equals(file.FileType, ".jpg", StringComparison.OrdinalIgnoreCase))
+        {
+            FileLocation = "Wrong file format";
+            return;
+        }
+
+        try
+        {
+            long length = new System.IO.FileInfo(file.Path).Length;
+            if (length > 8388608)
+            {
+                FileLocation = "File too big";
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            GameMenuError?.Invoke(ex.Message);
+            FileLocation = "Could not read file";
+            return;
+        }
+
+        if (!await Utils.IsSafeJpegAsync(file))
+        {
+            FileLocation = "Jpg not safe";
+            return;
+        }
+
+        FileLocation = $"Picked: {file.Path}";
+        SuccessfullyPickedFile = true;
     }
 }

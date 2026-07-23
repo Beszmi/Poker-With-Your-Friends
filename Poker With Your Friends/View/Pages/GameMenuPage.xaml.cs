@@ -68,4 +68,9 @@ public sealed partial class GameMenuPage : Page
 
         await myDialog.ShowAsync();
     }
+
+    private void PickFileButton_Click(object sender, RoutedEventArgs e)
+    {
+        _ = viewModel.SelectFileAsync();
+    }
 }

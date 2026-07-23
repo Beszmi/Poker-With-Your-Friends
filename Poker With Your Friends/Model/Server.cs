@@ -18,7 +18,7 @@ namespace Poker_With_Your_Friends.Model;
 
 public class Server
 {
-    private const long MaxFrameBytes = 8 * 1024 * 1024;
+    private const long MaxFrameBytes = 10 * 1024 * 1024;
 
     private readonly TcpListener _listener;
     private readonly CancellationTokenSource _cts = new();

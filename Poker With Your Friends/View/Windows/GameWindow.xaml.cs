@@ -11,6 +11,11 @@ public sealed partial class GameWindow : Window
 {
     private void Window_Closed(object sender, WindowEventArgs args)
     {
+        if (App.GameWindowInstance == this)
+        {
+            App.GameWindowInstance = null;
+        }
+
         if (client != null)
         {
             client.OnErrorReceived -= OnServerErrorReceived;
@@ -27,6 +32,7 @@ public sealed partial class GameWindow : Window
     {
         InitializeComponent();
 
+        App.GameWindowInstance = this;
         this.client = client;
 
         client.OnErrorReceived += OnServerErrorReceived;

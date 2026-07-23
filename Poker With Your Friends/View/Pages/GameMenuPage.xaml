@@ -5,11 +5,13 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Poker_With_Your_Friends"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:Model="using:Poker_With_Your_Friends.Model"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:Model="using:Poker_With_Your_Friends.Model"
     mc:Ignorable="d">
 
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
@@ -18,7 +20,7 @@
         </Grid.ColumnDefinitions>
         <!--
         Title
-    -->
+        -->
         <TextBlock Text="Game Window" Grid.Column="0" Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Top" FontSize="24"/>
 
         <TextBlock Grid.Column="0" Grid.Row="0" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="24" FontWeight="Bold">
@@ -33,13 +35,18 @@
                 <TextBlock Text="Your tables name:" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 <TextBox Width="200" Text="{x:Bind viewModel.NewTableName, Mode=TwoWay}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </StackPanel>
-            <Button VerticalAlignment="Center" HorizontalAlignment="Right" Content="Create new table" Click="NewGameButton_Click" IsEnabled="{x:Bind viewModel.isNewTableButtonEnabled, Mode=OneWay}"/>
+            <Button VerticalAlignment="Center" HorizontalAlignment="Right" Content="Create new table" Click="NewGameButton_Click" IsEnabled="{x:Bind viewModel.IsNewTableButtonEnabled, Mode=OneWay}"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Spacing="12" Padding="10" Background="Gray">
+            <TextBlock Text="{x:Bind viewModel.FileLocation, Mode=OneWay}" TextWrapping="Wrap" />
+            <Button Content="Pick a file" Click="PickFileButton_Click" />
         </StackPanel>
 
         <!--
         Tables grid
-    -->
-        <GridView Grid.Row="1" ItemsSource="{x:Bind viewModel.Tables, Mode=TwoWay}" ItemClick="Table_ItemClick" IsItemClickEnabled="True" VerticalAlignment="Center" HorizontalAlignment="Center">
+        -->
+        <GridView Grid.Row="2" ItemsSource="{x:Bind viewModel.Tables, Mode=TwoWay}" ItemClick="Table_ItemClick" IsItemClickEnabled="True" VerticalAlignment="Center" HorizontalAlignment="Center">
             <GridView.ItemsPanel>
                 <ItemsPanelTemplate>
                     <ItemsWrapGrid Orientation="Horizontal" MaximumRowsOrColumns="4" />

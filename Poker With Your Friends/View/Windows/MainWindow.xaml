@@ -9,7 +9,12 @@
     mc:Ignorable="d"
     Title="Poker With Your Friends">
 
-    <Grid Background="Maroon" RequestedTheme="Light">
+
+    <Grid RequestedTheme="Light">
+        <Grid.Background>
+            <ImageBrush ImageSource="/Assets/START_BG.png" Stretch="UniformToFill" />
+        </Grid.Background>
+        
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />

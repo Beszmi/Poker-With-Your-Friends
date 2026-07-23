@@ -14,7 +14,7 @@ namespace Poker_With_Your_Friends.Model;
 
 public class Client
 {
-    private const long MaxFrameBytes = 8 * 1024 * 1024;
+    private const long MaxFrameBytes = 10 * 1024 * 1024;
 
     public IPlayerStore PlayerStore { get; }
 
