@@ -127,7 +127,18 @@ public class Server
                         string opcode = Encoding.ASCII.GetString(payload.Slice(0, 2));
                         if (opcode == "57")
                         {
+                            if (debugMessages)
+                            {
+                                OnServerLoggedEvent?.Invoke($"Recieved pfp request from {clientId}");
+                            }
                             await HandlepfpRequest(clientId, payload);
+                        } else if (opcode == "58")
+                        {
+                            if(debugMessages)
+                            {
+                                OnServerLoggedEvent?.Invoke($"Recieved new pfp from {clientId}");
+                            }
+                            await HandlepfpRecieved(clientId, payload);
                         }
                         else
                         {
@@ -455,7 +466,51 @@ public class Server
             byte[] pfpFileData = await File.ReadAllBytesAsync(EmptyPFPDir);
             await SendPFPAsync(clientId, "Empty", pfpFileData);
         }
+    }
 
+    private async Task HandlepfpRecieved(string? clientId, ReadOnlySequence<byte> transmission)
+    {
+        if (string.IsNullOrEmpty(clientId)) return;
+
+        if (!_clientToPlayerName.TryGetValue(clientId, out string? playerName) ||
+            string.IsNullOrEmpty(playerName))
+        {
+            System.Diagnostics.Debug.WriteLine("Ignored pfp upload from unknown client.");
+            return;
+        }
+        const int imageOffset = 2;
+        if (transmission.Length <= imageOffset)
+        {
+            System.Diagnostics.Debug.WriteLine("Ignored malformed pfp frame.");
+            return;
+        }
+
+        byte[] imageBytes = transmission.Slice(imageOffset).ToArray();
+
+        if (!Directory.Exists(Game.PFPfilePath))
+        {
+            Directory.CreateDirectory(Game.PFPfilePath);
+        }
+        string pathToPfp = Path.Combine(Game.PFPfilePath, $"{playerName}pfp.jpg");
+
+        File.WriteAllBytes(pathToPfp, imageBytes);
+
+        Player? player = null;
+        foreach (Player p in game.Players)
+        {
+            if (p.Name == playerName)
+            {
+                player = p;
+                break;
+            }
+        }
+        if (player != null)
+        {
+            player.ProfilePictureDir = pathToPfp;
+        }
+
+        // Immediately send new pfp to everyone
+        await BroadcastPFPAsync(playerName, imageBytes);
     }
 
     /* --------------------------------------------------------
@@ -817,7 +872,7 @@ public class Server
         await BroadcastAsync(sb.ToString());
     }
 
-    private async Task SendPFPAsync(string clientId, string name, ReadOnlyMemory<byte> imageBytes)
+    private static byte[] BuildPFPPayload(string name, ReadOnlyMemory<byte> imageBytes)
     {
         // Payload: "13" + UInt16 LE nameLen + UTF-8 name + jpeg bytes
         byte[] nameBytes = Encoding.UTF8.GetBytes(name);
@@ -832,8 +887,17 @@ public class Server
         BitConverter.TryWriteBytes(preparedBytes.AsSpan(2, sizeof(ushort)), (ushort)nameBytes.Length);
         nameBytes.CopyTo(preparedBytes.AsSpan(4));
         imageBytes.Span.CopyTo(preparedBytes.AsSpan(4 + nameBytes.Length));
+        return preparedBytes;
+    }
 
-        await SendBytesAsync(clientId, preparedBytes);
+    private async Task SendPFPAsync(string clientId, string name, ReadOnlyMemory<byte> imageBytes)
+    {
+        await SendBytesAsync(clientId, BuildPFPPayload(name, imageBytes));
+    }
+
+    private Task BroadcastPFPAsync(string name, ReadOnlyMemory<byte> imageBytes)
+    {
+        return BroadcastBytesAsync(BuildPFPPayload(name, imageBytes));
     }
 
     public void Stop()

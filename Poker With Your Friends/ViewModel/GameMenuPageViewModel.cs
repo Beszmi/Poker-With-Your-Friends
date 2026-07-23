@@ -32,6 +32,8 @@ internal partial class GameMenuPageViewModel : ObservableObject
     [ObservableProperty]
     public partial bool SuccessfullyPickedFile { get; set; } = false;
 
+    public static event Action<String>? FileSelected;
+
     public GameMenuPageViewModel()
     {
         game = Game.ClientInstance;
@@ -159,5 +161,7 @@ internal partial class GameMenuPageViewModel : ObservableObject
 
         FileLocation = $"Picked: {file.Path}";
         SuccessfullyPickedFile = true;
+
+        FileSelected?.Invoke(file.Path);
     }
 }

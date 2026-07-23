@@ -21,6 +21,6 @@
 55: Login Player Client -> Server
 56: Player Reveal Cards Client -> Server
 57: Request Profile Picture update Client -> Server
-58: Recieve new Profile Picture Client -> Server
+58: Send new Profile Picture Client -> Server
 
 99: error message Server -> Client

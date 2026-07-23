@@ -40,7 +40,7 @@
 
         <StackPanel Grid.Row="1" Spacing="12" Padding="10" Background="Gray">
             <TextBlock Text="{x:Bind viewModel.FileLocation, Mode=OneWay}" TextWrapping="Wrap" />
-            <Button Content="Pick a file" Click="PickFileButton_Click" />
+            <Button Content="Pick a file for your pfp" Click="PickFileButton_Click" />
         </StackPanel>
 
         <!--

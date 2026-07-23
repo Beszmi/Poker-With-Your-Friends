@@ -1,6 +1,6 @@
-﻿using System;
+﻿using Poker_With_Your_Friends.ViewModel;
+using System;
 using System.Buffers;
-using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
@@ -45,6 +45,7 @@ public class Client
 
         InGamePage.OnJoinGameClick += PlayerJoiningTable;
         InGamePage.OnLeaveGameClick += PlayerLeavingTable;
+        GameMenuPageViewModel.FileSelected += SendPFP;
     }
 
     public async Task ConnectAndRunAsync()
@@ -199,6 +200,25 @@ public class Client
         }
     }
 
+    private Task SendBytesAsync(ReadOnlySpan<byte> payload)
+    {
+        OutboundMessageQueue? outbound = _outbound;
+        if (outbound is null)
+        {
+            OnLocalError?.Invoke("Failed to queue PFP message: not connected.");
+            return Task.CompletedTask;
+        }
+
+        byte[] bytes = OutboundMessageQueue.EncodeFrame(payload);
+        if (!outbound.TryEnqueue(bytes))
+        {
+            OnLocalError?.Invoke("Failed to queue PFP message to server, closing connection!");
+            _tcpClient?.Close();
+        }
+
+        return Task.CompletedTask;
+    }
+
     public void RegisterNewPlayer(String name)
     {
         SendMessage("50" + name);
@@ -247,6 +267,26 @@ public class Client
     {
         SendMessage("57");
     }
+
+    private async void SendPFP(String path)
+    {
+        try
+        {
+            // Wire format: "58" + jpeg bytes
+            byte[] pfpFileData = await File.ReadAllBytesAsync(path);
+            byte[] preparedBytes = new byte[2 + pfpFileData.Length];
+            preparedBytes[0] = (byte)'5';
+            preparedBytes[1] = (byte)'8';
+            pfpFileData.CopyTo(preparedBytes.AsSpan(2));
+
+            await SendBytesAsync(preparedBytes);
+        }
+        catch (Exception ex)
+        {
+            OnLocalError?.Invoke($"Failed to send profile picture: {ex.Message}");
+        }
+    }
+
 
     /* --------------------------------------------------------
      * 
@@ -502,17 +542,22 @@ public class Client
             Player? player = game.Players.FirstOrDefault(p => p.Name == name);
             if (player != null)
             {
+                if (player.ProfilePictureDir == pathToPfp)
+                {
+                    player.ProfilePictureDir = string.Empty;
+                }
                 player.ProfilePictureDir = pathToPfp;
             }
         });
     }
-
+    
     public void Disconnect()
     {
         if (Interlocked.Exchange(ref _disconnected, 1) != 0) return;
 
         InGamePage.OnJoinGameClick -= PlayerJoiningTable;
         InGamePage.OnLeaveGameClick -= PlayerLeavingTable;
+        GameMenuPageViewModel.FileSelected -= SendPFP;
 
         _cts.Cancel();
         _tcpClient?.Close();

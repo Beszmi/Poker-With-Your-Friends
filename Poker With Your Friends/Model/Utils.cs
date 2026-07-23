@@ -11,7 +11,7 @@ using Windows.Storage.Streams;
 namespace Poker_With_Your_Friends.Model;
 public class Utils
 {
-    public static ImageSource PathToImage(string path)
+    public static ImageSource? PathToImage(string path)
     {
         string fullPath;
         if (string.IsNullOrEmpty(path))
@@ -33,7 +33,23 @@ public class Utils
             fullPath = Path.Combine(Game.PFPfilePath, "Emptypfp.jpg");
         }
 
-        return new BitmapImage(new Uri(fullPath, UriKind.Absolute));
+        if (!File.Exists(fullPath))
+        {
+            return null;
+        }
+
+        try
+        {
+            var bitmap = new BitmapImage();
+            bitmap.CreateOptions = BitmapCreateOptions.IgnoreImageCache;
+            bitmap.UriSource = new Uri(fullPath, UriKind.Absolute);
+            return bitmap;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"PathToImage failed for '{fullPath}': {ex.Message}");
+            return null;
+        }
     }
 
     public static int GetFirstNonNumberIndex(string input)
