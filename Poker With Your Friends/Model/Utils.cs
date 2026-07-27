@@ -2,7 +2,9 @@
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 using Windows.Graphics.Imaging;
 using Windows.Storage;
@@ -49,6 +51,79 @@ public class Utils
         {
             System.Diagnostics.Debug.WriteLine($"PathToImage failed for '{fullPath}': {ex.Message}");
             return null;
+        }
+    }
+
+    public static String PathToFullPath(String path)
+    {
+        string fullPath;
+
+        if (Path.IsPathRooted(path))
+        {
+            fullPath = path;
+        }
+        else
+        {
+            string relativePath = path.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+            fullPath = Path.Combine(AppContext.BaseDirectory, relativePath);
+        }
+
+        if (!File.Exists(fullPath))
+        {
+            fullPath = Path.Combine(Game.PFPfilePath, "Emptypfp.jpg");
+        }
+
+        if (!File.Exists(fullPath))
+        {
+            throw new FileNotFoundException($"file at {fullPath} not found");
+        }
+
+        return fullPath;
+    }
+
+    public static List<byte[]> HashPFPs(Player[] players)
+    {
+        List<byte[]> hashes = new List<Byte[]>();
+
+        foreach (Player Player in players)
+        {
+            using (FileStream fs = File.OpenRead(Utils.PathToFullPath(Player.ProfilePictureDir)))
+            {
+                using (SHA256 hasher = SHA256.Create())
+                {
+                    hashes.Add(hasher.ComputeHash(fs));
+                }
+            }
+        }
+
+        //For Emptypfp
+        String EmptyPFPPath = PathToFullPath(Path.Combine(Game.PFPfilePath, "Emptypfp.jpg"));
+
+        if (!File.Exists(EmptyPFPPath)) //Fallback is emptypfp doesnt exist
+        {
+            hashes.Add(new byte[32]); // all Zero's
+        } else
+        {
+            using (FileStream fs = File.OpenRead(EmptyPFPPath))
+            {
+                using (SHA256 hasher = SHA256.Create())
+                {
+                    hasher.ComputeHash(fs);
+                }
+            }
+        }
+
+        return hashes;
+    }
+
+    public static byte[] HashOnePFP(String path)
+    {
+        using (FileStream fs = File.OpenRead(Utils.PathToFullPath(path)))
+        {
+            using (SHA256 hasher = SHA256.Create())
+            {
+                return hasher.ComputeHash(fs);
+            }
         }
     }
 

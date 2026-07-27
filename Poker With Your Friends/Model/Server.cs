@@ -3,9 +3,9 @@ using System;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.IO;
 using System.IO.Pipelines;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -129,7 +129,7 @@ public class Server
                         {
                             if (debugMessages)
                             {
-                                OnServerLoggedEvent?.Invoke($"Recieved pfp request from {clientId}");
+                                OnServerLoggedEvent?.Invoke($"Recieved pfp request (57) from {clientId}, binary: {Convert.ToHexString(payload.ToArray())}");
                             }
                             await HandlepfpRequest(clientId, payload);
                         } else if (opcode == "58")
@@ -439,32 +439,65 @@ public class Server
 
     private async Task HandlepfpRequest(string? clientId, ReadOnlySequence<byte> transmission) //receives payload with opcode still in payload
     {
+        //Quick error checks
         if (string.IsNullOrEmpty(clientId)) return;
 
-        // Optional filter: "57" = all, "57Alice" = one player
-        string requestedName = Encoding.UTF8.GetString(transmission.Slice(2));
+        //Slice off opcode
+        ReadOnlySequence<byte> transmissionNoOpCode = transmission.Slice(2);
 
+        if (transmissionNoOpCode.Length % 32 != 0) throw new ArgumentException($"malformed pfp request, length is off by {transmissionNoOpCode.Length % 32}");
+
+        List<byte[]> ClientHashes = new List<byte[]>();
+
+        //splitting up the hashes
+        while(transmissionNoOpCode.Length >= 32)
+        {
+            ClientHashes.Add(transmissionNoOpCode.Slice(0, 32).ToArray());
+            transmissionNoOpCode = transmissionNoOpCode.Slice(32);
+        }
+
+        //Getting server hashes
+        Dictionary<byte[], String> ServerPFPHashToName = new Dictionary<byte[], String>();
         foreach (Player player in game.Players)
         {
-            if (!string.IsNullOrEmpty(requestedName) &&
-                !string.Equals(player.Name, requestedName, StringComparison.Ordinal))
-            {
-                continue;
-            }
+            if (!player.HasPFP) continue;
+            ServerPFPHashToName[Utils.HashOnePFP(player.ProfilePictureDir)] = player.Name;
+        }
 
-            string customPath = Path.Combine(Game.PFPfilePath, $"{player.Name}pfp.jpg");
+        //Getting only the hashes that are different
+        IEnumerable<byte[]> UniqueHashes = ServerPFPHashToName.Keys.Except(ClientHashes);
+
+        //Sending out new pfp's
+        foreach (byte[] hash in UniqueHashes)
+        {
+            String name = ServerPFPHashToName[hash];
+
+            string customPath = Path.Combine(Game.PFPfilePath, $"{name}pfp.jpg");
             if (!File.Exists(customPath)) continue;
 
             byte[] pfpFileData = await File.ReadAllBytesAsync(customPath);
-            await SendPFPAsync(clientId, player.Name, pfpFileData);
+            if (debugMessages)
+            {
+                OnServerLoggedEvent?.Invoke($"[PROFILE PICTURE SENT]: {clientId} had a mismatched PFP for player \"{name}\" sending updated one now, size: {pfpFileData.Length}");
+            }
+            await SendPFPAsync(clientId, name, pfpFileData);
         }
 
         //Default (Empty) profile picture sending
         String EmptyPFPDir = Path.Combine(Game.PFPfilePath, "Emptypfp.jpg");
         if (File.Exists(EmptyPFPDir))
         {
-            byte[] pfpFileData = await File.ReadAllBytesAsync(EmptyPFPDir);
-            await SendPFPAsync(clientId, "Empty", pfpFileData);
+            byte[] EmptyPFPHash = Utils.HashOnePFP(EmptyPFPDir);
+
+            if (!ClientHashes.Contains(EmptyPFPHash))
+            {
+                byte[] pfpFileData = await File.ReadAllBytesAsync(EmptyPFPDir);
+                if (debugMessages)
+                {
+                    OnServerLoggedEvent?.Invoke($"[PROFILE PICTURE SENT]: {clientId} had a mismatched Emptypfp sending updated one now, size: {pfpFileData.Length}");
+                }
+                await SendPFPAsync(clientId, "Empty", pfpFileData);
+            }
         }
     }
 

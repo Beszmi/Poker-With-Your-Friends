@@ -1,6 +1,7 @@
 ﻿using Poker_With_Your_Friends.ViewModel;
 using System;
 using System.Buffers;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
@@ -263,9 +264,21 @@ public class Client
         PlayerStore.CurrentTable = null;
     }
 
-    private void SendRequestPFP()
+    private void SendRequestPFP() // Wite format: "57" + pfp hashcodes + emptypfp hashcode
     {
-        SendMessage("57");
+        List<Byte[]> hashes = Utils.HashPFPs(game.Players.ToArray());
+
+        byte[] preparedBytes = new byte[2 + hashes.Count * 32 + 32];
+        preparedBytes[0] = (byte)'5';
+        preparedBytes[1] = (byte)'7';
+        
+        for (int i = 0; i < hashes.Count; i++)
+        {
+            int index = 2 + i * 32;
+            hashes[i].CopyTo(preparedBytes, index);
+        }
+
+        SendBytesAsync(preparedBytes);
     }
 
     private async void SendPFP(String path)
