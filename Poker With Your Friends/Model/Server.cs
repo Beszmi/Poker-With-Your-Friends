@@ -5,7 +5,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipelines;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -445,53 +444,46 @@ public class Server
         //Slice off opcode
         ReadOnlySequence<byte> transmissionNoOpCode = transmission.Slice(2);
 
-        if (transmissionNoOpCode.Length % 32 != 0) throw new ArgumentException($"malformed pfp request, length is off by {transmissionNoOpCode.Length % 32}");
-
-        List<byte[]> ClientHashes = new List<byte[]>();
-
-        //splitting up the hashes
-        while(transmissionNoOpCode.Length >= 32)
+        if (transmissionNoOpCode.Length % 32 != 0)
         {
-            ClientHashes.Add(transmissionNoOpCode.Slice(0, 32).ToArray());
+            throw new ArgumentException($"malformed pfp request, length is off by {transmissionNoOpCode.Length % 32}");
+        }
+
+        List<byte[]> clientHashes = new List<byte[]>();
+
+        // Wire format: "57" + SHA256 per player (client player order) + SHA256 of Emptypfp
+        while (transmissionNoOpCode.Length >= 32)
+        {
+            clientHashes.Add(transmissionNoOpCode.Slice(0, 32).ToArray());
             transmissionNoOpCode = transmissionNoOpCode.Slice(32);
         }
 
-        //Getting server hashes
-        Dictionary<byte[], String> ServerPFPHashToName = new Dictionary<byte[], String>();
+        // Send only custom pfps whose content hash is missing on the client.
         foreach (Player player in game.Players)
         {
-            if (!player.HasPFP) continue;
-            ServerPFPHashToName[Utils.HashOnePFP(player.ProfilePictureDir)] = player.Name;
-        }
-
-        //Getting only the hashes that are different
-        IEnumerable<byte[]> UniqueHashes = ServerPFPHashToName.Keys.Except(ClientHashes);
-
-        //Sending out new pfp's
-        foreach (byte[] hash in UniqueHashes)
-        {
-            String name = ServerPFPHashToName[hash];
-
-            string customPath = Path.Combine(Game.PFPfilePath, $"{name}pfp.jpg");
+            string customPath = Path.Combine(Game.PFPfilePath, $"{player.Name}pfp.jpg");
             if (!File.Exists(customPath)) continue;
+
+            byte[] serverHash = Utils.HashOnePFP(customPath);
+            if (Utils.HashListContains(clientHashes, serverHash)) continue;
 
             byte[] pfpFileData = await File.ReadAllBytesAsync(customPath);
             if (debugMessages)
             {
-                OnServerLoggedEvent?.Invoke($"[PROFILE PICTURE SENT]: {clientId} had a mismatched PFP for player \"{name}\" sending updated one now, size: {pfpFileData.Length}");
+                OnServerLoggedEvent?.Invoke($"[PROFILE PICTURE SENT]: {clientId} had a mismatched PFP for player \"{player.Name}\" sending updated one now, size: {pfpFileData.Length}");
             }
-            await SendPFPAsync(clientId, name, pfpFileData);
+            await SendPFPAsync(clientId, player.Name, pfpFileData);
         }
 
-        //Default (Empty) profile picture sending
-        String EmptyPFPDir = Path.Combine(Game.PFPfilePath, "Emptypfp.jpg");
-        if (File.Exists(EmptyPFPDir))
+        // Default (Empty) profile picture
+        string emptyPfpDir = Path.Combine(Game.PFPfilePath, "Emptypfp.jpg");
+        if (File.Exists(emptyPfpDir))
         {
-            byte[] EmptyPFPHash = Utils.HashOnePFP(EmptyPFPDir);
+            byte[] emptyPfpHash = Utils.HashOnePFP(emptyPfpDir);
 
-            if (!ClientHashes.Contains(EmptyPFPHash))
+            if (!Utils.HashListContains(clientHashes, emptyPfpHash))
             {
-                byte[] pfpFileData = await File.ReadAllBytesAsync(EmptyPFPDir);
+                byte[] pfpFileData = await File.ReadAllBytesAsync(emptyPfpDir);
                 if (debugMessages)
                 {
                     OnServerLoggedEvent?.Invoke($"[PROFILE PICTURE SENT]: {clientId} had a mismatched Emptypfp sending updated one now, size: {pfpFileData.Length}");

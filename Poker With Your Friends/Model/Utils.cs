@@ -58,7 +58,11 @@ public class Utils
     {
         string fullPath;
 
-        if (Path.IsPathRooted(path))
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            fullPath = Path.Combine(Game.PFPfilePath, "Emptypfp.jpg");
+        }
+        else if (Path.IsPathRooted(path))
         {
             fullPath = path;
         }
@@ -83,48 +87,50 @@ public class Utils
 
     public static List<byte[]> HashPFPs(Player[] players)
     {
-        List<byte[]> hashes = new List<Byte[]>();
+        List<byte[]> hashes = new List<byte[]>(players.Length + 1);
 
-        foreach (Player Player in players)
+        foreach (Player player in players)
         {
-            using (FileStream fs = File.OpenRead(Utils.PathToFullPath(Player.ProfilePictureDir)))
+            try
             {
-                using (SHA256 hasher = SHA256.Create())
-                {
-                    hashes.Add(hasher.ComputeHash(fs));
-                }
+                hashes.Add(HashOnePFP(player.ProfilePictureDir));
+            }
+            catch
+            {
+                hashes.Add(new byte[32]);
             }
         }
 
-        //For Emptypfp
-        String EmptyPFPPath = PathToFullPath(Path.Combine(Game.PFPfilePath, "Emptypfp.jpg"));
-
-        if (!File.Exists(EmptyPFPPath)) //Fallback is emptypfp doesnt exist
+        // Trailing empty-pfp hash (wire format: player hashes + emptypfp hash)
+        string emptyPfpPath = Path.Combine(Game.PFPfilePath, "Emptypfp.jpg");
+        if (!File.Exists(emptyPfpPath))
         {
-            hashes.Add(new byte[32]); // all Zero's
-        } else
+            hashes.Add(new byte[32]); // fallback when emptypfp is missing
+        }
+        else
         {
-            using (FileStream fs = File.OpenRead(EmptyPFPPath))
-            {
-                using (SHA256 hasher = SHA256.Create())
-                {
-                    hasher.ComputeHash(fs);
-                }
-            }
+            hashes.Add(HashOnePFP(emptyPfpPath));
         }
 
         return hashes;
     }
 
-    public static byte[] HashOnePFP(String path)
+    public static byte[] HashOnePFP(string path)
     {
-        using (FileStream fs = File.OpenRead(Utils.PathToFullPath(path)))
+        using FileStream fs = File.OpenRead(PathToFullPath(path));
+        return SHA256.HashData(fs);
+    }
+
+    public static bool HashListContains(IEnumerable<byte[]> hashes, byte[] target)
+    {
+        foreach (byte[] hash in hashes)
         {
-            using (SHA256 hasher = SHA256.Create())
+            if (hash.AsSpan().SequenceEqual(target))
             {
-                return hasher.ComputeHash(fs);
+                return true;
             }
         }
+        return false;
     }
 
     public static int GetFirstNonNumberIndex(string input)

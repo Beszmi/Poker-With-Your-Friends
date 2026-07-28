@@ -112,7 +112,7 @@ public partial class Player : ObservableObject
 
     public string HandName => Hand?.ToString() ?? string.Empty;
 
-    public bool HasPFP => ProfilePictureDir != Path.Combine(Game.PFPfilePath, "Emptypfp.jpg") ? true : false;
+    public bool HasPFP => !string.Equals( ProfilePictureDir, Path.Combine(Game.PFPfilePath, "Emptypfp.jpg"), StringComparison.OrdinalIgnoreCase);
 
     partial void OnWonLastChanged(bool value)
     {

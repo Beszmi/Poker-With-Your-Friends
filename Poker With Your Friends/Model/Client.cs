@@ -264,21 +264,28 @@ public class Client
         PlayerStore.CurrentTable = null;
     }
 
-    private void SendRequestPFP() // Wite format: "57" + pfp hashcodes + emptypfp hashcode
+    private void SendRequestPFP() // Wire format: "57" + pfp hashcodes + emptypfp hashcode
     {
-        List<Byte[]> hashes = Utils.HashPFPs(game.Players.ToArray());
-
-        byte[] preparedBytes = new byte[2 + hashes.Count * 32 + 32];
-        preparedBytes[0] = (byte)'5';
-        preparedBytes[1] = (byte)'7';
-        
-        for (int i = 0; i < hashes.Count; i++)
+        try
         {
-            int index = 2 + i * 32;
-            hashes[i].CopyTo(preparedBytes, index);
-        }
+            List<byte[]> hashes = Utils.HashPFPs(game.Players.ToArray());
 
-        SendBytesAsync(preparedBytes);
+            byte[] preparedBytes = new byte[2 + hashes.Count * 32];
+            preparedBytes[0] = (byte)'5';
+            preparedBytes[1] = (byte)'7';
+
+            for (int i = 0; i < hashes.Count; i++)
+            {
+                hashes[i].CopyTo(preparedBytes, 2 + i * 32);
+            }
+
+            SendBytesAsync(preparedBytes);
+        }
+        catch (Exception ex)
+        {
+            OnLocalError?.Invoke($"Failed to build pfp hash request: {ex.Message}");
+            SendMessage("57");
+        }
     }
 
     private async void SendPFP(String path)
@@ -356,14 +363,15 @@ public class Client
     {
         message = message.Remove(0, 2);
         XmlSerializer serializer = new XmlSerializer(typeof(Game));
+        if (serializer.Deserialize(new StringReader(message)) is not Game deserializedGame)
         {
-            if (serializer.Deserialize(new StringReader(message)) is Game deserializedGame)
-            {
-                game.GameStateUpdate(deserializedGame);
-            }
+            return;
         }
-
-        SendRequestPFP();
+        RunOnUiThread(() =>
+        {
+            game.GameStateUpdate(deserializedGame);
+            SendRequestPFP();
+        });
     }
 
     private void PlayerLogin(String message)
