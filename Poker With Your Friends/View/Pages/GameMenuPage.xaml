@@ -11,13 +11,16 @@
     xmlns:ViewModel="using:Poker_With_Your_Friends.ViewModel"
     mc:Ignorable="d">
 
+    <!--
+    Table tempalte
+    -->
     <Page.Resources>
         <DataTemplate x:Key="TableItemTemplate" x:DataType="Model:Table">
             <Grid Height="400" Width="400">
                 <Image Source="/Assets/Table.png" />
-                <TextBlock Text="{x:Bind Name, Mode=OneWay}" VerticalAlignment="Top" HorizontalAlignment="Center" FontSize="28" Foreground="Red" Margin="0,90,0,0" MaxWidth="165"/>
+                <TextBlock Text="{x:Bind Name, Mode=OneWay}" VerticalAlignment="Top" HorizontalAlignment="Center" FontSize="28" Foreground="Red" Margin="0,110,0,0" MaxWidth="165"/>
                 <StackPanel Padding="10" VerticalAlignment="Center" HorizontalAlignment="Center">
-                    <TextBlock FontSize="18" Margin="0,50,0,0">
+                    <TextBlock FontSize="18" Margin="0,70,0,0">
                         <Run Text="{x:Bind Model:Utils.NumberToOrdinalNumber(Round), Mode=OneWay}"/>
                         <Run Text=" Round"/>
                         <LineBreak/>
@@ -39,7 +42,7 @@
             <Grid Height="400" Width="400">
                 <Image Source="/Assets/Table.png" Opacity="0.65"/>
                 <TextBox Text="{x:Bind Owner.NewTableName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="Table name" VerticalAlignment="Top"
-                         HorizontalAlignment="Center" FontSize="28" Foreground="Red" Margin="0,90,0,0" Width="165" KeyDown="NewTableNameTextBox_KeyDown"/>
+                         HorizontalAlignment="Center" FontSize="28" Foreground="Red" Margin="0,110,0,0" Width="165" KeyDown="NewTableNameTextBox_KeyDown"/>
                 <Button Content="+ Create table" HorizontalAlignment="Center" VerticalAlignment="Center" IsEnabled="{x:Bind Owner.IsNewTableButtonEnabled, Mode=OneWay}" Click="CreateTableButton_Click"/>
             </Grid>
         </DataTemplate>
@@ -51,39 +54,43 @@
     </Page.Resources>
 
     <Grid RequestedTheme="Light">
+        <Grid.Background>
+            <ImageBrush ImageSource="/Assets/Table_Picker_BG.jpg" Stretch="UniformToFill" />
+        </Grid.Background>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
-        <!--
-        Title
-        -->
-        <TextBlock Text="Game Window" Grid.Column="0" Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Top" FontSize="24"/>
 
-        <Border Grid.Column="0" Grid.Row="0" HorizontalAlignment="Right" VerticalAlignment="Center" Background="Beige" Padding="2">
-            <StackPanel Orientation="Horizontal">
-                <StackPanel Spacing="12" Padding="10" Background="Gray">
-                    <Image Width="100" Height="100" Source="{x:Bind Model:Utils.PathToImage(viewModel.PlayerStore.CurrentPlayer.ProfilePictureDir), Mode=OneWay}"/>
-                    <Button Content="Change Profile Picture" Click="PickFileButton_Click" />
+        <!--
+        Player info
+        -->
+        <Border Grid.Column="0" Grid.Row="0" HorizontalAlignment="Right" VerticalAlignment="Center" Background="Beige" Padding="2" BorderBrush="Black" BorderThickness="1" CornerRadius="0,0,0,10">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <StackPanel Spacing="12" Padding="10" >
+                        <Border Width="100" Height="100" CornerRadius="90" BorderBrush="Black" BorderThickness="1">
+                            <Image Source="{x:Bind Model:Utils.PathToImage(viewModel.PlayerStore.CurrentPlayer.ProfilePictureDir), Mode=OneWay}" Stretch="Fill"/>
+                        </Border>
+                    </StackPanel>
+                    <TextBlock FontSize="24" FontWeight="Bold" VerticalAlignment="Center">
+                        <Run Text="{x:Bind viewModel.client.PlayerStore.CurrentPlayer.Name, Mode=OneWay}"/>
+                        <LineBreak/>
+                        <Run Text="Chips: "/>
+                        <Run Text="{x:Bind viewModel.client.PlayerStore.CurrentPlayer.Chips, Mode=OneWay}"/>
+                    </TextBlock>
                 </StackPanel>
-                <TextBlock FontSize="24" FontWeight="Bold">
-                    <Run Text="Hi, "/>
-                    <Run Text="{x:Bind viewModel.client.PlayerStore.CurrentPlayer.Name, Mode=OneWay}"/>
-                    <LineBreak/>
-                    <Run Text="Chips: "/>
-                    <Run Text="{x:Bind viewModel.client.PlayerStore.CurrentPlayer.Chips, Mode=OneWay}"/>
-                </TextBlock>
+                <Button Content="Change Profile Picture" Click="PickFileButton_Click" />
             </StackPanel>
         </Border>
 
         <!--
         Tables grid
         -->
-        <GridView Grid.Row="2" ItemsSource="{x:Bind viewModel.TableMenuItems, Mode=OneWay}" ItemClick="Table_ItemClick" IsItemClickEnabled="True" ItemTemplateSelector="{StaticResource GameMenuItemTemplateSelector}" VerticalAlignment="Center" HorizontalAlignment="Center">
+        <GridView Grid.Row="1" ItemsSource="{x:Bind viewModel.TableMenuItems, Mode=OneWay}" ItemClick="Table_ItemClick" IsItemClickEnabled="True" ItemTemplateSelector="{StaticResource GameMenuItemTemplateSelector}" VerticalAlignment="Center" HorizontalAlignment="Center">
             <GridView.ItemsPanel>
                 <ItemsPanelTemplate>
                     <ItemsWrapGrid Orientation="Horizontal" MaximumRowsOrColumns="4" />
