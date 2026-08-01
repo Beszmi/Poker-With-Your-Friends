@@ -9,7 +9,7 @@
     xmlns:Model="using:Poker_With_Your_Friends.Model"
     mc:Ignorable="d">
 
-    <Grid>
+    <Grid RequestedTheme="Light">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -23,24 +23,28 @@
         -->
         <TextBlock Text="Game Window" Grid.Column="0" Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Top" FontSize="24"/>
 
-        <TextBlock Grid.Column="0" Grid.Row="0" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="24" FontWeight="Bold">
-            <Run Text="Hi, "/>
-            <Run Text="{x:Bind viewModel.client.PlayerStore.CurrentPlayer.Name, Mode=OneWay}"/>
-            <Run Text="Chips: "/>
-            <Run Text="{x:Bind viewModel.client.PlayerStore.CurrentPlayer.Chips, Mode=OneWay}"/>
-        </TextBlock>
+        <Border Grid.Column="0" Grid.Row="0" HorizontalAlignment="Right" VerticalAlignment="Center" Background="Beige" Padding="2">
+            <StackPanel Orientation="Horizontal">
+                <StackPanel Spacing="12" Padding="10" Background="Gray">
+                    <Image Width="100" Height="100" Source="{x:Bind Model:Utils.PathToImage(viewModel.PlayerStore.CurrentPlayer.ProfilePictureDir), Mode=OneWay}"/>
+                    <Button Content="Change Profile Picture" Click="PickFileButton_Click" />
+                </StackPanel>
+                <TextBlock FontSize="24" FontWeight="Bold">
+                    <Run Text="Hi, "/>
+                    <Run Text="{x:Bind viewModel.client.PlayerStore.CurrentPlayer.Name, Mode=OneWay}"/>
+                    <LineBreak/>
+                    <Run Text="Chips: "/>
+                    <Run Text="{x:Bind viewModel.client.PlayerStore.CurrentPlayer.Chips, Mode=OneWay}"/>
+                </TextBlock>
+            </StackPanel>
+        </Border>
 
-        <StackPanel Grid.Row="0" Orientation="Vertical" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,20,0,0" Spacing="5" Canvas.ZIndex="1">
+        <StackPanel Grid.Row="0" Orientation="Vertical" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0,20,0,0" Spacing="5" Canvas.ZIndex="1">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,20,0,0" Spacing="5">
                 <TextBlock Text="Your tables name:" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 <TextBox Width="200" Text="{x:Bind viewModel.NewTableName, Mode=TwoWay}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </StackPanel>
             <Button VerticalAlignment="Center" HorizontalAlignment="Right" Content="Create new table" Click="NewGameButton_Click" IsEnabled="{x:Bind viewModel.IsNewTableButtonEnabled, Mode=OneWay}"/>
-        </StackPanel>
-
-        <StackPanel Grid.Row="1" Spacing="12" Padding="10" Background="Gray">
-            <TextBlock Text="{x:Bind viewModel.FileLocation, Mode=OneWay}" TextWrapping="Wrap" />
-            <Button Content="Pick a file for your pfp" Click="PickFileButton_Click" />
         </StackPanel>
 
         <!--
@@ -54,24 +58,25 @@
             </GridView.ItemsPanel>
             <GridView.ItemTemplate>
                 <DataTemplate x:DataType="Model:Table">
-                    <Grid Background="LightGreen" Height="200" Width="200">
-                        <FontIcon Glyph="&#xE76E;" />
-                        <TextBlock Text="{x:Bind Name, Mode=OneWay}" VerticalAlignment="Top" HorizontalAlignment="Center" FontSize="24" Foreground="Red"/>
-                        <TextBlock VerticalAlignment="Bottom" HorizontalAlignment="Left" FontSize="12">
-                        <Run Text="Players: "/>
-                        <Run Text="{x:Bind Players.Count, Mode=OneWay}"/>
-                        </TextBlock>
-                        <TextBlock VerticalAlignment="Bottom" HorizontalAlignment="Right" FontSize="12">
-                        <Run Text="Pot: "/>
-                        <Run Text="{x:Bind Pot, Mode=OneWay}"/>
-                        <LineBreak/>
-                        <Run Text="Round: "/>
-                        <Run Text="{x:Bind Round, Mode=OneWay}"/>
-                        <LineBreak/>
-                        <Run Text="Small blind: "/>
-                        <Run Text="{x:Bind SmallBlind, Mode=OneWay}"/>
-                        <Run Text="$"/>
-                        </TextBlock>
+                    <Grid Height="400" Width="400">
+                        <Image Source="/Assets/Table.png" />
+                        <TextBlock Text="{x:Bind Name, Mode=OneWay}" VerticalAlignment="Top" HorizontalAlignment="Center" FontSize="28" Foreground="Red" Margin="0,90,0,0" MaxWidth="165"/>
+                        <StackPanel Padding="10" VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <TextBlock FontSize="18" Margin="0,50,0,0" >
+                                    <Run Text="{x:Bind Model:Utils.NumberToOrdinalNumber(Round), Mode=OneWay}"/>
+                                    <Run Text=" Round"/>
+                                    <LineBreak/>
+                                    <Run Text="Players: "/>
+                                    <Run Text="{x:Bind Players.Count, Mode=OneWay}"/>
+                                    <LineBreak/>
+                                    <Run Text="Pot: "/>
+                                    <Run Text="{x:Bind Pot, Mode=OneWay}"/>
+                                    <LineBreak/>
+                                    <Run Text="Small blind: "/>
+                                    <Run Text="{x:Bind SmallBlind, Mode=OneWay}"/>
+                                    <Run Text="$"/>
+                            </TextBlock>
+                        </StackPanel>
                     </Grid>
                 </DataTemplate>
             </GridView.ItemTemplate>

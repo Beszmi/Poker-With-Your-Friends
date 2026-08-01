@@ -219,5 +219,14 @@ public class Utils
         return true;
     }
 
-
+    public static String NumberToOrdinalNumber(int n)
+    {
+        return (n % 10) switch
+        {
+            1 => $"{n}st",
+            2 => $"{n}nd",
+            3 => $"{n}rd",
+            _ => $"{n}th",
+        };
+    }
 }
