@@ -7,7 +7,48 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:Model="using:Poker_With_Your_Friends.Model"
+    xmlns:View="using:Poker_With_Your_Friends.View"
+    xmlns:ViewModel="using:Poker_With_Your_Friends.ViewModel"
     mc:Ignorable="d">
+
+    <Page.Resources>
+        <DataTemplate x:Key="TableItemTemplate" x:DataType="Model:Table">
+            <Grid Height="400" Width="400">
+                <Image Source="/Assets/Table.png" />
+                <TextBlock Text="{x:Bind Name, Mode=OneWay}" VerticalAlignment="Top" HorizontalAlignment="Center" FontSize="28" Foreground="Red" Margin="0,90,0,0" MaxWidth="165"/>
+                <StackPanel Padding="10" VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <TextBlock FontSize="18" Margin="0,50,0,0">
+                        <Run Text="{x:Bind Model:Utils.NumberToOrdinalNumber(Round), Mode=OneWay}"/>
+                        <Run Text=" Round"/>
+                        <LineBreak/>
+                        <Run Text="Players: "/>
+                        <Run Text="{x:Bind Players.Count, Mode=OneWay}"/>
+                        <LineBreak/>
+                        <Run Text="Pot: "/>
+                        <Run Text="{x:Bind Pot, Mode=OneWay}"/>
+                        <LineBreak/>
+                        <Run Text="Small blind: "/>
+                        <Run Text="{x:Bind SmallBlind, Mode=OneWay}"/>
+                        <Run Text="$"/>
+                    </TextBlock>
+                </StackPanel>
+            </Grid>
+        </DataTemplate>
+
+        <DataTemplate x:Key="AddTableItemTemplate" x:DataType="ViewModel:AddTableMenuItem">
+            <Grid Height="400" Width="400">
+                <Image Source="/Assets/Table.png" Opacity="0.65"/>
+                <TextBox Text="{x:Bind Owner.NewTableName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="Table name" VerticalAlignment="Top"
+                         HorizontalAlignment="Center" FontSize="28" Foreground="Red" Margin="0,90,0,0" Width="165" KeyDown="NewTableNameTextBox_KeyDown"/>
+                <Button Content="+ Create table" HorizontalAlignment="Center" VerticalAlignment="Center" IsEnabled="{x:Bind Owner.IsNewTableButtonEnabled, Mode=OneWay}" Click="CreateTableButton_Click"/>
+            </Grid>
+        </DataTemplate>
+
+        <View:GameMenuItemTemplateSelector
+            x:Key="GameMenuItemTemplateSelector"
+            TableTemplate="{StaticResource TableItemTemplate}"
+            AddTableTemplate="{StaticResource AddTableItemTemplate}"/>
+    </Page.Resources>
 
     <Grid RequestedTheme="Light">
         <Grid.RowDefinitions>
@@ -39,47 +80,15 @@
             </StackPanel>
         </Border>
 
-        <StackPanel Grid.Row="0" Orientation="Vertical" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0,20,0,0" Spacing="5" Canvas.ZIndex="1">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,20,0,0" Spacing="5">
-                <TextBlock Text="Your tables name:" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                <TextBox Width="200" Text="{x:Bind viewModel.NewTableName, Mode=TwoWay}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-            </StackPanel>
-            <Button VerticalAlignment="Center" HorizontalAlignment="Right" Content="Create new table" Click="NewGameButton_Click" IsEnabled="{x:Bind viewModel.IsNewTableButtonEnabled, Mode=OneWay}"/>
-        </StackPanel>
-
         <!--
         Tables grid
         -->
-        <GridView Grid.Row="2" ItemsSource="{x:Bind viewModel.Tables, Mode=TwoWay}" ItemClick="Table_ItemClick" IsItemClickEnabled="True" VerticalAlignment="Center" HorizontalAlignment="Center">
+        <GridView Grid.Row="2" ItemsSource="{x:Bind viewModel.TableMenuItems, Mode=OneWay}" ItemClick="Table_ItemClick" IsItemClickEnabled="True" ItemTemplateSelector="{StaticResource GameMenuItemTemplateSelector}" VerticalAlignment="Center" HorizontalAlignment="Center">
             <GridView.ItemsPanel>
                 <ItemsPanelTemplate>
                     <ItemsWrapGrid Orientation="Horizontal" MaximumRowsOrColumns="4" />
                 </ItemsPanelTemplate>
             </GridView.ItemsPanel>
-            <GridView.ItemTemplate>
-                <DataTemplate x:DataType="Model:Table">
-                    <Grid Height="400" Width="400">
-                        <Image Source="/Assets/Table.png" />
-                        <TextBlock Text="{x:Bind Name, Mode=OneWay}" VerticalAlignment="Top" HorizontalAlignment="Center" FontSize="28" Foreground="Red" Margin="0,90,0,0" MaxWidth="165"/>
-                        <StackPanel Padding="10" VerticalAlignment="Center" HorizontalAlignment="Center">
-                            <TextBlock FontSize="18" Margin="0,50,0,0" >
-                                    <Run Text="{x:Bind Model:Utils.NumberToOrdinalNumber(Round), Mode=OneWay}"/>
-                                    <Run Text=" Round"/>
-                                    <LineBreak/>
-                                    <Run Text="Players: "/>
-                                    <Run Text="{x:Bind Players.Count, Mode=OneWay}"/>
-                                    <LineBreak/>
-                                    <Run Text="Pot: "/>
-                                    <Run Text="{x:Bind Pot, Mode=OneWay}"/>
-                                    <LineBreak/>
-                                    <Run Text="Small blind: "/>
-                                    <Run Text="{x:Bind SmallBlind, Mode=OneWay}"/>
-                                    <Run Text="$"/>
-                            </TextBlock>
-                        </StackPanel>
-                    </Grid>
-                </DataTemplate>
-            </GridView.ItemTemplate>
         </GridView>
     </Grid>
 </Page>

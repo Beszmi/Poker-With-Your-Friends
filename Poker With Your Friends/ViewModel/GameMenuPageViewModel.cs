@@ -2,6 +2,7 @@
 using CommunityToolkit.Mvvm.Input;
 using Poker_With_Your_Friends.Model;
 using System;
+using System.Collections.Specialized;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -11,17 +12,30 @@ using WinRT.Interop;
 
 namespace Poker_With_Your_Friends.ViewModel;
 
-internal partial class GameMenuPageViewModel : ObservableObject
+public sealed class AddTableMenuItem
+{
+    public AddTableMenuItem(GameMenuPageViewModel owner)
+    {
+        Owner = owner;
+    }
+
+    public GameMenuPageViewModel Owner { get; }
+}
+
+public partial class GameMenuPageViewModel : ObservableObject
 {
     public Client client;
     public IPlayerStore PlayerStore { get; private set; }
 
     private Game game;
     public ObservableCollection<Table> Tables { get; set; }
+    public ObservableCollection<object> TableMenuItems { get; } = new();
+    public AddTableMenuItem AddTableItem { get; }
     
     public static Action<String> GameMenuError;
 
-    public String? NewTableName { get; set; }
+    [ObservableProperty]
+    public partial String? NewTableName { get; set; }
 
     [ObservableProperty]
     public partial bool IsNewTableButtonEnabled { get; set; } = true;
@@ -38,11 +52,31 @@ internal partial class GameMenuPageViewModel : ObservableObject
     {
         game = Game.ClientInstance;
         Tables = game.Tables;
+        AddTableItem = new AddTableMenuItem(this);
+        Tables.CollectionChanged += Tables_CollectionChanged;
+        RebuildTableMenuItems();
 
         GoToPage2Command = new RelayCommand(() =>
         {
             NavigationRequested?.Invoke(typeof(InGamePage), null);
         });
+    }
+
+    private void Tables_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        RebuildTableMenuItems();
+    }
+
+    private void RebuildTableMenuItems()
+    {
+        TableMenuItems.Clear();
+
+        foreach (Table table in Tables)
+        {
+            TableMenuItems.Add(table);
+        }
+
+        TableMenuItems.Add(AddTableItem);
     }
 
     public void Initialize(Client c)
@@ -53,9 +87,15 @@ internal partial class GameMenuPageViewModel : ObservableObject
 
     public async Task CreateNewTableAsync()
     {
-        if (!string.IsNullOrWhiteSpace(NewTableName))
+        if (!IsNewTableButtonEnabled)
         {
-            if (game.IsTableNameTaken(NewTableName))
+            return;
+        }
+
+        string? tableName = NewTableName?.Trim();
+        if (!string.IsNullOrWhiteSpace(tableName))
+        {
+            if (game.IsTableNameTaken(tableName))
             {
                 GameMenuError?.Invoke("Table with this name already exists!");
                 return;
@@ -66,7 +106,7 @@ internal partial class GameMenuPageViewModel : ObservableObject
 
             void CheckNewTable(Table t)
             {
-                if (t.Name == NewTableName)
+                if (t.Name == tableName)
                 {
                     tcs.TrySetResult(t);
                 }
@@ -74,7 +114,7 @@ internal partial class GameMenuPageViewModel : ObservableObject
 
             game.OnTableAdded += CheckNewTable;
 
-            client.CreateNewTable(NewTableName);
+            client.CreateNewTable(tableName);
 
             try
             {
@@ -88,6 +128,7 @@ internal partial class GameMenuPageViewModel : ObservableObject
                 }
 
                 Table newlyCreatedTable = await tcs.Task;
+                NewTableName = string.Empty;
             }
             finally
             {

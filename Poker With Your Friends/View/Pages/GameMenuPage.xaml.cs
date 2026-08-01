@@ -1,22 +1,24 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Navigation;
 using Poker_With_Your_Friends.Model;
 using Poker_With_Your_Friends.ViewModel;
 using System;
+using Windows.System;
 
 namespace Poker_With_Your_Friends;
 
 public sealed partial class GameMenuPage : Page
 {
-    private GameMenuPageViewModel viewModel = new GameMenuPageViewModel();
+    private readonly GameMenuPageViewModel viewModel;
+
     public GameMenuPage()
     {
-        this.InitializeComponent();
-
         viewModel = App.Current.Services.GetRequiredService<GameMenuPageViewModel>();
+        this.InitializeComponent();
         this.DataContext = viewModel;
 
         viewModel.NavigationRequested += (targetPageType, parameter) =>
@@ -51,9 +53,17 @@ public sealed partial class GameMenuPage : Page
         }
     }
 
-    private void NewGameButton_Click(object sender, RoutedEventArgs e)
+    private async void CreateTableButton_Click(object sender, RoutedEventArgs e)
     {
-        _ =viewModel.CreateNewTableAsync();
+        await viewModel.CreateNewTableAsync();
+    }
+
+    private async void NewTableNameTextBox_KeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        if (e.Key != VirtualKey.Enter) return;
+
+        e.Handled = true;
+        await viewModel.CreateNewTableAsync();
     }
 
     private async void DisplayErrorDialog(string message)

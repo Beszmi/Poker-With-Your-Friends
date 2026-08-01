@@ -12,8 +12,4 @@
 
     <Frame x:Name="RootFrame"/>
 
-    <Window.SystemBackdrop>
-        <MicaBackdrop />
-    </Window.SystemBackdrop>
-
 </Window>
