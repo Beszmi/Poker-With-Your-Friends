@@ -19,6 +19,9 @@
     </Page.Resources>
 
     <Grid>
+        <Grid.Background>
+            <ImageBrush ImageSource="/Assets/In_Game_BG.jpg" Stretch="UniformToFill" />
+        </Grid.Background>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
