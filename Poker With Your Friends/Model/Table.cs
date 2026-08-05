@@ -209,6 +209,7 @@ public partial class Table : ObservableObject
         Housecards.Clear();
         foreach(Player player in Players)
         {
+            player.LastAction = "";
             player.ClearCards();
             player.Hand = null;
             player.WonLast = false;
@@ -288,11 +289,13 @@ public partial class Table : ObservableObject
                         player.Spend(allInCall);
                         Pot += allInCall;
                         player.IsAllIn = true;
+                        player.LastAction = "AllIn";
                     }
                     else
                     {
                         player.Spend(callAmount);
                         Pot += callAmount;
+                        player.LastAction = "Call";
                     }
                 }
                 break;
@@ -304,11 +307,14 @@ public partial class Table : ObservableObject
                 ResetPlayersNeedToCover();
                 if (player.Chips == 0)
                 {
+                    player.LastAction = "AllIn";
                     player.IsAllIn = true;
                 }
+                player.LastAction = "Raise";
                 break;
             case PlayerAction.Fold:
                 player.Fold();
+                player.LastAction = "Fold";
                 break;
             case PlayerAction.AllIn:
                 int allInAmount = player.Chips;
@@ -323,6 +329,7 @@ public partial class Table : ObservableObject
                     ToCall = player.RoundBet;
                     ResetPlayersNeedToCover();
                 }
+                player.LastAction = "AllIn";
                 player.IsAllIn = true;
                 break;
         }
@@ -923,6 +930,10 @@ public partial class Table : ObservableObject
         }
 
         AnnounceEndOfRound(winners, potToAward);
+        foreach (var player in Players)
+        {
+            player.LastAction = "";
+        }
         OnUpdateTableRequest?.Invoke(this);
     }
 

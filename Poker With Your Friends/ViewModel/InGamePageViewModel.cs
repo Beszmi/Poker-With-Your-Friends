@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using Microsoft.UI;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
@@ -6,8 +7,8 @@ using Poker_With_Your_Friends.Model;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using Windows.UI;
 using System.Linq;
+using Windows.UI;
 using static Poker_With_Your_Friends.Model.Table;
 
 namespace Poker_With_Your_Friends.ViewModel;
@@ -361,5 +362,23 @@ public partial class InGamePageViewModel : ObservableObject
     public static Visibility ConvertBlind(BlindEnum playerBlind, BlindEnum blind)
     {
         return playerBlind == blind ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    public static Brush LastActionToColor(String action)
+    {
+        return action switch
+        {
+            "AllIn" => new SolidColorBrush(Colors.Red),
+            "Call" => new SolidColorBrush(Colors.Green),
+            "Fold" => new SolidColorBrush(Colors.Gray),
+            "Raise" => new SolidColorBrush(Colors.Blue),
+            "" => new SolidColorBrush(Colors.Transparent),
+            _ => throw new ArgumentException("Wrong last action"),
+        };
+    }
+
+    public static Visibility LastActionVisibility(String action)
+    {
+        return action == "" ?  Visibility.Collapsed: Visibility.Visible;
     }
 }

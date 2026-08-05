@@ -15,6 +15,9 @@ public sealed partial class MainWindow : Window
     {
         InitializeComponent();
 
+        HeartAce.Translation += new System.Numerics.Vector3(0, 0, 32);
+        ClubAce.Translation += new System.Numerics.Vector3(0, 0, 32);
+
         App.MainDispatcher = this.DispatcherQueue;
 
         viewModel.OnServerConnected += (Client c) =>

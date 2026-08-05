@@ -39,7 +39,7 @@
 
         <Button Grid.Column="0" Grid.Row="0" Content="EXIT" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10" Click="LeaveTableButton_Click" IsEnabled="{x:Bind viewModel.LeaveTableButtonEnabled, Mode=OneWay}" Background="Red"/>
 
-        <TextBlock Grid.Column="1" Grid.Row="0" Margin="5" FontSize="28" FontFamily="Arial Black" HorizontalAlignment="Center" >
+        <TextBlock Grid.Column="1" Grid.Row="0" Margin="0,20,0,0" FontSize="28" FontFamily="Arial Black" HorizontalAlignment="Center" >
             <Run Text="{x:Bind viewModel.Table.Pot, Mode=OneWay}"/>
             <Run Text="$"/>
         </TextBlock>

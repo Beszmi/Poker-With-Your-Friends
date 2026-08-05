@@ -32,54 +32,96 @@
     </DataTemplate>
 
     <DataTemplate x:Key="PlayerEndOfRound" x:DataType="Model:Player">
-        <StackPanel Background="{x:Bind BgColor, Mode=OneWay}" Height="Auto" Width="Auto">
-            <Image Width="100" Height="100" Source="{x:Bind Model:Utils.PathToImage(ProfilePictureDir), Mode=OneWay}" Stretch="UniformToFill"/>
-            <TextBlock HorizontalAlignment="Center" Text="{x:Bind HandName, Mode=OneWay}" Visibility="{x:Bind Model:Utils.BoolToVis(CardsRevealed), Mode=OneWay}"/>
-            <ListView ItemsSource="{x:Bind Cards, Mode=OneWay}" Visibility="{x:Bind Model:Utils.BoolToVis(CardsRevealed), Mode=OneWay}">
-                <ListView.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <ItemsStackPanel Orientation="Horizontal" />
-                    </ItemsPanelTemplate>
-                </ListView.ItemsPanel>
-                <ListView.ItemTemplate>
-                    <DataTemplate x:DataType="Model:Card">
-                        <ContentControl Content="{x:Bind}" ContentTemplate="{StaticResource CardTemplate}"/>
-                    </DataTemplate>
-                </ListView.ItemTemplate>
-            </ListView>
-            <StackPanel Orientation="Horizontal" Visibility="{x:Bind Model:Utils.AntiBoolToVis(CardsRevealed), Mode=OneWay}">
-                <Image Source="/Assets/cardEmpty.png" Width="100" Height="140"/>
-                <Image Source="/Assets/cardEmpty.png" Width="100" Height="140"/>
+        <Grid Grid.Column="0" Grid.Row="0" Grid.RowSpan="2" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{x:Bind BgColorTransparent, Mode=OneWay}" Margin="5">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="1" Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="5" Margin="15">
+                <ListView ItemsSource="{x:Bind Cards, Mode=OneWay}" Visibility="{x:Bind Model:Utils.BoolToVis(CardsRevealed), Mode=OneWay}">
+                    <ListView.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <ItemsStackPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ListView.ItemsPanel>
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="Model:Card">
+                            <ContentControl Content="{x:Bind}" ContentTemplate="{StaticResource CardTemplate}"/>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+
+                <TextBlock HorizontalAlignment="Center" Text="{x:Bind HandName, Mode=OneWay}" Visibility="{x:Bind Model:Utils.BoolToVis(CardsRevealed), Mode=OneWay}"/>
             </StackPanel>
-            <TextBlock HorizontalAlignment="Center" Text="{x:Bind Name, Mode=OneWay}" FontSize="24" Foreground="Red"/>
-            <TextBlock HorizontalAlignment="Left" FontSize="12">
-            <Run Text="Chips: "/>
-            <Run Text="{x:Bind Chips, Mode=OneWay}"/>
-            </TextBlock>
-            <Image Grid.Column="2" Grid.Row="1" Width="50" Height="50" Source="/Assets/SmallBlind.png" Visibility="{x:Bind vm:InGamePageViewModel.ConvertBlind(Blind, Model:BlindEnum.SmallBlind)}"/>
-            <Image Grid.Column="2" Grid.Row="1" Width="50" Height="50" Source="/Assets/BigBlind.png" Visibility="{x:Bind vm:InGamePageViewModel.ConvertBlind(Blind, Model:BlindEnum.BigBlind)}"/>
-            <Image Grid.Column="2" Grid.Row="1" Width="50" Height="50" Source="/Assets/NotBlind.png" Visibility="{x:Bind vm:InGamePageViewModel.ConvertBlind(Blind, Model:BlindEnum.NotBlind)}"/>
-        </StackPanel>
+
+            <Border Grid.Column="0" Grid.Row="2" Width="50" Height="50" CornerRadius="10" BorderBrush="Black" BorderThickness="1" Margin="2">
+                <Image Source="{x:Bind Model:Utils.PathToImage(ProfilePictureDir), Mode=OneWay}" Stretch="Fill"/>
+            </Border>
+
+            <Border Grid.Column="1" Grid.Row="2" Background="#66111111" HorizontalAlignment="Center">
+                <TextBlock  FontSize="18" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <Run Text="$"/>
+                    <Run Text="{x:Bind Chips, Mode=OneWay}"/>
+                </TextBlock>
+            </Border>
+
+            <Image Grid.Column="2" Grid.Row="1" Width="50" Height="50" Source="/Assets/SmallBlind.png" Visibility="{x:Bind vm:InGamePageViewModel.ConvertBlind(Blind, Model:BlindEnum.SmallBlind), Mode=OneWay}"/>
+            <Image Grid.Column="2" Grid.Row="1" Width="50" Height="50" Source="/Assets/BigBlind.png" Visibility="{x:Bind vm:InGamePageViewModel.ConvertBlind(Blind, Model:BlindEnum.BigBlind), Mode=OneWay}"/>
+            <Image Grid.Column="2" Grid.Row="1" Width="50" Height="50" Source="/Assets/NotBlind.png" Visibility="{x:Bind vm:InGamePageViewModel.ConvertBlind(Blind, Model:BlindEnum.NotBlind), Mode=OneWay}"/>
+
+            <Border Width="Auto" Height="Auto" VerticalAlignment="Center" HorizontalAlignment="Center" Grid.Column="1" Grid.Row="2" BorderBrush="Black" BorderThickness="1" Background="{x:Bind vm:InGamePageViewModel.LastActionToColor(LastAction), Mode=OneWay}" Visibility="{x:Bind vm:InGamePageViewModel.LastActionVisibility(LastAction), Mode=OneWay}">
+                <TextBlock Text="{x:Bind LastAction, Mode=OneWay}" Margin="5" FontSize="18" FontWeight="Bold"/>
+            </Border>
+        </Grid>
     </DataTemplate>
 
     <DataTemplate x:Key="PlayerBeforeEndOfRound" x:DataType="Model:Player">
-        <StackPanel Background="#9900FF00" Height="Auto" Width="Auto">
-            <Image Width="100" Height="100" Source="{x:Bind Model:Utils.PathToImage(ProfilePictureDir), Mode=OneWay}" Stretch="UniformToFill"/>
-            <StackPanel Orientation="Horizontal" Visibility="{Binding viewModel.CardsDealt, ElementName=RootPage}">
+        <Grid Grid.Column="0" Grid.Row="0" Grid.RowSpan="2" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{x:Bind BgColorTransparent, Mode=OneWay}" Margin="5">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="1" Grid.Row="0" Orientation="Horizontal" Visibility="{Binding viewModel.CardsDealt, ElementName=RootPage}">
                 <Image Source="/Assets/cardEmpty.png" Width="100" Height="140"/>
                 <Image Source="/Assets/cardEmpty.png" Width="100" Height="140"/>
             </StackPanel>
-            <TextBlock Text="{x:Bind Name, Mode=OneWay}" VerticalAlignment="Top" HorizontalAlignment="Center" FontSize="24" Foreground="Red"/>
-            <TextBlock VerticalAlignment="Bottom" HorizontalAlignment="Left" FontSize="12">
-            <Run Text="Chips: "/>
-            <Run Text="{x:Bind Chips, Mode=OneWay}"/>
-            </TextBlock>
-            <Image Grid.Column="2" Grid.Row="1" Width="50" Height="50" Source="/Assets/SmallBlind.png" Visibility="{x:Bind vm:InGamePageViewModel.ConvertBlind(Blind, Model:BlindEnum.SmallBlind)}"/>
-            <Image Grid.Column="2" Grid.Row="1" Width="50" Height="50" Source="/Assets/BigBlind.png" Visibility="{x:Bind vm:InGamePageViewModel.ConvertBlind(Blind, Model:BlindEnum.BigBlind)}"/>
-            <Image Grid.Column="2" Grid.Row="1" Width="50" Height="50" Source="/Assets/NotBlind.png" Visibility="{x:Bind vm:InGamePageViewModel.ConvertBlind(Blind, Model:BlindEnum.NotBlind)}"/>
-        </StackPanel>
+
+            <Border Grid.Column="0" Grid.Row="1" Width="50" Height="50" CornerRadius="10" BorderBrush="Black" BorderThickness="1" Margin="2">
+                <Image Source="{x:Bind Model:Utils.PathToImage(ProfilePictureDir), Mode=OneWay}" Stretch="Fill"/>
+            </Border>
+
+            <Border Grid.Column="1" Grid.Row="1" Background="#66111111" HorizontalAlignment="Center">
+                <TextBlock FontSize="18" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <Run Text="$"/>
+                    <Run Text="{x:Bind Chips, Mode=OneWay}"/>
+                </TextBlock>
+            </Border>
+
+            <Image Grid.Column="2" Grid.Row="1" Width="50" Height="50" Source="/Assets/SmallBlind.png" Visibility="{x:Bind vm:InGamePageViewModel.ConvertBlind(Blind, Model:BlindEnum.SmallBlind), Mode=OneWay}"/>
+            <Image Grid.Column="2" Grid.Row="1" Width="50" Height="50" Source="/Assets/BigBlind.png" Visibility="{x:Bind vm:InGamePageViewModel.ConvertBlind(Blind, Model:BlindEnum.BigBlind), Mode=OneWay}"/>
+            <Image Grid.Column="2" Grid.Row="1" Width="50" Height="50" Source="/Assets/NotBlind.png" Visibility="{x:Bind vm:InGamePageViewModel.ConvertBlind(Blind, Model:BlindEnum.NotBlind), Mode=OneWay}"/>
+
+            <Border Width="Auto" Height="Auto" VerticalAlignment="Center" HorizontalAlignment="Center" Grid.Column="1" Grid.Row="2" BorderBrush="Black" BorderThickness="1" Background="{x:Bind vm:InGamePageViewModel.LastActionToColor(LastAction), Mode=OneWay}" Visibility="{x:Bind vm:InGamePageViewModel.LastActionVisibility(LastAction), Mode=OneWay}">
+                <TextBlock Text="{x:Bind LastAction, Mode=OneWay}" Margin="5" FontSize="18" FontWeight="Bold"/>
+            </Border>
+        </Grid>
     </DataTemplate>
 
+    <!-- Gradient for buttons -->
     <LinearGradientBrush x:Key="GrayRedStripeBrush" StartPoint="0,0" EndPoint="1,1">
         <GradientStop Color="DimGray" Offset="0.0" />
         <GradientStop Color="DimGray" Offset="0.2" />

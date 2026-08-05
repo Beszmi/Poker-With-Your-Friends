@@ -105,10 +105,16 @@ public partial class Player : ObservableObject
 
     [XmlAttribute("ProfilePictureDir")]
     [ObservableProperty]
-    public partial String ProfilePictureDir { get; set; } = Path.Combine(Game.PFPfilePath, "Emptypfp.jpg"); 
+    public partial String ProfilePictureDir { get; set; } = Path.Combine(Game.PFPfilePath, "Emptypfp.jpg");
+
+    [XmlAttribute("LastAction")]
+    [ObservableProperty]
+    public partial String LastAction { get; set; } = "";
 
     // #AARRGGBB
     public string BgColor => WonLast ? "#99FFFF00" : "#9900FF00";
+
+    public string BgColorTransparent => WonLast ? "#99FFFF00" : "#00000000";
 
     public string HandName => Hand?.ToString() ?? string.Empty;
 
@@ -117,11 +123,13 @@ public partial class Player : ObservableObject
     partial void OnWonLastChanged(bool value)
     {
         OnPropertyChanged(nameof(BgColor));
+        OnPropertyChanged(nameof(BgColorTransparent));
     }
 
     partial void OnHandChanged(Hand? value)
     {
         OnPropertyChanged(nameof(HandName));
+        OnPropertyChanged(nameof(BgColorTransparent));
     }
 
     public void Fold() { HasFolded = true; }
@@ -156,6 +164,7 @@ public partial class Player : ObservableObject
         Blind = NewPlayer.Blind;
         CardsRevealed = NewPlayer.CardsRevealed;
         ProfilePictureDir = Game.GetProfilePicturePath(Name);
+        LastAction = NewPlayer.LastAction;
 
         Cards.Clear();
         foreach (var card in NewPlayer.Cards)

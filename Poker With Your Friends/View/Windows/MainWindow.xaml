@@ -29,7 +29,11 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <Image Source="/Assets/ACE_HEART.png" Grid.Column="0" Grid.Row="0" Height="200" Margin="0,25,0,0"/>
+            <Image x:Name="HeartAce" Source="/Assets/ACE_HEART.png" Grid.Column="0" Grid.Row="0" Height="200" Margin="0,25,0,0">
+                <Image.Shadow>
+                    <ThemeShadow />
+                </Image.Shadow>
+            </Image>
             <StackPanel Grid.Column="1" Grid.Row="0" Margin="20,50,20,20" HorizontalAlignment="Center">
                 <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,10" FontFamily="bierstadt">
                     <Run Text="POKER " Foreground="White" FontWeight="Bold" FontSize="128" />
@@ -42,7 +46,11 @@
                     <TextBlock Text="{x:Bind viewModel.ServerText, Mode=OneWay}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="24" Foreground="Black" />
                 </Border>
             </StackPanel>
-            <Image Source="/Assets/ACE_CLUB.png" Grid.Column="2" Grid.Row="0" Height="200" Margin="0,25,0,0"/>
+            <Image x:Name="ClubAce" Source="/Assets/ACE_CLUB.png" Grid.Column="2" Grid.Row="0" Height="200" Margin="0,25,0,0">
+                <Image.Shadow>
+                    <ThemeShadow />
+                </Image.Shadow>
+            </Image>
         </Grid>
 
         <StackPanel Orientation="Horizontal" Grid.Column="0" Grid.Row="1" HorizontalAlignment="Center" Spacing="50" VerticalAlignment="Center" >
