@@ -51,7 +51,7 @@ public partial class InGamePageViewModel : ObservableObject
     public partial String CallButtonText { get; set; } = "Call";
 
     [ObservableProperty]
-    public partial String CurrentPlayerHandName { get; set; } = "No hand";
+    public partial String CurrentPlayerHandName { get; set; } = "";
 
     public ObservableCollection<Player> OpponentPlayers { get; } = new ObservableCollection<Player>();
 
@@ -268,7 +268,7 @@ public partial class InGamePageViewModel : ObservableObject
             }
             else
             {
-                CurrentPlayerHandName = "No hand";
+                CurrentPlayerHandName = "";
             }
         }
         else
@@ -357,14 +357,9 @@ public partial class InGamePageViewModel : ObservableObject
         DisableActionButtons();
     }
 
-    public static String ConvertBlind(BlindEnum blind)
+    // if player blind matches selected blind visible otherwise collapsed
+    public static Visibility ConvertBlind(BlindEnum playerBlind, BlindEnum blind)
     {
-        switch (blind)
-        {
-            case BlindEnum.BigBlind: return "BigBlind";
-            case BlindEnum.SmallBlind: return "SmallBlind";
-            case BlindEnum.NotBlind: return "";
-            default: throw new ArgumentException();
-        }
+        return playerBlind == blind ? Visibility.Visible : Visibility.Collapsed;
     }
 }

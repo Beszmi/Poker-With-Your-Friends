@@ -56,7 +56,9 @@
             <Run Text="Chips: "/>
             <Run Text="{x:Bind Chips, Mode=OneWay}"/>
             </TextBlock>
-            <TextBlock Text="{x:Bind vm:InGamePageViewModel.ConvertBlind(Blind), Mode=OneWay}"/>
+            <Image Grid.Column="2" Grid.Row="1" Width="50" Height="50" Source="/Assets/SmallBlind.png" Visibility="{x:Bind vm:InGamePageViewModel.ConvertBlind(Blind, Model:BlindEnum.SmallBlind)}"/>
+            <Image Grid.Column="2" Grid.Row="1" Width="50" Height="50" Source="/Assets/BigBlind.png" Visibility="{x:Bind vm:InGamePageViewModel.ConvertBlind(Blind, Model:BlindEnum.BigBlind)}"/>
+            <Image Grid.Column="2" Grid.Row="1" Width="50" Height="50" Source="/Assets/NotBlind.png" Visibility="{x:Bind vm:InGamePageViewModel.ConvertBlind(Blind, Model:BlindEnum.NotBlind)}"/>
         </StackPanel>
     </DataTemplate>
 
@@ -72,7 +74,9 @@
             <Run Text="Chips: "/>
             <Run Text="{x:Bind Chips, Mode=OneWay}"/>
             </TextBlock>
-            <TextBlock Text="{x:Bind vm:InGamePageViewModel.ConvertBlind(Blind), Mode=OneWay}"/>
+            <Image Grid.Column="2" Grid.Row="1" Width="50" Height="50" Source="/Assets/SmallBlind.png" Visibility="{x:Bind vm:InGamePageViewModel.ConvertBlind(Blind, Model:BlindEnum.SmallBlind)}"/>
+            <Image Grid.Column="2" Grid.Row="1" Width="50" Height="50" Source="/Assets/BigBlind.png" Visibility="{x:Bind vm:InGamePageViewModel.ConvertBlind(Blind, Model:BlindEnum.BigBlind)}"/>
+            <Image Grid.Column="2" Grid.Row="1" Width="50" Height="50" Source="/Assets/NotBlind.png" Visibility="{x:Bind vm:InGamePageViewModel.ConvertBlind(Blind, Model:BlindEnum.NotBlind)}"/>
         </StackPanel>
     </DataTemplate>
 

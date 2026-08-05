@@ -77,10 +77,10 @@
                         </Border>
                     </StackPanel>
                     <TextBlock FontSize="24" FontWeight="Bold" VerticalAlignment="Center">
-                        <Run Text="{x:Bind viewModel.client.PlayerStore.CurrentPlayer.Name, Mode=OneWay}"/>
+                        <Run Text="{x:Bind viewModel.PlayerStore.CurrentPlayer.Name, Mode=OneWay}"/>
                         <LineBreak/>
                         <Run Text="Chips: "/>
-                        <Run Text="{x:Bind viewModel.client.PlayerStore.CurrentPlayer.Chips, Mode=OneWay}"/>
+                        <Run Text="{x:Bind viewModel.PlayerStore.CurrentPlayer.Chips, Mode=OneWay}"/>
                     </TextBlock>
                 </StackPanel>
                 <Button Content="Change Profile Picture" Click="PickFileButton_Click" />
