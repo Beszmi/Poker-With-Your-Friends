@@ -13,7 +13,7 @@
     <Page.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="ms-appx:///View/Templates.xaml"/>
+                <local:Templates/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Page.Resources>
@@ -123,32 +123,7 @@
             </ListView.ItemsPanel>
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="Model:Player">
-                    <StackPanel Background="{x:Bind BgColor, Mode=OneWay}" Height="Auto" Width="Auto">
-                        <Image Width="100" Height="100" Source="{x:Bind Model:Utils.PathToImage(ProfilePictureDir), Mode=OneWay}" Stretch="UniformToFill"/>
-                        <TextBlock HorizontalAlignment="Center" Text="{x:Bind HandName, Mode=OneWay}" Visibility="{x:Bind Model:Utils.BoolToVis(CardsRevealed), Mode=OneWay}"/>
-                        <ListView ItemsSource="{x:Bind Cards, Mode=OneWay}" Visibility="{x:Bind Model:Utils.BoolToVis(CardsRevealed), Mode=OneWay}">
-                            <ListView.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <ItemsStackPanel Orientation="Horizontal" />
-                                </ItemsPanelTemplate>
-                            </ListView.ItemsPanel>
-                            <ListView.ItemTemplate>
-                                <DataTemplate x:DataType="Model:Card">
-                                    <ContentControl Content="{x:Bind}" ContentTemplate="{StaticResource CardTemplate}"/>
-                                </DataTemplate>
-                            </ListView.ItemTemplate>
-                        </ListView>
-                        <StackPanel Orientation="Horizontal" Visibility="{x:Bind Model:Utils.AntiBoolToVis(CardsRevealed), Mode=OneWay}">
-                            <Image Source="/Assets/cardEmpty.png" Width="100" Height="140"/>
-                            <Image Source="/Assets/cardEmpty.png" Width="100" Height="140"/>
-                        </StackPanel>
-                        <TextBlock HorizontalAlignment="Center" Text="{x:Bind Name, Mode=OneWay}" FontSize="24" Foreground="Red"/>
-                        <TextBlock HorizontalAlignment="Left" FontSize="12">
-                            <Run Text="Chips: "/>
-                            <Run Text="{x:Bind Chips, Mode=OneWay}"/>
-                        </TextBlock>
-                        <TextBlock Text="{x:Bind vm:InGamePageViewModel.ConvertBlind(Blind), Mode=OneWay}"/>
-                    </StackPanel>
+                    <ContentControl Content="{x:Bind}" ContentTemplate="{StaticResource PlayerEndOfRound}"/>
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
@@ -162,19 +137,7 @@
             </ListView.ItemsPanel>
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="Model:Player">
-                    <StackPanel Background="#9900FF00" Height="Auto" Width="Auto">
-                        <Image Width="100" Height="100" Source="{x:Bind Model:Utils.PathToImage(ProfilePictureDir), Mode=OneWay}" Stretch="UniformToFill"/>
-                        <StackPanel Orientation="Horizontal" Visibility="{Binding viewModel.CardsDealt, ElementName=RootPage}">
-                            <Image Source="/Assets/cardEmpty.png" Width="100" Height="140"/>
-                            <Image Source="/Assets/cardEmpty.png" Width="100" Height="140"/>
-                        </StackPanel>
-                        <TextBlock Text="{x:Bind Name, Mode=OneWay}" VerticalAlignment="Top" HorizontalAlignment="Center" FontSize="24" Foreground="Red"/>
-                        <TextBlock VerticalAlignment="Bottom" HorizontalAlignment="Left" FontSize="12">
-                            <Run Text="Chips: "/>
-                            <Run Text="{x:Bind Chips, Mode=OneWay}"/>
-                        </TextBlock>
-                        <TextBlock Text="{x:Bind vm:InGamePageViewModel.ConvertBlind(Blind), Mode=OneWay}"/>
-                    </StackPanel>
+                    <ContentControl Content="{x:Bind}" ContentTemplate="{StaticResource PlayerBeforeEndOfRound}"/>
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
