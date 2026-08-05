@@ -307,6 +307,7 @@ public class Game //Singleton
             player.IsAllIn = false;
             player.WonLast = false;
             player.CardsRevealed = false;
+            player.LastAction = "";
         }
 
         try

@@ -68,22 +68,25 @@
         <!--
         Player info
         -->
-        <Border Grid.Column="0" Grid.Row="0" HorizontalAlignment="Right" VerticalAlignment="Center" Background="Beige" Padding="2" BorderBrush="Black" BorderThickness="1" CornerRadius="0,0,0,10">
+        <Border Grid.Column="0" Grid.Row="0" HorizontalAlignment="Right" VerticalAlignment="Center" Background="#358854" Padding="2" BorderBrush="Black" BorderThickness="1" CornerRadius="0,0,0,10">
             <StackPanel>
                 <StackPanel Orientation="Horizontal">
-                    <StackPanel Spacing="12" Padding="10" >
+                    <Button Click="PickFileButton_Click"  Padding="0" Background="Transparent" BorderThickness="0" Margin="5">
+                        <Button.Resources>
+                            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Transparent"/>
+                            <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="Transparent"/>
+                        </Button.Resources>
                         <Border Width="100" Height="100" CornerRadius="90" BorderBrush="Black" BorderThickness="1">
-                            <Image Source="{x:Bind Model:Utils.PathToImage(viewModel.PlayerStore.CurrentPlayer.ProfilePictureDir), Mode=OneWay}" Stretch="Fill"/>
+                            <Image Source="{x:Bind Model:Utils.PathToImage(viewModel.PlayerStore.CurrentPlayer.ProfilePictureDir), Mode=OneWay}" Stretch="Fill" />
                         </Border>
-                    </StackPanel>
-                    <TextBlock FontSize="24" FontWeight="Bold" VerticalAlignment="Center">
-                        <Run Text="{x:Bind viewModel.PlayerStore.CurrentPlayer.Name, Mode=OneWay}"/>
+                    </Button>
+                    <TextBlock FontWeight="Bold" VerticalAlignment="Center">
+                        <Run FontSize="28" Text="{x:Bind viewModel.PlayerStore.CurrentPlayer.Name, Mode=OneWay}"/>
                         <LineBreak/>
-                        <Run Text="Chips: "/>
-                        <Run Text="{x:Bind viewModel.PlayerStore.CurrentPlayer.Chips, Mode=OneWay}"/>
+                        <Run FontSize="18" Text="Chips: "/>
+                        <Run FontSize="18" Text="{x:Bind viewModel.PlayerStore.CurrentPlayer.Chips, Mode=OneWay}"/>
                     </TextBlock>
                 </StackPanel>
-                <Button Content="Change Profile Picture" Click="PickFileButton_Click" />
             </StackPanel>
         </Border>
 

@@ -372,6 +372,7 @@ public partial class InGamePageViewModel : ObservableObject
             "Call" => new SolidColorBrush(Colors.Green),
             "Fold" => new SolidColorBrush(Colors.Gray),
             "Raise" => new SolidColorBrush(Colors.Blue),
+            "Check" => new SolidColorBrush(Colors.Green),
             "" => new SolidColorBrush(Colors.Transparent),
             _ => throw new ArgumentException("Wrong last action"),
         };

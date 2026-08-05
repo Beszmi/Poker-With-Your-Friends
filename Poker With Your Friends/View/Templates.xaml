@@ -61,12 +61,16 @@
                 <TextBlock HorizontalAlignment="Center" Text="{x:Bind HandName, Mode=OneWay}" Visibility="{x:Bind Model:Utils.BoolToVis(CardsRevealed), Mode=OneWay}"/>
             </StackPanel>
 
-            <Border Grid.Column="0" Grid.Row="2" Width="50" Height="50" CornerRadius="10" BorderBrush="Black" BorderThickness="1" Margin="2">
+            <Border Grid.Column="0" Grid.Row="1" Width="50" Height="50" CornerRadius="10" BorderBrush="Black" BorderThickness="1" Margin="2" Visibility="{x:Bind Model:Utils.AntiBoolToVis(IsCurrentlyActivePlayer), Mode=OneWay}">
+                <Image Source="{x:Bind Model:Utils.PathToImage(ProfilePictureDir), Mode=OneWay}" Stretch="Fill"/>
+            </Border>
+
+            <Border Grid.Column="0" Grid.Row="1" Width="60" Height="60" CornerRadius="10" BorderBrush="Yellow" BorderThickness="2" Margin="2" Visibility="{x:Bind Model:Utils.BoolToVis(IsCurrentlyActivePlayer), Mode=OneWay}">
                 <Image Source="{x:Bind Model:Utils.PathToImage(ProfilePictureDir), Mode=OneWay}" Stretch="Fill"/>
             </Border>
 
             <Border Grid.Column="1" Grid.Row="2" Background="#66111111" HorizontalAlignment="Center">
-                <TextBlock  FontSize="18" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center">
+                <TextBlock  FontSize="18" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"  Foreground="White">
                     <Run Text="$"/>
                     <Run Text="{x:Bind Chips, Mode=OneWay}"/>
                 </TextBlock>
@@ -100,12 +104,16 @@
                 <Image Source="/Assets/cardEmpty.png" Width="100" Height="140"/>
             </StackPanel>
 
-            <Border Grid.Column="0" Grid.Row="1" Width="50" Height="50" CornerRadius="10" BorderBrush="Black" BorderThickness="1" Margin="2">
+            <Border Grid.Column="0" Grid.Row="1" Width="50" Height="50" CornerRadius="10" BorderBrush="Black" BorderThickness="1" Margin="2" Visibility="{x:Bind Model:Utils.AntiBoolToVis(IsCurrentlyActivePlayer), Mode=OneWay}">
+                <Image Source="{x:Bind Model:Utils.PathToImage(ProfilePictureDir), Mode=OneWay}" Stretch="Fill"/>
+            </Border>
+
+            <Border Grid.Column="0" Grid.Row="1" Width="60" Height="60" CornerRadius="10" BorderBrush="Yellow" BorderThickness="2" Margin="2" Visibility="{x:Bind Model:Utils.BoolToVis(IsCurrentlyActivePlayer), Mode=OneWay}">
                 <Image Source="{x:Bind Model:Utils.PathToImage(ProfilePictureDir), Mode=OneWay}" Stretch="Fill"/>
             </Border>
 
             <Border Grid.Column="1" Grid.Row="1" Background="#66111111" HorizontalAlignment="Center">
-                <TextBlock FontSize="18" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center">
+                <TextBlock FontSize="18" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White">
                     <Run Text="$"/>
                     <Run Text="{x:Bind Chips, Mode=OneWay}"/>
                 </TextBlock>

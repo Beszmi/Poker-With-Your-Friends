@@ -106,6 +106,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -136,7 +137,7 @@
                     <Image Source="{x:Bind Model:Utils.PathToImage(viewModel.PlayerStore.CurrentPlayer.ProfilePictureDir), Mode=OneWay}" Stretch="Fill"/>
                 </Border>
 
-                <TextBlock Grid.Column="1" Grid.Row="2" FontSize="18" FontWeight="Bold" VerticalAlignment="Center">
+                <TextBlock Grid.Column="1" Grid.Row="2" FontSize="18" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center">
                     <Run Text="Chips: $"/>
                     <Run Text="{x:Bind viewModel.PlayerStore.CurrentPlayer.Chips, Mode=OneWay}"/>
                 </TextBlock>
@@ -159,20 +160,21 @@
                 <Image Grid.Column="2" Grid.Row="0" Width="50" Height="50" Source="/Assets/BigBlind.png" Visibility="{x:Bind vm:InGamePageViewModel.ConvertBlind(viewModel.PlayerStore.CurrentPlayer.Blind, Model:BlindEnum.BigBlind)}"/>
                 <Image Grid.Column="2" Grid.Row="0" Width="50" Height="50" Source="/Assets/NotBlind.png" Visibility="{x:Bind vm:InGamePageViewModel.ConvertBlind(viewModel.PlayerStore.CurrentPlayer.Blind, Model:BlindEnum.NotBlind)}"/>
 
-                <StackPanel Grid.Column="0" Grid.Row="3" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <StackPanel Grid.Column="0" Grid.Row="3" Grid.ColumnSpan="3" Orientation="Vertical" Visibility="{x:Bind Model:Utils.AntiBoolToVis(viewModel.Table.IsShowdown), Mode=OneWay}">
+                    <TextBlock HorizontalAlignment="Center" Text="{x:Bind viewModel.SelectedRaiseValue, Mode=OneWay}"/>
+                    <Slider Minimum="{x:Bind viewModel.RaiseMin, Mode=OneWay}" Maximum="{x:Bind viewModel.RaiseMax, Mode=OneWay}" Value="{x:Bind viewModel.SelectedRaiseValue, Mode=TwoWay}" IsEnabled="{x:Bind viewModel.IsRaiseButtonEnabled, Mode=OneWay}" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="0" Grid.Row="4" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                     <Button VerticalAlignment="Bottom" Content="{x:Bind viewModel.CallButtonText, Mode=OneWay}" IsEnabled="{x:Bind viewModel.CallButtonEnabled, Mode=OneWay}" Visibility="{x:Bind Model:Utils.AntiBoolToVis(viewModel.Table.IsShowdown), Mode=OneWay}" Click="viewModel.CallButton_Click" Background="LightGreen"/>
-                    <StackPanel Orientation="Vertical" Visibility="{x:Bind Model:Utils.AntiBoolToVis(viewModel.Table.IsShowdown), Mode=OneWay}">
-                        <TextBlock HorizontalAlignment="Center" Text="{x:Bind viewModel.SelectedRaiseValue, Mode=OneWay}"/>
-                        <Slider Minimum="{x:Bind viewModel.RaiseMin, Mode=OneWay}" Maximum="{x:Bind viewModel.RaiseMax, Mode=OneWay}" Value="{x:Bind viewModel.SelectedRaiseValue, Mode=TwoWay}" IsEnabled="{x:Bind viewModel.IsRaiseButtonEnabled, Mode=OneWay}" />
-                        <Button Content="Raise" IsEnabled="{x:Bind viewModel.IsRaiseButtonEnabled, Mode=OneWay}" Click="viewModel.RaiseButton_Click" Background="LightBlue"/>
-                    </StackPanel>
+                    <Button Content="Raise" IsEnabled="{x:Bind viewModel.IsRaiseButtonEnabled, Mode=OneWay}" Click="viewModel.RaiseButton_Click" Background="LightBlue"/>
                     <Button VerticalAlignment="Bottom" Content="Fold" IsEnabled="{x:Bind viewModel.PlayerActionButtonsEnabled, Mode=OneWay}" Click="viewModel.FoldButton_Click" Background="{StaticResource GrayRedStripeBrush}" />
                     <Button VerticalAlignment="Bottom" Content="AllIn" IsEnabled="{x:Bind viewModel.AllInButtonEnabled, Mode=OneWay}" Visibility="{x:Bind Model:Utils.AntiBoolToVis(viewModel.Table.IsShowdown), Mode=OneWay}" Click="viewModel.AllInButton_Click" Background="Red"/>
                     <Button VerticalAlignment="Bottom" Content="Show Cards" IsEnabled="{x:Bind viewModel.ShowCardsButtonEnabled, Mode=OneWay}" Visibility="{x:Bind viewModel.ShowCardsButtonVisible, Mode=OneWay}" Click="viewModel.ShowCardsButton_Click" Background="Gold"/>
                     <Button VerticalAlignment="Bottom" Content="Reveal Cards" Click="viewModel.RevealCards_Click" Visibility="{x:Bind viewModel.RevealCardsButtonVisible, Mode=OneWay}"/>
                 </StackPanel>
 
-                <ProgressBar Grid.Column="0" Grid.Row="4" Grid.ColumnSpan="3" Minimum="0" Maximum="{x:Bind viewModel.TimerProgressMaximum, Mode=OneWay}" Width="300" Value="{x:Bind viewModel.TimerProgressValue, Mode=OneWay}" Margin="0,2,0,5" />
+                <ProgressBar Grid.Column="0" Grid.Row="5" Grid.ColumnSpan="3" Minimum="0" Maximum="{x:Bind viewModel.TimerProgressMaximum, Mode=OneWay}" Width="300" Value="{x:Bind viewModel.TimerProgressValue, Mode=OneWay}" Margin="0,2,0,5" />
             </Grid>
         </Grid>
 

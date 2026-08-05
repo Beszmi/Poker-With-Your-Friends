@@ -280,6 +280,7 @@ public partial class Table : ObservableObject
         {
             case PlayerAction.Call:
                 int callAmount = Math.Max(0, ToCall - player.RoundBet);
+                player.LastAction = "Check";
                 if (callAmount > 0)
                 {
                     // Short stack: calling for everything left is an all-in.
