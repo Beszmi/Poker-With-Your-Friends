@@ -67,12 +67,12 @@
                 </Border>
             </StackPanel>
 
-            <StackPanel Visibility="{x:Bind viewModel.PlayerPickerVisible, Mode=OneWay}">
+            <StackPanel Visibility="{x:Bind viewModel.PlayerPickerVisible, Mode=OneWay}" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <Border Background="Red" CornerRadius="5" HorizontalAlignment="Center" Padding="2" BorderBrush="Black" BorderThickness="1">
                     <TextBlock Text="PICK A PLAYER!" Foreground="Black" FontSize="36" HorizontalAlignment="Center" />
                 </Border>
                 <Border Background="Beige" CornerRadius="10" BorderBrush="Black" BorderThickness="1" HorizontalAlignment="Center" Width="400" Height="400" >
-                    <Grid VerticalAlignment="Center" >
+                    <Grid HorizontalAlignment="Center" VerticalAlignment="Center" >
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="*" />

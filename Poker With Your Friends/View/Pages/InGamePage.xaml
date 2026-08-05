@@ -18,7 +18,7 @@
         </ResourceDictionary>
     </Page.Resources>
 
-    <Grid>
+    <Grid RequestedTheme="Light">
         <Grid.Background>
             <ImageBrush ImageSource="/Assets/In_Game_BG.jpg" Stretch="UniformToFill" />
         </Grid.Background>
@@ -35,17 +35,17 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <Button Grid.Column="0" Grid.Row="0" Content="❌ leave Table" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10" Click="LeaveTableButton_Click" IsEnabled="{x:Bind viewModel.LeaveTableButtonEnabled, Mode=OneWay}"/>
+        <Button Grid.Column="0" Grid.Row="0" Content="EXIT" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10" Click="LeaveTableButton_Click" IsEnabled="{x:Bind viewModel.LeaveTableButtonEnabled, Mode=OneWay}" Background="Red"/>
 
-        <TextBlock Grid.Column="0" Grid.Row="1" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10">
-            <Run Text="Players count: "/>
-            <Run Text="{x:Bind viewModel.Table.Players.Count, Mode=OneWay}"/>
-            <Run Text=" Players: "/>
+        <TextBlock Grid.Column="1" Grid.Row="0" Margin="5" FontSize="28" FontFamily="Arial Black" HorizontalAlignment="Center">
+            <Run Text="{x:Bind viewModel.Table.Pot, Mode=OneWay}"/>
+            <Run Text="$"/>
         </TextBlock>
 
-        <TextBlock Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="3" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" FontSize="24" Text="{x:Bind viewModel.Table.TableText, Mode=OneWay}"/>
+        <Button Grid.Column="2" Grid.Row="0" Content="➕Join Game" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="10" Click="JoinGameButton_Click" Visibility="{x:Bind viewModel.IsJoinButtonVisible, Mode=OneWay}" Background="Green"/>
+        <Button Grid.Column="2" Grid.Row="0" Content="➖Leave Game" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="10" Click="LeaveGameButton_Click" Visibility="{x:Bind viewModel.IsLeaveButtonVisible, Mode=OneWay}" Background="Green"/>
 
-        <ListView Grid.Column="0" Grid.Row="2" Grid.ColumnSpan="3" HorizontalAlignment="Center" VerticalAlignment="Center" ItemsSource="{x:Bind viewModel.Table.Housecards, Mode=OneWay}" Margin="10">
+        <ListView Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="3" HorizontalAlignment="Center" VerticalAlignment="Center" ItemsSource="{x:Bind viewModel.Table.Housecards, Mode=OneWay}" Margin="0,50,0,0">
             <ListView.ItemsPanel>
                 <ItemsPanelTemplate>
                     <ItemsStackPanel Orientation="Horizontal" />
@@ -53,10 +53,12 @@
             </ListView.ItemsPanel>
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="Model:Card">
-                    <ContentControl Content="{x:Bind}" ContentTemplate="{StaticResource CardTemplate}"/>
+                    <ContentControl Content="{x:Bind}" ContentTemplate="{StaticResource HouseCardTemplate}" Margin="5,0,5,0"/>
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
+
+        <TextBlock Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="3" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" FontSize="24" Text="{x:Bind viewModel.Table.TableText, Mode=OneWay}"/>
 
         <TextBlock Grid.Column="0" Grid.Row="3" Grid.ColumnSpan="3" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="10">
             <Run Text="Pot: "/>
@@ -175,9 +177,6 @@
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
-
-        <Button Grid.Column="0" Grid.Row="4" Content="➕Join Game" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="10" Click="JoinGameButton_Click" Visibility="{x:Bind viewModel.IsJoinButtonVisible, Mode=OneWay}"/>
-        <Button Grid.Column="0" Grid.Row="4" Content="➖Leave Game" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="10" Click="LeaveGameButton_Click" Visibility="{x:Bind viewModel.IsLeaveButtonVisible, Mode=OneWay}"/>
 
         <StackPanel Grid.Column="2" Grid.Row="4" Orientation="Vertical">
             <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center">

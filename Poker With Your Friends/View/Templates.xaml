@@ -16,5 +16,17 @@
             <TextBlock Text="{Binding SuitSymbol}" Foreground="{Binding Color}" FontSize="20" Canvas.Left="10" Canvas.Top="20"/>
         </Canvas>
     </DataTemplate>
-    
+
+    <DataTemplate x:Key="HouseCardTemplate">
+        <Canvas Width="180" Height="252">
+            <Border Width="180" Height="252" BorderBrush="Black" BorderThickness="2" CornerRadius="10" Background="White">
+                <Border.Shadow>
+                    <ThemeShadow />
+                </Border.Shadow>
+            </Border>
+            <TextBlock Text="{Binding ValueSymbol}" Foreground="{Binding Color}" FontSize="20" Canvas.Left="10" Canvas.Top="5"/>
+            <TextBlock Text="{Binding SuitSymbol}" Foreground="{Binding Color}" FontSize="20" Canvas.Left="10" Canvas.Top="20"/>
+        </Canvas>
+    </DataTemplate>
+
 </ResourceDictionary>
