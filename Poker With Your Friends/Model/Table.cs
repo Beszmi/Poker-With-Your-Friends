@@ -18,7 +18,8 @@ public partial class Table : ObservableObject
         Call,
         Raise,
         Fold,
-        AllIn
+        AllIn,
+        Show
     }
 
     public readonly struct PlayerDecision
@@ -113,6 +114,10 @@ public partial class Table : ObservableObject
     [ObservableProperty]
     public partial bool HandOver { get; set; } = false;
 
+    [XmlAttribute("IsShowdown")]
+    [ObservableProperty]
+    public partial bool IsShowdown { get; set; } = false;
+
     [XmlIgnore]
     public TaskCompletionSource<PlayerDecision>? PlayerActionTcs { get; private set; }
 
@@ -195,6 +200,7 @@ public partial class Table : ObservableObject
 
         BeforeBigBlind = true;
         HandOver = false;
+        IsShowdown = false;
         Round++;
         SmallBlind = Round * 5;
         ToCall = SmallBlind;
@@ -510,6 +516,12 @@ public partial class Table : ObservableObject
                 HandOver = await PlayRound();
             }
 
+            //Showdown: everyone still in the hand must show their cards or fold.
+            if (!HandOver)
+            {
+                HandOver = await PlayShowdown();
+            }
+
             // Award pot / set WonLast before broadcasting so clients get a consistent end-of-hand UI.
             HandOver = true;
             EndGameLogic();
@@ -523,6 +535,7 @@ public partial class Table : ObservableObject
     private void ResetHandState()
     {
         IsGameActive = false;
+        IsShowdown = false;
         ActivePlayerName = string.Empty;
         CurrentlyActivePlayer = null;
 
@@ -608,6 +621,97 @@ public partial class Table : ObservableObject
         return IsHandOver();
     }
 
+    private async Task<bool> PlayShowdown()
+    {
+        IsShowdown = true;
+        try
+        {
+            for (int i = 0; i < Players.Count; i++)
+            {
+                var player = Players.ToList()[(SmallBlindPlayerIndex + i) % Players.Count];
+
+                if (!Players.Contains(player)) continue;
+                if (player.HasFolded) continue;
+                if (IsHandOver()) break; // Everyone else folded; the last player wins without showing. (still has the chance to show if they want)
+
+                await WaitForShowdownDecisionAsync(player);
+            }
+        }
+        finally
+        {
+            // Clear before EndGameLogic broadcasts for network consistency
+            IsShowdown = false;
+        }
+
+        return IsHandOver();
+    }
+
+    private async Task WaitForShowdownDecisionAsync(Player player)
+    {
+        if (player.HasFolded || !IsGameActive)
+        {
+            ActivePlayerName = string.Empty;
+            return;
+        }
+
+        var tcs = new TaskCompletionSource<PlayerDecision>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        lock (_actionLock)
+        {
+            PlayerActionTcs = tcs;
+            CurrentlyActivePlayer = player;
+        }
+
+        TableTextUpdate($"Showdown! {player.Name} must show their cards or fold.");
+        ActivePlayerName = player.Name;
+        player.IsCurrentlyActivePlayer = true;
+        OnUpdateTableRequest?.Invoke(this);
+
+        PlayerDecision decision;
+        var timeoutTask = Task.Delay(ActionTimeout);
+        OnTimerStartRequest?.Invoke(this, ActionTimeout.Seconds - 1); // 1 second less to compensate for any network lag or delay
+        var finished = await Task.WhenAny(tcs.Task, timeoutTask);
+
+        if (finished == timeoutTask)
+        {
+            System.Diagnostics.Debug.WriteLine($"{player.Name} timed out at showdown — mucking (fold).");
+            decision = new PlayerDecision(PlayerAction.Fold);
+            tcs.TrySetResult(decision); // in case a late action races in right after
+        }
+        else
+        {
+            decision = await tcs.Task;
+        }
+
+        if (decision.Action == PlayerAction.Show)
+        {
+            if (!player.CardsRevealed)
+            {
+                player.CardsRevealed = true;
+                OnCardRevealChanged?.Invoke(player.Name, player.CardsRevealed);
+            }
+        }
+        else
+        {
+            // SubmitPlayerAction only lets Show/Fold through during showdown.
+            player.Fold();
+        }
+
+        player.IsCurrentlyActivePlayer = false;
+
+        lock (_actionLock)
+        {
+            if (CurrentlyActivePlayer == player)
+            {
+                CurrentlyActivePlayer = null;
+                PlayerActionTcs = null;
+            }
+        }
+
+        ActivePlayerName = string.Empty;
+        OnUpdateTableRequest?.Invoke(this);
+    }
+
     public bool SubmitPlayerAction(Player player, PlayerAction action, int amount = 0)
     {
         lock (_actionLock)
@@ -618,6 +722,15 @@ public partial class Table : ObservableObject
             }
             if (CurrentlyActivePlayer == null ||
                 !string.Equals(CurrentlyActivePlayer.Name, player.Name, StringComparison.Ordinal))
+            {
+                return false;
+            }
+            // During showdown only Show/Fold are legal; outside of it a stale Show is meaningless.
+            if (IsShowdown && action != PlayerAction.Show && action != PlayerAction.Fold)
+            {
+                return false;
+            }
+            if (!IsShowdown && action == PlayerAction.Show)
             {
                 return false;
             }
@@ -692,6 +805,7 @@ public partial class Table : ObservableObject
         localTable.Pot = networkTable.Pot;
         localTable.IsGameActive = networkTable.IsGameActive;
         localTable.HandOver = networkTable.HandOver;
+        localTable.IsShowdown = networkTable.IsShowdown;
         localTable.TableText = networkTable.TableText;
         localTable.Antee = networkTable.Antee;
         localTable.ToCall = networkTable.ToCall;
@@ -788,9 +902,11 @@ public partial class Table : ObservableObject
             player.Hand = handCards.Length >= 2 ? new Hand(handCards) : null;
         }
 
-        var eligiblePlayers = remainingPlayers.Where(p => p.Hand != null).ToList();
+        // A contested pot only reaches this point via showdown, where not showing means not winning.
+        var eligiblePlayers = remainingPlayers.Where(p => p.Hand != null && p.CardsRevealed).ToList();
         if (eligiblePlayers.Count == 0)
         {
+            Pot = potToAward; // Don't let the pot vanish; carry it over instead.
             OnUpdateTableRequest?.Invoke(this);
             return;
         }

@@ -100,14 +100,15 @@
                 </TextBlock>
             </StackPanel>
             <StackPanel Orientation="Horizontal">
-                <Button Content="{x:Bind viewModel.CallButtonText, Mode=OneWay}" IsEnabled="{x:Bind viewModel.CallButtonEnabled, Mode=OneWay}" Click="viewModel.CallButton_Click"/>
-                <StackPanel Orientation="Vertical">
+                <Button Content="{x:Bind viewModel.CallButtonText, Mode=OneWay}" IsEnabled="{x:Bind viewModel.CallButtonEnabled, Mode=OneWay}" Visibility="{x:Bind Model:Utils.AntiBoolToVis(viewModel.Table.IsShowdown), Mode=OneWay}" Click="viewModel.CallButton_Click" Background="LightGreen"/>
+                <StackPanel Orientation="Vertical" Visibility="{x:Bind Model:Utils.AntiBoolToVis(viewModel.Table.IsShowdown), Mode=OneWay}">
                     <TextBlock HorizontalAlignment="Center" Text="{x:Bind viewModel.SelectedRaiseValue, Mode=OneWay}"/>
                     <Slider Minimum="{x:Bind viewModel.RaiseMin, Mode=OneWay}" Maximum="{x:Bind viewModel.RaiseMax, Mode=OneWay}" Value="{x:Bind viewModel.SelectedRaiseValue, Mode=TwoWay}" IsEnabled="{x:Bind viewModel.IsRaiseButtonEnabled, Mode=OneWay}" />
-                    <Button Content="Raise" IsEnabled="{x:Bind viewModel.IsRaiseButtonEnabled, Mode=OneWay}" Click="viewModel.RaiseButton_Click"/>
+                    <Button Content="Raise" IsEnabled="{x:Bind viewModel.IsRaiseButtonEnabled, Mode=OneWay}" Click="viewModel.RaiseButton_Click" Background="LightBlue"/>
                 </StackPanel>
-                <Button Content="Fold" IsEnabled="{x:Bind viewModel.PlayerActionButtonsEnabled, Mode=OneWay}" Click="viewModel.FoldButton_Click"/>
-                <Button Content="AllIn" IsEnabled="{x:Bind viewModel.AllInButtonEnabled, Mode=OneWay}" Click="viewModel.AllInButton_Click"/>
+                <Button Content="Fold" IsEnabled="{x:Bind viewModel.PlayerActionButtonsEnabled, Mode=OneWay}" Click="viewModel.FoldButton_Click" Background="{StaticResource GrayRedStripeBrush}" />
+                <Button Content="AllIn" IsEnabled="{x:Bind viewModel.AllInButtonEnabled, Mode=OneWay}" Visibility="{x:Bind Model:Utils.AntiBoolToVis(viewModel.Table.IsShowdown), Mode=OneWay}" Click="viewModel.AllInButton_Click" Background="Red"/>
+                <Button Content="Show Cards" IsEnabled="{x:Bind viewModel.ShowCardsButtonEnabled, Mode=OneWay}" Visibility="{x:Bind viewModel.ShowCardsButtonVisible, Mode=OneWay}" Click="viewModel.ShowCardsButton_Click" Background="Gold"/>
                 <TextBlock Text="{x:Bind vm:InGamePageViewModel.ConvertBlind(viewModel.PlayerStore.CurrentPlayer.Blind), Mode=OneWay}"/>
                 <Button Content="Reveal Cards" Click="viewModel.RevealCards_Click" Visibility="{x:Bind viewModel.RevealCardsButtonVisible, Mode=OneWay}"/>
             </StackPanel>
@@ -124,7 +125,7 @@
                 <DataTemplate x:DataType="Model:Player">
                     <StackPanel Background="{x:Bind BgColor, Mode=OneWay}" Height="Auto" Width="Auto">
                         <Image Width="100" Height="100" Source="{x:Bind Model:Utils.PathToImage(ProfilePictureDir), Mode=OneWay}" Stretch="UniformToFill"/>
-                        <TextBlock HorizontalAlignment="Center" Text="{x:Bind HandName, Mode=OneWay}"/>
+                        <TextBlock HorizontalAlignment="Center" Text="{x:Bind HandName, Mode=OneWay}" Visibility="{x:Bind Model:Utils.BoolToVis(CardsRevealed), Mode=OneWay}"/>
                         <ListView ItemsSource="{x:Bind Cards, Mode=OneWay}" Visibility="{x:Bind Model:Utils.BoolToVis(CardsRevealed), Mode=OneWay}">
                             <ListView.ItemsPanel>
                                 <ItemsPanelTemplate>

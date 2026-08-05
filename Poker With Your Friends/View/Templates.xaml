@@ -28,5 +28,21 @@
             <TextBlock Text="{Binding SuitSymbol}" Foreground="{Binding Color}" FontSize="20" Canvas.Left="10" Canvas.Top="20"/>
         </Canvas>
     </DataTemplate>
+    
+    <LinearGradientBrush x:Key="GrayRedStripeBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="DimGray" Offset="0.0" />
+        <GradientStop Color="DimGray" Offset="0.2" />
 
+        <GradientStop Color="Firebrick" Offset="0.2" />
+        <GradientStop Color="Firebrick" Offset="0.4" />
+
+        <GradientStop Color="DimGray" Offset="0.4" />
+        <GradientStop Color="DimGray" Offset="0.6" />
+
+        <GradientStop Color="Firebrick" Offset="0.6" />
+        <GradientStop Color="Firebrick" Offset="0.8" />
+
+        <GradientStop Color="DimGray" Offset="0.8" />
+        <GradientStop Color="DimGray" Offset="1.0" />
+    </LinearGradientBrush>
 </ResourceDictionary>

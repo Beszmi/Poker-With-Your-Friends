@@ -71,6 +71,12 @@ public partial class InGamePageViewModel : ObservableObject
     public partial Visibility RevealCardsButtonVisible { get; set; } = Visibility.Collapsed;
 
     [ObservableProperty]
+    public partial Visibility ShowCardsButtonVisible { get; set; } = Visibility.Collapsed;
+
+    [ObservableProperty]
+    public partial bool ShowCardsButtonEnabled { get; set; } = false;
+
+    [ObservableProperty]
     public partial bool CallButtonEnabled { get; set; } = false;
 
     [ObservableProperty]
@@ -201,17 +207,31 @@ public partial class InGamePageViewModel : ObservableObject
             }
             else
             {
-                OpponentCardsRevealed = Visibility.Collapsed;
-                OpponentCardsNotRevealed = Visibility.Visible;
+                // During showdown opponents' cards appear one by one as they choose to show.
+                OpponentCardsRevealed = Table.IsShowdown ? Visibility.Visible : Visibility.Collapsed;
+                OpponentCardsNotRevealed = Table.IsShowdown ? Visibility.Collapsed : Visibility.Visible;
                 IsCurrentPlayerWinner = Visibility.Collapsed;
                 RevealCardsButtonVisible = Visibility.Collapsed;
             }
 
+            ShowCardsButtonVisible = !Table.HandOver && Table.IsShowdown && !PlayerStore.CurrentPlayer.HasFolded
+                ? Visibility.Visible : Visibility.Collapsed;
+
             PlayerActionButtonsEnabled = !Table.HandOver
                 && !string.IsNullOrEmpty(Table.ActivePlayerName)
                 && Table.ActivePlayerName == PlayerStore.CurrentPlayer.Name;
-            if (PlayerActionButtonsEnabled)
+
+            if (PlayerActionButtonsEnabled && Table.IsShowdown)
             {
+                // Showdown: only Show or Fold are allowed.
+                CallButtonEnabled = false;
+                AllInButtonEnabled = false;
+                IsRaiseButtonEnabled = false;
+                ShowCardsButtonEnabled = true;
+            }
+            else if (PlayerActionButtonsEnabled)
+            {
+                ShowCardsButtonEnabled = false;
                 int amountToCall = Math.Max(0, Table.ToCall - PlayerStore.CurrentPlayer.RoundBet);
                 int chips = PlayerStore.CurrentPlayer.Chips;
 
@@ -239,6 +259,7 @@ public partial class InGamePageViewModel : ObservableObject
                 CallButtonEnabled = false;
                 AllInButtonEnabled = false;
                 IsRaiseButtonEnabled = false;
+                ShowCardsButtonEnabled = false;
             }
 
             if (PlayerStore.CurrentPlayer.Cards.Count == 2)
@@ -256,6 +277,7 @@ public partial class InGamePageViewModel : ObservableObject
             IsJoinButtonVisible = Visibility.Visible;
             IsLeaveButtonVisible = Visibility.Collapsed;
             RevealCardsButtonVisible = Visibility.Collapsed;
+            ShowCardsButtonVisible = Visibility.Collapsed;
             DisableActionButtons();
 
             OpponentCardsRevealed = Visibility.Visible;
@@ -272,6 +294,7 @@ public partial class InGamePageViewModel : ObservableObject
         CallButtonEnabled = false;
         AllInButtonEnabled = false;
         IsRaiseButtonEnabled = false;
+        ShowCardsButtonEnabled = false;
     }
 
     private void RebuildOpponentPlayers(bool isAtThisTable)
@@ -309,6 +332,11 @@ public partial class InGamePageViewModel : ObservableObject
     public void AllInButton_Click(object sender, RoutedEventArgs e)
     {
         SubmitPlayerAction(PlayerAction.AllIn, 0);
+    }
+
+    public void ShowCardsButton_Click(object sender, RoutedEventArgs e)
+    {
+        SubmitPlayerAction(PlayerAction.Show, 0);
     }
 
     public void RevealCards_Click(object sender, RoutedEventArgs e)
