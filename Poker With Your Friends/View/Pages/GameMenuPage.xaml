@@ -47,10 +47,7 @@
             </Grid>
         </DataTemplate>
 
-        <View:GameMenuItemTemplateSelector
-            x:Key="GameMenuItemTemplateSelector"
-            TableTemplate="{StaticResource TableItemTemplate}"
-            AddTableTemplate="{StaticResource AddTableItemTemplate}"/>
+        <View:GameMenuItemTemplateSelector x:Key="GameMenuItemTemplateSelector" TableTemplate="{StaticResource TableItemTemplate}" AddTableTemplate="{StaticResource AddTableItemTemplate}"/>
     </Page.Resources>
 
     <Grid RequestedTheme="Light">
@@ -71,15 +68,19 @@
         <Border Grid.Column="0" Grid.Row="0" HorizontalAlignment="Right" VerticalAlignment="Center" Background="#358854" Padding="2" BorderBrush="Black" BorderThickness="1" CornerRadius="0,0,0,10">
             <StackPanel>
                 <StackPanel Orientation="Horizontal">
-                    <Button Click="PickFileButton_Click"  Padding="0" Background="Transparent" BorderThickness="0" Margin="5">
-                        <Button.Resources>
-                            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Transparent"/>
-                            <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="Transparent"/>
-                        </Button.Resources>
-                        <Border Width="100" Height="100" CornerRadius="90" BorderBrush="Black" BorderThickness="1">
-                            <Image Source="{x:Bind Model:Utils.PathToImage(viewModel.PlayerStore.CurrentPlayer.ProfilePictureDir), Mode=OneWay}" Stretch="Fill" />
-                        </Border>
-                    </Button>
+                    <StackPanel>
+                        <Button Click="PickFileButton_Click"  Padding="0" Background="Transparent" BorderThickness="0" Margin="5">
+                            <Button.Resources>
+                                <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Transparent"/>
+                                <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="Transparent"/>
+                            </Button.Resources>
+                            <Border Width="100" Height="100" CornerRadius="90" BorderBrush="Black" BorderThickness="1">
+                                <Image Source="{x:Bind Model:Utils.PathToImage(viewModel.PlayerStore.CurrentPlayer.ProfilePictureDir), Mode=OneWay}" Stretch="Fill" />
+                            </Border>
+                        </Button>
+                        <TextBlock Text="Click to change" FontFamily="Arial" HorizontalAlignment="Center"/>
+                    </StackPanel>
+
                     <TextBlock FontWeight="Bold" VerticalAlignment="Center">
                         <Run FontSize="28" Text="{x:Bind viewModel.PlayerStore.CurrentPlayer.Name, Mode=OneWay}"/>
                         <LineBreak/>
