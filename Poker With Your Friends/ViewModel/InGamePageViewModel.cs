@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
@@ -8,7 +9,6 @@ using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
-using Windows.UI;
 using static Poker_With_Your_Friends.Model.Table;
 
 namespace Poker_With_Your_Friends.ViewModel;
@@ -54,13 +54,7 @@ public partial class InGamePageViewModel : ObservableObject
     [ObservableProperty]
     public partial String CurrentPlayerHandName { get; set; } = "";
 
-    public ObservableCollection<Player> OpponentPlayers { get; } = new ObservableCollection<Player>();
-
-    [ObservableProperty]
-    public partial Visibility OpponentCardsRevealed { get; set; } = Visibility.Collapsed;
-
-    [ObservableProperty]
-    public partial Visibility OpponentCardsNotRevealed { get; set; } = Visibility.Visible;
+    public ObservableCollection<PlayerSeatViewModel> PlayerSeats { get; } = new();
 
     [ObservableProperty]
     public partial Visibility CardsDealt { get; set; } = Visibility.Collapsed;
@@ -82,9 +76,6 @@ public partial class InGamePageViewModel : ObservableObject
 
     [ObservableProperty]
     public partial bool AllInButtonEnabled { get; set; } = false;
-
-    public SolidColorBrush CurrentPlayerBgBrush { get; private set; } =
-        new SolidColorBrush(Color.FromArgb(0x99, 0x00, 0xFF, 0x00));
 
     public ObservableCollection<Card>? MyCards => PlayerStore?.CurrentPlayer?.Cards;
 
@@ -188,7 +179,7 @@ public partial class InGamePageViewModel : ObservableObject
             ? Visibility.Visible
             : Visibility.Collapsed;
 
-        RebuildOpponentPlayers(isAtThisTable);
+        RebuildPlayerSeats(isAtThisTable);
 
         if (isAtThisTable)
         {
@@ -198,8 +189,6 @@ public partial class InGamePageViewModel : ObservableObject
 
             if (Table.HandOver)
             {
-                OpponentCardsRevealed = Visibility.Visible;
-                OpponentCardsNotRevealed = Visibility.Collapsed;
                 IsCurrentPlayerWinner = PlayerStore.CurrentPlayer.WonLast
                     ? Visibility.Visible
                     : Visibility.Collapsed;
@@ -208,9 +197,6 @@ public partial class InGamePageViewModel : ObservableObject
             }
             else
             {
-                // During showdown opponents' cards appear one by one as they choose to show.
-                OpponentCardsRevealed = Table.IsShowdown ? Visibility.Visible : Visibility.Collapsed;
-                OpponentCardsNotRevealed = Table.IsShowdown ? Visibility.Collapsed : Visibility.Visible;
                 IsCurrentPlayerWinner = Visibility.Collapsed;
                 RevealCardsButtonVisible = Visibility.Collapsed;
             }
@@ -281,11 +267,7 @@ public partial class InGamePageViewModel : ObservableObject
             ShowCardsButtonVisible = Visibility.Collapsed;
             DisableActionButtons();
 
-            OpponentCardsRevealed = Visibility.Visible;
-            OpponentCardsNotRevealed = Visibility.Collapsed;
             IsCurrentPlayerWinner = Visibility.Collapsed;
-            CurrentPlayerBgBrush = new SolidColorBrush(Color.FromArgb(0x99, 0x00, 0xFF, 0x00));
-            OnPropertyChanged(nameof(CurrentPlayerBgBrush));
         }
     }
 
@@ -298,50 +280,75 @@ public partial class InGamePageViewModel : ObservableObject
         ShowCardsButtonEnabled = false;
     }
 
-    private void RebuildOpponentPlayers(bool isAtThisTable)
+    private void RebuildPlayerSeats(bool isAtThisTable)
     {
-        var shouldShow = Table.Players
-            .Where(p => !isAtThisTable || p.Name != PlayerStore!.CurrentPlayer!.Name)
-            .ToList();
+        var orderedPlayers = Table.Players.ToList();
+        string? localPlayerName = PlayerStore?.CurrentPlayer?.Name;
 
-        for (int i = OpponentPlayers.Count - 1; i >= 0; i--)
+        if (isAtThisTable && localPlayerName != null)
         {
-            if (!shouldShow.Contains(OpponentPlayers[i]))
-                OpponentPlayers.RemoveAt(i);
+            int localPlayerIndex = orderedPlayers.FindIndex(player => player.Name == localPlayerName);
+            if (localPlayerIndex > 0)
+            {
+                orderedPlayers = orderedPlayers
+                    .Skip(localPlayerIndex)
+                    .Concat(orderedPlayers.Take(localPlayerIndex))
+                    .ToList();
+            }
         }
 
-        foreach (var player in shouldShow)
+        bool useRevealedTemplate = !isAtThisTable || Table.HandOver || Table.IsShowdown;
+
+        PlayerSeats.Clear();
+        foreach (Player player in orderedPlayers)
         {
-            if (!OpponentPlayers.Contains(player))
-                OpponentPlayers.Add(player);
+            bool isLocalPlayer = isAtThisTable && player.Name == localPlayerName;
+            PlayerSeats.Add(new PlayerSeatViewModel(
+                player,
+                this,
+                isLocalPlayer,
+                useRevealedTemplate));
         }
     }
 
-    public void CallButton_Click(object sender, RoutedEventArgs e)
+    [RelayCommand]
+    private void Call()
     {
         SubmitPlayerAction(PlayerAction.Call, 0);
     }
-    public void RaiseButton_Click(object sender, RoutedEventArgs e)
+
+    [RelayCommand]
+    private void Raise()
     {
         SubmitPlayerAction(PlayerAction.Raise, SelectedRaiseValue);
     }
-    public void FoldButton_Click(object sender, RoutedEventArgs e)
+
+    [RelayCommand]
+    private void Fold()
     {
         SubmitPlayerAction(PlayerAction.Fold, 0);
     }
 
-    public void AllInButton_Click(object sender, RoutedEventArgs e)
+    [RelayCommand]
+    private void AllIn()
     {
         SubmitPlayerAction(PlayerAction.AllIn, 0);
     }
 
-    public void ShowCardsButton_Click(object sender, RoutedEventArgs e)
+    [RelayCommand]
+    private void ShowCards()
     {
         SubmitPlayerAction(PlayerAction.Show, 0);
     }
 
-    public void RevealCards_Click(object sender, RoutedEventArgs e)
+    [RelayCommand]
+    private void RevealCards()
     {
+        if (PlayerStore?.CurrentPlayer == null)
+        {
+            return;
+        }
+
         client?.SendPlayerRevealCards(PlayerStore.CurrentPlayer.Name);
         RevealCardsButtonVisible = Visibility.Collapsed;
     }
