@@ -55,7 +55,7 @@ The project focuses on **systems software concerns** typical of computer enginee
 
 ```
 ┌─────────────┐         TCP (framed messages)         ┌─────────────┐
-│   Client    │◄─────────────────────────────────────►│   Server    │
+│   Client    │◄─────────────────────────────────────►│    Server   │
 │  (WinUI 3)  │         XML game / table state        │  (TCP host) │
 └──────┬──────┘                                       └──────┬──────┘
        │                                                      │
