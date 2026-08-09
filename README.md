@@ -26,15 +26,15 @@ The project focuses on **systems software concerns** typical of computer enginee
 
 | Main menu | Lobby / game menu |
 | :---: | :---: |
-| ![Main menu](docs/screenshots/main-menu.png) | ![Game menu](docs/screenshots/game-menu.png) |
+| ![Main menu](Docs/screenshots/main-menu.png) | ![Game menu](Docs/screenshots/game-menu.png) |
 
 | Table in play | Showdown |
 | :---: | :---: |
-| ![In game](docs/screenshots/in-game.png) | <!-- ![Showdown](docs/screenshots/showdown.png) --> |
+| ![In game](Docs/screenshots/in-game.png) | <!-- ![Showdown](Docs/screenshots/showdown.png) --> |
 
 | Server host window |
 | :---: |
-| <!-- ![Server](docs/screenshots/server.png) --> |
+| <!-- ![Server](Docs/screenshots/server.png) --> |
 
 ---
 
