@@ -308,6 +308,7 @@ public class Game //Singleton
             player.WonLast = false;
             player.CardsRevealed = false;
             player.LastAction = "";
+            player.Blind = BlindEnum.NotBlind;
         }
 
         try
