@@ -9,7 +9,7 @@
   <img alt="C#" src="https://img.shields.io/badge/C%23-239120?style=for-the-badge&logo=csharp&logoColor=white" />
   <img alt="WinUI 3" src="https://img.shields.io/badge/WinUI%203-0078D4?style=for-the-badge&logo=windows&logoColor=white" />
   <img alt="Platform" src="https://img.shields.io/badge/Platform-Windows-0078D4?style=for-the-badge&logo=windows11&logoColor=white" />
-  <img alt="License" src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" />
+  <img alt="License" src="https://img.shields.io/badge/License-GPL-green?style=for-the-badge" />
 </p>
 
 ---
