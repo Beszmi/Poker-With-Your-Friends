@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using Poker_With_Your_Friends.Model;
 using Poker_With_Your_Friends.ViewModel;
+using System;
 using System.ComponentModel;
 
 namespace Poker_With_Your_Friends;       
@@ -43,6 +44,9 @@ public sealed partial class ServerWindow : Window, INotifyPropertyChanged
     public ServerWindow(Server server)
     {
         InitializeComponent();
+        var iconPath = System.IO.Path.Combine(
+        AppContext.BaseDirectory, "Assets", "AppIcon.ico");
+        this.AppWindow.SetIcon(iconPath);
         viewModel = new ServerWindowViewModel(server, DispatcherQueue);
     }
 

@@ -32,6 +32,10 @@ public sealed partial class GameWindow : Window
     {
         InitializeComponent();
 
+        var iconPath = System.IO.Path.Combine(
+        AppContext.BaseDirectory, "Assets", "AppIcon.ico");
+        this.AppWindow.SetIcon(iconPath);
+
         App.GameWindowInstance = this;
         this.client = client;
 

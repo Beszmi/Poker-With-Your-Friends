@@ -15,6 +15,10 @@ public sealed partial class MainWindow : Window
     {
         InitializeComponent();
 
+        var iconPath = System.IO.Path.Combine(
+        AppContext.BaseDirectory, "Assets", "AppIcon.ico");
+        this.AppWindow.SetIcon(iconPath);
+
         HeartAce.Translation += new System.Numerics.Vector3(0, 0, 32);
         ClubAce.Translation += new System.Numerics.Vector3(0, 0, 32);
 
