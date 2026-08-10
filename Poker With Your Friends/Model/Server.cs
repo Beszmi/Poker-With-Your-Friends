@@ -84,6 +84,15 @@ public class Server
         _listener.Start();
         OnServerLoggedEvent?.Invoke($"Server started on port {((IPEndPoint)_listener.LocalEndpoint).Port}...");
 
+        try
+        {
+            Game.MoveEmptyPFPToAppData();
+        }
+        catch (Exception e)
+        {
+            OnServerLoggedEvent?.Invoke($"ERROR: {e.Message}");
+        }
+
         while (!_cts.Token.IsCancellationRequested)
         {
             try

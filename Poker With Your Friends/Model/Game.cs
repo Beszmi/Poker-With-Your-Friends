@@ -351,6 +351,28 @@ public class Game //Singleton
         return false;
     }
 
+    public static void MoveEmptyPFPToAppData()
+    {
+        if (!Directory.Exists(PFPfilePath))
+        {
+            Directory.CreateDirectory(PFPfilePath);
+        }
+
+        string destination = Path.Combine(PFPfilePath, "Emptypfp.jpg");
+        if (File.Exists(destination))
+        {
+            return;
+        }
+
+        string source = Path.Combine(AppContext.BaseDirectory, "Assets", "Emptypfp.jpg");
+        if (!File.Exists(source))
+        {
+            throw new FileNotFoundException("Server doesn't have default pfp", source);
+        }
+
+        File.Copy(source, destination);
+    }
+
     public void Clear ()
     {
         Players.Clear();

@@ -20,13 +20,18 @@ public class Utils
         {
             fullPath = Path.Combine(Game.PFPfilePath, "Emptypfp.jpg");
         }
+        else if (IsAppRelativePath(path))
+        {
+            string relativePath = path.TrimStart('/', '\\').Replace('/', Path.DirectorySeparatorChar);
+            fullPath = Path.Combine(AppContext.BaseDirectory, relativePath);
+        }
         else if (Path.IsPathRooted(path))
         {
             fullPath = path;
         }
         else
         {
-            string relativePath = path.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+            string relativePath = path.Replace('/', Path.DirectorySeparatorChar);
             fullPath = Path.Combine(AppContext.BaseDirectory, relativePath);
         }
 
@@ -62,13 +67,18 @@ public class Utils
         {
             fullPath = Path.Combine(Game.PFPfilePath, "Emptypfp.jpg");
         }
+        else if (IsAppRelativePath(path))
+        {
+            string relativePath = path.TrimStart('/', '\\').Replace('/', Path.DirectorySeparatorChar);
+            fullPath = Path.Combine(AppContext.BaseDirectory, relativePath);
+        }
         else if (Path.IsPathRooted(path))
         {
             fullPath = path;
         }
         else
         {
-            string relativePath = path.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+            string relativePath = path.Replace('/', Path.DirectorySeparatorChar);
             fullPath = Path.Combine(AppContext.BaseDirectory, relativePath);
         }
 
@@ -83,6 +93,15 @@ public class Utils
         }
 
         return fullPath;
+    }
+    private static bool IsAppRelativePath(string path)
+    {
+        if (string.IsNullOrEmpty(path)) return false;
+        if (path.StartsWith(@"\\", StringComparison.Ordinal) || path.StartsWith("//", StringComparison.Ordinal))
+        {
+            return false;
+        }
+        return path[0] is '/' or '\\';
     }
 
     public static List<byte[]> HashPFPs(Player[] players)
