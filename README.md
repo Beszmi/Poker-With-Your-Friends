@@ -30,11 +30,11 @@ The project focuses on **systems software concerns** typical of computer enginee
 
 | Table in play | Showdown |
 | :---: | :---: |
-| ![In game](Docs/screenshots/in-game.png) | <!-- ![Showdown](Docs/screenshots/showdown.png) --> |
+| ![In game](Docs/screenshots/in-game.png) | ![Showdown](Docs/screenshots/showdown.png) |
 
 | Server host window |
 | :---: |
-| <!-- ![Server](Docs/screenshots/server.png) --> |
+| ![Server](Docs/screenshots/server.png) |
 
 ---
 
